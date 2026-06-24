@@ -5,9 +5,9 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 $host = 'localhost';
-$dbname = 'new_legal';
-$username = 'root';
-$password = '';
+$dbname = 'rsthbid_rsthb_hospital';
+$username = 'rsthbid_adminhosiptal';
+$password = 'HospitalTHB2026'; // <--- Pastikan sama persis dengan Langkah 1
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
