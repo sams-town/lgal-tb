@@ -1,0 +1,9 @@
+# Abaikan file backup database
+*.sql
+
+# Abaikan file ZIP
+*.zip
+
+# Abaikan folder library/vendor jika ada
+node_modules/
+vendor/
