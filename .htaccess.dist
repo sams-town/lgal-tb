@@ -1,0 +1,18 @@
+# Disable directory listing
+Options -Indexes
+
+# Redirect any request to a non-existent file/directory to index.html (for Next.js client-side routing)
+# Exclude api/ folder from this rule so that PHP files work normally
+RewriteEngine On
+
+# Set the base path
+RewriteBase /new-hospital/dist/
+
+# If request is for api/, let it pass through
+RewriteCond %{REQUEST_URI} ^/new-hospital/dist/api/ [NC]
+RewriteRule ^ - [L]
+
+# If the request is not for a valid file/directory, serve index.html
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . index.html [L]

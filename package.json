@@ -1,0 +1,10 @@
+{
+  "name": "rs-thb-manajemen",
+  "version": "1.0.0",
+  "description": "Sistem Manajemen Internal RS Taman Harapan Baru - Modul Legal & Sekretariat",
+  "private": true,
+  "scripts": {
+    "build": "cd frontend && npm run build && node ../scripts/deploy.js",
+    "deploy": "cd frontend && npm run deploy"
+  }
+}

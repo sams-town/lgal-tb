@@ -1,0 +1,10 @@
+# Matikan eksekusi script PHP dan script lain di dalam folder uploads
+<FilesMatch "\.(php|php4|php5|php7|php8|phtml|pl|py|jsp|asp|htm|html|shtml|sh|cgi)$">
+    Require all denied
+</FilesMatch>
+
+# Paksa file yang diakses hanya untuk didownload/ditampilkan sebagai media, bukan dieksekusi
+ForceType application/octet-stream
+<FilesMatch "\.(jpg|jpeg|png|gif|webp|pdf|doc|docx|xls|xlsx)$">
+    ForceType None
+</FilesMatch>

@@ -1,0 +1,20 @@
+# 1. Matikan fitur directory listing (agar orang tidak bisa mengintip isi folder)
+Options -Indexes
+
+# 2. Blokir akses ke file konfigurasi atau file sensitif lainnya
+<FilesMatch "^\.env|composer\.json|package\.json|package-lock\.json|\.gitignore|\.htaccess$">
+    Require all denied
+</FilesMatch>
+
+# 3. Routing Next.js Frontend & PHP API
+RewriteEngine On
+
+# Jika request mengarah ke folder API (PHP), biarkan berjalan normal
+RewriteCond %{REQUEST_URI} ^/api/ [NC]
+RewriteRule ^ - [L]
+
+# Jika request bukan file (-f) dan bukan folder (-d) yang ada,
+# arahkan ke index.html di dalam folder build Anda (dist) untuk routing React/Next.js
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /dist/index.html [L]
