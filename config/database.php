@@ -4,10 +4,20 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$host = 'localhost';
-$dbname = 'new_legal';
-$username = 'root';
-$password = '';
+// Deteksi Otomatis: Apakah web dibuka di Laptop atau Server Hosting cPanel
+if ($_SERVER['REMOTE_ADDR'] == '127.0.0.1' || $_SERVER['HTTP_HOST'] == 'localhost') {
+    // 💻 SETELAN UNTUK LAPTOP ANDA (Laragon/XAMPP)
+    $host = 'localhost';
+    $dbname = 'new_legal';
+    $username = 'root';
+    $password = '';
+} else {
+    // 🌐 SETELAN UNTUK SERVER CPANEL ONLINE (Menggunakan garis bawah '_' bukan '-')
+    $host = 'localhost';
+    $dbname = 'rsthbid_admin_legal'; 
+    $username = 'rsthbid_user_legal';  
+    $password = 'samboja90';
+}
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
