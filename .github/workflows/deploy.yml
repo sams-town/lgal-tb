@@ -1,0 +1,14 @@
+name: Deploy to cPanel
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger cPanel Deployment
+        run: |
+          curl -H "Cache-Control: no-cache" -s "https://s11749.sgp1.stableserver.net:2083/cpanel/version_control/deploy.html?repository_root=/home/rsthbid/git_legal_subdomain"
