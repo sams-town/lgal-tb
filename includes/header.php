@@ -38,9 +38,17 @@ $notifications = getNotificationsForCurrentUser(10);
     </div>
     
     <div class="flex items-center gap-4">
-        <?php if (in_array($current_page, ['legal.php', 'corsec.php', 'sekretariat.php', 'tenaga_medis.php', 'akreditasi.php', 'sop.php'])): ?>
+        <?php 
+        $add_button_pages = [
+            'pks.php', 'regulasi.php', 'perizinan.php', 'legal-arsip.php', 'corsec.php', 
+            'surat-masuk.php', 'surat-keluar.php', 'komite-medik.php', 'komite-keperawatan.php', 
+            'komite-nakes.php', 'komite-tenaga-kesehatan-lainnya.php', 'sip-dokter.php', 
+            'str-nakes.php', 'tambah-tenaga-medis.php', 'akreditasi.php', 'sop.php'
+        ];
+        if (in_array($current_page, $add_button_pages)): 
+        ?>
             <button id="openModalBtn" onclick="handleOpenModal()" class="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium transition-colors shadow-sm hover:shadow-md">
-                <?php if ($current_page === 'legal.php' && isset($page) && $page === 'pks'): ?>
+                <?php if ($current_page === 'pks.php'): ?>
                     <span class="text-xl">+</span>
                     <span>FORMULIR PENGAJUAN KERJASAMA</span>
                 <?php else: ?>
@@ -129,22 +137,15 @@ function toggleNotifications() {
 function handleOpenModal() {
     const currentPage = '<?php echo $current_page; ?>';
     
-    if (currentPage === 'legal.php') {
-        // For legal.php, the modal is always #modal regardless of subpage
-        openModal();
-    } else if (currentPage === 'corsec.php') {
-        // For corsec.php, the modal is #modal
-        openModal();
-    } else if (currentPage === 'tenaga_medis.php') {
-        const urlParams = new URLSearchParams(window.location.search);
-        const page = urlParams.get('page');
-        if (page === 'sip-dokter') {
-            openModal('sipDokterModal');
-        } else if (page === 'str-nakes') {
-            openModal('strNakesModal');
-        } else if (page === 'tambah-tenaga-medis') {
-            openModal('tambahTenagaMedisModal');
-        }
+    const standardModalPages = [
+        'pks.php', 'regulasi.php', 'perizinan.php', 'legal-arsip.php', 'corsec.php', 
+        'surat-masuk.php', 'surat-keluar.php', 'komite-medik.php', 'komite-keperawatan.php', 
+        'komite-nakes.php', 'komite-tenaga-kesehatan-lainnya.php', 'sip-dokter.php', 
+        'str-nakes.php', 'tambah-tenaga-medis.php', 'akreditasi.php', 'sop.php'
+    ];
+    
+    if (standardModalPages.includes(currentPage)) {
+        openModal('modal');
     }
 }
 

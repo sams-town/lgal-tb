@@ -7,7 +7,7 @@ $page_param = isset($_GET['page']) ? $_GET['page'] : '';
 $type_param = isset($_GET['type']) ? $_GET['type'] : '';
 ?>
 <!-- Sidebar -->
-<aside class="w-64 bg-gradient-to-b from-emerald-800 to-emerald-950 text-white shadow-xl min-h-screen">
+<aside class="w-64 bg-gradient-to-b from-emerald-800 to-emerald-950 text-white shadow-xl h-screen sticky top-0 overflow-y-auto flex-shrink-0">
     <div class="p-6">
         <div class="flex flex-col items-center gap-3">
             <img src="assets/logo.png" alt="Logo RS Taman Harapan Baru" class="w-40 h-auto">
@@ -26,8 +26,11 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
         </a>
 
         <!-- Legal -->
+        <?php 
+        $is_legal_active = in_array($current_page, ['pks.php', 'regulasi.php', 'perizinan.php', 'legal-arsip.php', 'pengajuan.php']); 
+        ?>
         <div class="space-y-1">
-            <button class="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg transition-colors <?php echo $current_page === 'legal.php' ? 'bg-emerald-900/50 text-white font-medium border-l-4 border-emerald-400' : 'text-emerald-100 hover:bg-emerald-700/60'; ?>">
+            <button class="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg transition-colors <?php echo $is_legal_active ? 'bg-emerald-900/50 text-white font-medium border-l-4 border-emerald-400' : 'text-emerald-100 hover:bg-emerald-700/60'; ?>">
                 <div class="flex items-center gap-3">
                     <span class="text-xl">📑</span>
                     <span>Legal</span>
@@ -35,24 +38,30 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
                 <span class="text-xs">▼</span>
             </button>
             <div class="ml-2 pl-2 border-l border-emerald-700/40 space-y-1 py-1">
-                <a href="legal.php?page=pks" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'legal.php' && ($page_param === 'pks' || $page_param === '')) ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
+                <a href="pks.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'pks.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
                     Perjanjian Kerjasama (PKS)
                 </a>
-                <a href="legal.php?page=regulasi" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'legal.php' && $page_param === 'regulasi') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
+                <a href="regulasi.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'regulasi.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
                     › Regulasi
                 </a>
-                <a href="legal.php?page=perizinan" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'legal.php' && $page_param === 'perizinan') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
+                <a href="perizinan.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'perizinan.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
                     › Perizinan
                 </a>
-                <a href="legal.php?page=legal-arsip" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'legal.php' && $page_param === 'legal-arsip') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
+                <a href="legal-arsip.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'legal-arsip.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
                     › Arsip Dokumen
+                </a>
+                <a href="pengajuan.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'pengajuan.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
+                    › Pengajuan Dokumen
                 </a>
             </div>
         </div>
 
         <!-- Sekretariat -->
+        <?php 
+        $is_sekretariat_active = in_array($current_page, ['surat-masuk.php', 'surat-keluar.php']); 
+        ?>
         <div class="space-y-1">
-            <button class="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg transition-colors <?php echo $current_page === 'sekretariat.php' ? 'bg-emerald-900/50 text-white font-medium border-l-4 border-emerald-400' : 'text-emerald-100 hover:bg-emerald-700/60'; ?>">
+            <button class="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg transition-colors <?php echo $is_sekretariat_active ? 'bg-emerald-900/50 text-white font-medium border-l-4 border-emerald-400' : 'text-emerald-100 hover:bg-emerald-700/60'; ?>">
                 <div class="flex items-center gap-3">
                     <span class="text-xl">✉️</span>
                     <span>Sekretariat</span>
@@ -60,10 +69,10 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
                 <span class="text-xs">▼</span>
             </button>
             <div class="ml-2 pl-2 border-l border-emerald-700/40 space-y-1 py-1">
-                <a href="sekretariat.php?type=surat-masuk" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'sekretariat.php' && ($type_param === 'surat-masuk' || $type_param === '')) ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
+                <a href="surat-masuk.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'surat-masuk.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
                     Surat Masuk
                 </a>
-                <a href="sekretariat.php?type=surat-keluar" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'sekretariat.php' && $type_param === 'surat-keluar') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
+                <a href="surat-keluar.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'surat-keluar.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
                     Surat Keluar
                 </a>
             </div>
@@ -88,8 +97,11 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
         </a>
 
         <!-- Komite / Tenaga Medis -->
+        <?php 
+        $is_komite_active = in_array($current_page, ['komite-medik.php', 'komite-keperawatan.php', 'komite-nakes.php', 'komite-tenaga-kesehatan-lainnya.php', 'sip-dokter.php', 'str-nakes.php', 'tambah-tenaga-medis.php']); 
+        ?>
         <div class="space-y-1">
-            <button class="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg transition-colors <?php echo $current_page === 'tenaga_medis.php' ? 'bg-emerald-900/50 text-white font-medium border-l-4 border-emerald-400' : 'text-emerald-100 hover:bg-emerald-700/60'; ?>">
+            <button class="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg transition-colors <?php echo $is_komite_active ? 'bg-emerald-900/50 text-white font-medium border-l-4 border-emerald-400' : 'text-emerald-100 hover:bg-emerald-700/60'; ?>">
                 <div class="flex items-center gap-3">
                     <span class="text-xl">👨‍⚕️</span>
                     <span>Komite</span>
@@ -97,17 +109,26 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
                 <span class="text-xs">▼</span>
             </button>
             <div class="ml-2 pl-2 border-l border-emerald-700/40 space-y-1 py-1">
-                <a href="tenaga_medis.php?page=komite-medik" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'tenaga_medis.php' && ($page_param === 'komite-medik' || $page_param === '')) ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
+                <a href="komite-medik.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'komite-medik.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
                     › Komite Medik
                 </a>
-                <a href="tenaga_medis.php?page=komite-keperawatan" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'tenaga_medis.php' && $page_param === 'komite-keperawatan') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
+                <a href="komite-keperawatan.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'komite-keperawatan.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
                     › Komite Keperawatan
                 </a>
-                <a href="tenaga_medis.php?page=komite-nakes" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'tenaga_medis.php' && $page_param === 'komite-nakes') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
+                <a href="komite-nakes.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'komite-nakes.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
                     › Komite Nakes
                 </a>
-                <a href="tenaga_medis.php?page=komite-tenaga-kesehatan-lainnya" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'tenaga_medis.php' && $page_param === 'komite-tenaga-kesehatan-lainnya') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
-                    › Komite Tenaga Kesehatan Lainnya
+                <a href="komite-tenaga-kesehatan-lainnya.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'komite-tenaga-kesehatan-lainnya.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
+                    › Komite Kesehatan Lainnya
+                </a>
+                <a href="sip-dokter.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'sip-dokter.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
+                    › SIP Dokter
+                </a>
+                <a href="str-nakes.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'str-nakes.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
+                    › STR Nakes
+                </a>
+                <a href="tambah-tenaga-medis.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'tambah-tenaga-medis.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
+                    › Tambah Tenaga Medis
                 </a>
             </div>
         </div>
@@ -131,3 +152,4 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
         </a>
     </nav>
 </aside>
+
