@@ -3,6 +3,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 $current_page = basename($_SERVER['PHP_SELF']);
+$page_param = isset($_GET['page']) ? $_GET['page'] : '';
 ?>
 <!-- Sidebar -->
 <aside class="w-64 bg-gradient-to-b from-emerald-800 to-emerald-900 text-white shadow-xl">
@@ -30,16 +31,16 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <span>▼</span>
             </button>
             <div class="ml-4 space-y-1">
-                <a href="legal.php?page=pks" class="block px-4 py-2 rounded-lg text-sm transition-colors text-emerald-100 hover:bg-emerald-700">
+                <a href="legal.php?page=pks" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'legal.php' && ($page_param === 'pks' || $page_param === '')) ? 'bg-emerald-700 text-white font-semibold' : 'text-emerald-100 hover:bg-emerald-700'; ?>">
                     Perjanjian Kerjasama (PKS)
                 </a>
-                <a href="legal.php?page=regulasi" class="block px-4 py-2 rounded-lg text-sm transition-colors text-emerald-100 hover:bg-emerald-700">
+                <a href="legal.php?page=regulasi" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'legal.php' && $page_param === 'regulasi') ? 'bg-emerald-700 text-white font-semibold' : 'text-emerald-100 hover:bg-emerald-700'; ?>">
                     › Regulasi
                 </a>
-                <a href="legal.php?page=perizinan" class="block px-4 py-2 rounded-lg text-sm transition-colors text-emerald-100 hover:bg-emerald-700">
+                <a href="legal.php?page=perizinan" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'legal.php' && $page_param === 'perizinan') ? 'bg-emerald-700 text-white font-semibold' : 'text-emerald-100 hover:bg-emerald-700'; ?>">
                     › Perizinan
                 </a>
-                <a href="legal.php?page=legal-arsip" class="block px-4 py-2 rounded-lg text-sm transition-colors text-emerald-100 hover:bg-emerald-700">
+                <a href="legal.php?page=legal-arsip" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'legal.php' && $page_param === 'legal-arsip') ? 'bg-emerald-700 text-white font-semibold' : 'text-emerald-100 hover:bg-emerald-700'; ?>">
                     › Arsip Dokumen
                 </a>
             </div>
@@ -82,16 +83,16 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <span>▼</span>
             </button>
             <div class="ml-4 space-y-1">
-                <a href="tenaga_medis.php?page=komite-medik" class="block px-4 py-2 rounded-lg text-sm transition-colors text-emerald-100 hover:bg-emerald-700">
+                <a href="tenaga_medis.php?page=komite-medik" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'tenaga_medis.php' && ($page_param === 'komite-medik' || $page_param === '')) ? 'bg-emerald-700 text-white font-semibold' : 'text-emerald-100 hover:bg-emerald-700'; ?>">
                     › Komite Medik
                 </a>
-                <a href="tenaga_medis.php?page=komite-keperawatan" class="block px-4 py-2 rounded-lg text-sm transition-colors text-emerald-100 hover:bg-emerald-700">
+                <a href="tenaga_medis.php?page=komite-keperawatan" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'tenaga_medis.php' && $page_param === 'komite-keperawatan') ? 'bg-emerald-700 text-white font-semibold' : 'text-emerald-100 hover:bg-emerald-700'; ?>">
                     › Komite Keperawatan
                 </a>
-                <a href="tenaga_medis.php?page=komite-nakes" class="block px-4 py-2 rounded-lg text-sm transition-colors text-emerald-100 hover:bg-emerald-700">
+                <a href="tenaga_medis.php?page=komite-nakes" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'tenaga_medis.php' && $page_param === 'komite-nakes') ? 'bg-emerald-700 text-white font-semibold' : 'text-emerald-100 hover:bg-emerald-700'; ?>">
                     › Komite Nakes
                 </a>
-                <a href="tenaga_medis.php?page=komite-tenaga-kesehatan-lainnya" class="block px-4 py-2 rounded-lg text-sm transition-colors text-emerald-100 hover:bg-emerald-700">
+                <a href="tenaga_medis.php?page=komite-tenaga-kesehatan-lainnya" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'tenaga_medis.php' && $page_param === 'komite-tenaga-kesehatan-lainnya') ? 'bg-emerald-700 text-white font-semibold' : 'text-emerald-100 hover:bg-emerald-700'; ?>">
                     › Komite Tenaga Kesehatan Lainnya
                 </a>
             </div>
