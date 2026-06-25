@@ -57,42 +57,152 @@ try {
     // Continue, sample data not critical
 }
 
+// Handle new document upload
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_document'])) {
+    $docName = $_POST['doc_name'];
+    $proposer = $user['nama'] ?? $user['name'] ?? 'Super Admin';
+    $divisionId = $user['division_id'] ?? 1; // Default to division 1
+
+    if (isset($_FILES['document_file']) && $_FILES['document_file']['error'] === UPLOAD_ERR_OK) {
+        $file = $_FILES['document_file'];
+        $allowedTypes = ['pdf', 'jpg', 'jpeg', 'png'];
+        $fileExt = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+
+        if (in_array($fileExt, $allowedTypes)) {
+            $uploadDir = __DIR__ . '/uploads/originals/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+
+            $fileName = time() . '_' . preg_replace('/[^a-zA-Z0-9_.-]/', '_', $file['name']);
+            $targetFilePath = $uploadDir . $fileName;
+
+            if (move_uploaded_file($file['tmp_name'], $targetFilePath)) {
+                // Initial step status
+                $initialStepStatus = json_encode([
+                    'km' => 'pending',
+                    'lg' => 'pending',
+                    'sk' => 'pending',
+                    'dk' => 'pending',
+                    'du' => 'pending'
+                ]);
+
+                // Insert document
+                $stmt = $pdo->prepare("
+                    INSERT INTO approval_documents (name, proposer, date, step_status, file_original, file_compressed, division_id)
+                    VALUES (?, ?, CURDATE(), ?, ?, ?, ?)
+                ");
+                $stmt->execute([$docName, $proposer, $initialStepStatus, $targetFilePath, null, $divisionId]);
+                $newDocId = $pdo->lastInsertId();
+
+                // Catat log upload
+                $stmtLog = $pdo->prepare("INSERT INTO document_logs (document_id, user_id, aksi, detail) VALUES (?, ?, 'Upload', 'Mengunggah berkas asli')");
+                $stmtLog->execute([$newDocId, $user['id'] ?? null]);
+
+                // Exec background worker to compress and notify via WA
+                $phpExe = 'C:\laragon\bin\php\php-8.3.30-Win32-vs16-x64\php.exe';
+                $workerCmd = "start /B " . escapeshellarg($phpExe) . " " . escapeshellarg(__DIR__ . '/worker_compress.php') . " " . escapeshellarg($newDocId) . " > NUL 2>&1";
+                pclose(popen($workerCmd, "r"));
+
+                $message = '<div class="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700">Dokumen berhasil diunggah! Kompresi latar belakang dan WhatsApp alur kerja sedang dijalankan.</div>';
+            } else {
+                $message = '<div class="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">Gagal memindahkan file yang diunggah.</div>';
+            }
+        } else {
+            $message = '<div class="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">Tipe berkas tidak didukung. Harap unggah PDF atau Gambar (JPG/PNG).</div>';
+        }
+    } else {
+        $message = '<div class="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">Gagal mengunggah berkas.</div>';
+    }
+}
+
 // Handle PIN submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_pin'])) {
     $documentId = (int)$_POST['document_id'];
     $enteredPin = $_POST['pin'];
     $stepId = $_POST['step_id'];
 
-    // Find current step to check PIN
+    // Ambil user dari database untuk validasi PIN dan Role
+    $stmtUser = $pdo->prepare("SELECT pin, role_id FROM users WHERE id = ?");
+    $stmtUser->execute([$user['id'] ?? 0]);
+    $dbUser = $stmtUser->fetch();
+
     $validPin = false;
-    foreach ($stepConfig as $step) {
-        if ($step['id'] === $stepId && $step['pin'] === $enteredPin) {
+    if ($dbUser) {
+        // Mendukung pin plain text (seperti di demo) atau password_verify
+        if ($enteredPin === $dbUser['pin'] || password_verify($enteredPin, $dbUser['pin'])) {
             $validPin = true;
+        }
+    }
+
+    // Ambil target role dari konfigurasi step statis
+    $targetRoleName = '';
+    foreach ($stepConfig as $step) {
+        if ($step['id'] === $stepId) {
+            $targetRoleName = $step['role'];
             break;
         }
     }
 
+    // Validasi apakah user memiliki role yang dibutuhkan (Super Admin mem-bypass semua)
+    $stmtRole = $pdo->prepare("SELECT nama_role FROM roles WHERE id = ?");
+    $stmtRole->execute([$dbUser['role_id'] ?? 0]);
+    $userRoleName = $stmtRole->fetchColumn();
+
+    if ($userRoleName !== $targetRoleName && $userRoleName !== 'Super Admin') {
+        $validPin = false;
+        $message = '<div class="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">Akses Ditolak: Peran Anda (' . htmlspecialchars($userRoleName) . ') tidak berhak menyetujui langkah ' . htmlspecialchars($stepId) . ' (' . htmlspecialchars($targetRoleName) . ').</div>';
+    }
+
     if ($validPin) {
-        // Get current statuses
-        $stmt = $pdo->prepare("SELECT step_status FROM approval_documents WHERE id = ?");
-        $stmt->execute([$documentId]);
-        $doc = $stmt->fetch();
+        // Ambil status langkah dokumen saat ini
+        $stmtDoc = $pdo->prepare("SELECT name, step_status FROM approval_documents WHERE id = ?");
+        $stmtDoc->execute([$documentId]);
+        $doc = $stmtDoc->fetch();
         
         if ($doc) {
             $stepStatus = json_decode($doc['step_status'], true);
             $stepStatus[$stepId] = 'approved';
             
-            $stmt = $pdo->prepare("
+            $stmtUpdate = $pdo->prepare("
                 UPDATE approval_documents 
                 SET step_status = ? 
                 WHERE id = ?
             ");
-            $stmt->execute([json_encode($stepStatus), $documentId]);
+            $stmtUpdate->execute([json_encode($stepStatus), $documentId]);
             
-            $message = '<div class="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700">Dokumen berhasil ditandatangani!</div>';
+            // Catat log persetujuan
+            $stmtLog = $pdo->prepare("INSERT INTO document_logs (document_id, user_id, aksi, detail) VALUES (?, ?, 'Approve Step', ?)");
+            $stmtLog->execute([$documentId, $user['id'] ?? null, "Menyetujui langkah {$stepId} (Role: {$targetRoleName})"]);
+
+            $message = '<div class="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700">Dokumen berhasil disetujui untuk langkah: ' . strtoupper($stepId) . '!</div>';
+
+            // Cari langkah selanjutnya
+            $nextStepId = null;
+            $currentFound = false;
+            foreach ($stepConfig as $step) {
+                if ($currentFound) {
+                    $nextStepId = $step['id'];
+                    break;
+                }
+                if ($step['id'] === $stepId) {
+                    $currentFound = true;
+                }
+            }
+
+            if ($nextStepId) {
+                // Jalankan background worker untuk mengirim notifikasi WA ke target step selanjutnya
+                $phpExe = 'C:\laragon\bin\php\php-8.3.30-Win32-vs16-x64\php.exe';
+                $workerCmd = "start /B " . escapeshellarg($phpExe) . " " . escapeshellarg(__DIR__ . '/worker_compress.php') . " " . escapeshellarg($documentId) . " " . escapeshellarg($nextStepId) . " > NUL 2>&1";
+                pclose(popen($workerCmd, "r"));
+            } else {
+                // Semua langkah alur kerja selesai!
+                $stmtLogFinal = $pdo->prepare("INSERT INTO document_logs (document_id, aksi, detail) VALUES (?, 'Approved Final', 'Semua tahap persetujuan telah diselesaikan.')");
+                $stmtLogFinal->execute([$documentId]);
+            }
         }
-    } else {
-        $message = '<div class="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">PIN tidak valid!</div>';
+    } elseif (!isset($message) || empty($message)) {
+        $message = '<div class="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">PIN Keamanan tidak valid!</div>';
     }
 }
 
@@ -262,6 +372,12 @@ function renderStepIndicator($stepId, $stepStatus, $currentStep = null) {
                         <h1 class="text-3xl font-bold text-gray-900">Persetujuan & E-Signature Dokumen</h1>
                         <p class="text-gray-600 mt-2">Alur tanda tangan berjenjang untuk dokumen rumah sakit</p>
                     </div>
+                    <button 
+                        onclick="openUploadModal()"
+                        class="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md flex items-center gap-2"
+                    >
+                        <span>📤</span> Upload Dokumen Baru
+                    </button>
                 </div>
 
                 <?php echo $message; ?>
@@ -293,6 +409,20 @@ function renderStepIndicator($stepId, $stepStatus, $currentStep = null) {
                                         <td class="px-6 py-4 text-gray-600"><?php echo $index + 1; ?></td>
                                         <td class="px-6 py-4">
                                             <p class="font-medium text-gray-900"><?php echo htmlspecialchars($doc['name']); ?></p>
+                                            <div class="flex gap-4 mt-2 text-xs">
+                                                <?php if (!empty($doc['file_original'])): ?>
+                                                    <a href="download.php?type=original&id=<?php echo $doc['id']; ?>" class="text-blue-600 hover:underline flex items-center gap-1">
+                                                        📄 Asli (Download)
+                                                    </a>
+                                                <?php endif; ?>
+                                                <?php if (!empty($doc['file_compressed'])): ?>
+                                                    <a href="download.php?type=compressed&id=<?php echo $doc['id']; ?>" class="text-emerald-600 hover:underline flex items-center gap-1 font-semibold">
+                                                        ⚡ Terkompresi (Download)
+                                                    </a>
+                                                <?php else: ?>
+                                                    <span class="text-gray-400 italic">⏳ Proses kompresi background...</span>
+                                                <?php endif; ?>
+                                            </div>
                                         </td>
                                         <td class="px-6 py-4 text-gray-700"><?php echo htmlspecialchars($doc['proposer']); ?></td>
                                         <td class="px-6 py-4 text-gray-700"><?php echo date('d/m/Y', strtotime($doc['date'])); ?></td>
@@ -407,6 +537,52 @@ function renderStepIndicator($stepId, $stepStatus, $currentStep = null) {
         </div>
     </div>
 
+    <!-- Upload Document Modal -->
+    <div id="uploadModal" class="fixed inset-0 z-50 hidden">
+        <div class="modal-overlay absolute inset-0" onclick="closeUploadModal()"></div>
+        <div class="relative z-10 flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden">
+                <div class="p-8 border-b border-gray-100 flex justify-between items-center">
+                    <h2 class="text-2xl font-bold text-gray-900">Upload Dokumen Baru</h2>
+                    <button onclick="closeUploadModal()" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button>
+                </div>
+                <form method="POST" enctype="multipart/form-data" class="p-8 space-y-6">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Nama Dokumen</label>
+                        <input 
+                            type="text" 
+                            name="doc_name" 
+                            required 
+                            placeholder="Contoh: Perjanjian Kerjasama Klinik Utama"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                        >
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Berkas Dokumen (PDF, JPG, PNG)</label>
+                        <input 
+                            type="file" 
+                            name="document_file" 
+                            required 
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm"
+                        >
+                        <p class="text-xs text-gray-500 mt-2">Maksimal ukuran file: 10MB. Dokumen akan dikompresi otomatis di background.</p>
+                    </div>
+
+                    <div class="flex justify-end gap-4 pt-4 border-t border-gray-100">
+                        <button type="button" onclick="closeUploadModal()" class="px-6 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl font-medium transition-colors">
+                            Batal
+                        </button>
+                        <button type="submit" name="upload_document" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold transition-colors">
+                            Mulai Upload & Proses
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script>
         function openModal(docId, docName, proposer, date) {
             document.getElementById('modalDocId').value = docId;
@@ -418,6 +594,14 @@ function renderStepIndicator($stepId, $stepStatus, $currentStep = null) {
 
         function closeModal() {
             document.getElementById('signModal').classList.add('hidden');
+        }
+
+        function openUploadModal() {
+            document.getElementById('uploadModal').classList.remove('hidden');
+        }
+
+        function closeUploadModal() {
+            document.getElementById('uploadModal').classList.add('hidden');
         }
     </script>
 </body>

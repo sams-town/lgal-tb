@@ -4,8 +4,12 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Deteksi Otomatis: Apakah web dibuka di Laptop atau Server Hosting cPanel
-if ($_SERVER['REMOTE_ADDR'] == '127.0.0.1' || $_SERVER['HTTP_HOST'] == 'localhost') {
+// Deteksi Otomatis: Apakah web dibuka di Laptop (termasuk CLI) atau Server Hosting cPanel
+$isLocal = (php_sapi_name() === 'cli') || 
+           (isset($_SERVER['REMOTE_ADDR']) && in_array($_SERVER['REMOTE_ADDR'], ['127.0.0.1', '::1'])) || 
+           (isset($_SERVER['HTTP_HOST']) && in_array($_SERVER['HTTP_HOST'], ['localhost', '127.0.0.1', 'new-hospital.test']));
+
+if ($isLocal) {
     // 💻 SETELAN UNTUK LAPTOP ANDA (Laragon/XAMPP)
     $host = 'localhost';
     $dbname = 'new_legal';
