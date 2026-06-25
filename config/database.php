@@ -16,10 +16,10 @@ if ($isLocal) {
     $username = 'root';
     $password = '';
 } else {
-    // 🌐 SETELAN UNTUK SERVER CPANEL ONLINE (Menggunakan garis bawah '_' bukan '-')
+    // 🌐 SETELAN UNTUK SERVER CPANEL ONLINE (Menggunakan tanda hubung '-')
     $host = 'localhost';
-    $dbname = 'rsthbid_admin_legal'; 
-    $username = 'rsthbid_user_legal';  
+    $dbname = 'rsthbid_admin-legal'; 
+    $username = 'rsthbid_user-legal';  
     $password = 'samboja90';
 }
 
