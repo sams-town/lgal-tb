@@ -1,9 +1,32 @@
-# Abaikan file backup database
-*.sql
-
-# Abaikan file ZIP
-*.zip
-
-# Abaikan folder library/vendor jika ada
+# Node.js / Frontend
 node_modules/
-vendor/
+frontend/
+dist/
+package.json
+package-lock.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env.local
+.env.*.local
+
+# Upload folders (keep them, but ignore contents if needed)
+uploads/
+storage/
+api/uploads/
+api/storage/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.log
