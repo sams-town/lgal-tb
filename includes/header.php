@@ -40,8 +40,13 @@ $notifications = getNotificationsForCurrentUser(10);
     <div class="flex items-center gap-4">
         <?php if (in_array($current_page, ['legal.php', 'corsec.php', 'sekretariat.php', 'tenaga_medis.php', 'akreditasi.php', 'sop.php'])): ?>
             <button id="openModalBtn" onclick="handleOpenModal()" class="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium transition-colors shadow-sm hover:shadow-md">
-                <span class="text-xl">+</span>
-                <span>Tambah Dokumen</span>
+                <?php if ($current_page === 'legal.php' && isset($page) && $page === 'pks'): ?>
+                    <span class="text-xl">+</span>
+                    <span>FORMULIR PENGAJUAN KERJASAMA</span>
+                <?php else: ?>
+                    <span class="text-xl">+</span>
+                    <span>Tambah Dokumen</span>
+                <?php endif; ?>
             </button>
         <?php endif; ?>
         
