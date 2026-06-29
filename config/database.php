@@ -27,6 +27,24 @@ try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+
+    // Auto-ensure required columns on tenaga_medis table exist
+    try {
+        $checkCols = [
+            'masa_berlaku_str_mulai' => "DATE NULL AFTER no_str",
+            'masa_berlaku_str_akhir' => "DATE NULL AFTER masa_berlaku_str_mulai",
+            'masa_berlaku_pks_akhir' => "DATE NULL AFTER masa_berlaku_pks_mulai",
+            'masa_berlaku_sk_akhir' => "DATE NULL AFTER masa_berlaku_sk_mulai"
+        ];
+        foreach ($checkCols as $cName => $cDef) {
+            $colExists = $pdo->query("SHOW COLUMNS FROM tenaga_medis LIKE '$cName'")->rowCount();
+            if ($colExists == 0) {
+                $pdo->exec("ALTER TABLE tenaga_medis ADD COLUMN $cName $cDef");
+            }
+        }
+    } catch (Exception $ex) {
+        // Silently continue if table not created yet
+    }
 } catch (PDOException $e) {
     die('Koneksi database gagal: ' . $e->getMessage());
 }
