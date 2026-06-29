@@ -47,14 +47,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_tenaga_medis']
         $stmt = $pdo->prepare("
             INSERT INTO tenaga_medis (
                 nama_lengkap, unit_ruangan, status_kepegawaian, tipe_form,
-                no_str, file_str,
+                no_str, masa_berlaku_str_mulai, masa_berlaku_str_akhir, file_str,
                 no_sip, masa_berlaku_sip_mulai, masa_berlaku_sip_akhir, file_sip,
                 no_pks, masa_berlaku_pks_mulai, masa_berlaku_pks_akhir, file_pks,
                 no_sk, masa_berlaku_sk_mulai, masa_berlaku_sk_akhir, file_sk,
                 kompetensi_klinis, sertifikasi_kompetensi, jabatan_keperawatan,
                 spesialis, nomor_pkwt, rincian_kewenangan_klinis,
                 lantai, nomor_keputusan_direktur
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $stmt->execute([
             $_POST['nama_lengkap'],
@@ -62,6 +62,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_tenaga_medis']
             $_POST['status_kepegawaian'],
             $page,
             $_POST['no_str'] ?? null,
+            $_POST['masa_berlaku_str_mulai'] ?? null,
+            $_POST['masa_berlaku_str_akhir'] ?? null,
             $fileStr,
             $_POST['no_sip'] ?? null,
             $_POST['masa_berlaku_sip_mulai'] ?? null,
@@ -272,8 +274,8 @@ if (!function_exists('formatDate')) {
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Rincian Kewenangan Klinis</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Status Kepegawaian</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Nomor PKWT</th>
-                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">No. SIP/STR</th>
-                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Masa Berlaku</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">No. SIP</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">No. STR</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Berkas</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Aksi</th>
                                 </tr>
@@ -306,21 +308,55 @@ if (!function_exists('formatDate')) {
                                                 </span>
                                             </td>
                                             <td class="px-6 py-4 text-gray-700 text-sm">
-                                                <?php echo htmlspecialchars($data['nomor_pkwt'] ?? '-'); ?>
-                                            </td>
-                                            <td class="px-6 py-4 text-gray-700 text-sm font-mono">
-                                                <?php echo htmlspecialchars($data['no_sip'] ?? $data['no_str'] ?? '-'); ?>
+                                                <div class="font-medium font-mono"><?php echo htmlspecialchars($data['nomor_pkwt'] ?? $data['no_pks'] ?? '-'); ?></div>
+                                                <?php 
+                                                $pksMulai = $data['masa_berlaku_pks_mulai'] ?? null;
+                                                $pksAkhir = $data['masa_berlaku_pks_akhir'] ?? null;
+                                                if ($pksMulai && $pksAkhir): ?>
+                                                    <div class="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                                                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                        <?php echo formatDate($pksMulai) . ' - ' . formatDate($pksAkhir); ?>
+                                                    </div>
+                                                <?php elseif ($pksAkhir): ?>
+                                                    <div class="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                                                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                        s/d <?php echo formatDate($pksAkhir); ?>
+                                                    </div>
+                                                <?php endif; ?>
                                             </td>
                                             <td class="px-6 py-4 text-gray-700 text-sm">
+                                                <div class="font-medium font-mono"><?php echo htmlspecialchars($data['no_sip'] ?? '-'); ?></div>
                                                 <?php 
-                                                $masaAwal = $data['masa_berlaku_sip_mulai'] ?? $data['masa_berlaku_sk_mulai'] ?? null;
-                                                $masaAkhir = $data['masa_berlaku_sip_akhir'] ?? $data['masa_berlaku_sk_akhir'] ?? null;
-                                                if ($masaAwal && $masaAkhir) {
-                                                    echo formatDate($masaAwal) . ' - ' . formatDate($masaAkhir);
-                                                } else {
-                                                    echo '-';
-                                                }
-                                                ?>
+                                                $sipMulai = $data['masa_berlaku_sip_mulai'] ?? null;
+                                                $sipAkhir = $data['masa_berlaku_sip_akhir'] ?? null;
+                                                if ($sipMulai && $sipAkhir): ?>
+                                                    <div class="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                                                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                                        <?php echo formatDate($sipMulai) . ' - ' . formatDate($sipAkhir); ?>
+                                                    </div>
+                                                <?php elseif ($sipAkhir): ?>
+                                                    <div class="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                                                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                                        s/d <?php echo formatDate($sipAkhir); ?>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td class="px-6 py-4 text-gray-700 text-sm">
+                                                <div class="font-medium font-mono"><?php echo htmlspecialchars($data['no_str'] ?? '-'); ?></div>
+                                                <?php 
+                                                $strMulai = $data['masa_berlaku_str_mulai'] ?? null;
+                                                $strAkhir = $data['masa_berlaku_str_akhir'] ?? null;
+                                                if ($strMulai && $strAkhir): ?>
+                                                    <div class="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                                                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                                                        <?php echo formatDate($strMulai) . ' - ' . formatDate($strAkhir); ?>
+                                                    </div>
+                                                <?php elseif ($strAkhir): ?>
+                                                    <div class="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                                                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                                                        s/d <?php echo formatDate($strAkhir); ?>
+                                                    </div>
+                                                <?php endif; ?>
                                             </td>
                                             <td class="px-6 py-4">
                                                 <div class="flex gap-2">
@@ -411,6 +447,16 @@ if (!function_exists('formatDate')) {
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">No. STR</label>
                                     <input type="text" name="no_str" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan nomor STR">
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Masa Berlaku (Mulai)</label>
+                                        <input type="date" name="masa_berlaku_str_mulai" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Masa Berlaku (Akhir)</label>
+                                        <input type="date" name="masa_berlaku_str_akhir" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                    </div>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">STR (PDF)</label>
