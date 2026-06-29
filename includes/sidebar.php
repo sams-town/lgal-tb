@@ -95,7 +95,7 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
 
         <!-- Komite / Tenaga Medis -->
         <?php 
-        $is_komite_active = in_array($current_page, ['komite-medik.php', 'komite-keperawatan.php', 'komite-nakes.php', 'komite-tenaga-kesehatan-lainnya.php', 'sip-dokter.php', 'str-nakes.php', 'tambah-tenaga-medis.php']); 
+        $is_komite_active = in_array($current_page, ['komite-medik.php', 'komite-keperawatan.php', 'komite-tenaga-kesehatan-lainnya.php']); 
         ?>
         <div class="space-y-1">
             <button class="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg transition-colors <?php echo $is_komite_active ? 'bg-emerald-900/50 text-white font-medium border-l-4 border-emerald-400' : 'text-emerald-100 hover:bg-emerald-700/60'; ?>">
@@ -112,20 +112,8 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
                 <a href="komite-keperawatan.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'komite-keperawatan.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
                     › Komite Keperawatan
                 </a>
-                <a href="komite-nakes.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'komite-nakes.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
-                    › Komite Nakes
-                </a>
                 <a href="komite-tenaga-kesehatan-lainnya.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'komite-tenaga-kesehatan-lainnya.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
                     › Komite Kesehatan Lainnya
-                </a>
-                <a href="sip-dokter.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'sip-dokter.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
-                    › SIP Dokter
-                </a>
-                <a href="str-nakes.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'str-nakes.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
-                    › STR Nakes
-                </a>
-                <a href="tambah-tenaga-medis.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'tambah-tenaga-medis.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
-                    › Tambah Tenaga Medis
                 </a>
             </div>
         </div>
