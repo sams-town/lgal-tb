@@ -27,7 +27,7 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
 
         <!-- Legal -->
         <?php 
-        $is_legal_active = in_array($current_page, ['pks.php', 'regulasi.php', 'perizinan.php', 'legal-arsip.php', 'pengajuan.php']); 
+        $is_legal_active = in_array($current_page, ['pks.php', 'legal-arsip.php', 'regulasi.php', 'perizinan.php']); 
         ?>
         <div class="space-y-1">
             <button class="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg transition-colors <?php echo $is_legal_active ? 'bg-emerald-900/50 text-white font-medium border-l-4 border-emerald-400' : 'text-emerald-100 hover:bg-emerald-700/60'; ?>">
@@ -41,17 +41,14 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
                 <a href="pks.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'pks.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
                     Perjanjian Kerjasama (PKS)
                 </a>
+                <a href="legal-arsip.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'legal-arsip.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
+                    › Arsip PKS
+                </a>
                 <a href="regulasi.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'regulasi.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
                     › Regulasi
                 </a>
                 <a href="perizinan.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'perizinan.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
                     › Perizinan
-                </a>
-                <a href="legal-arsip.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'legal-arsip.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
-                    › Arsip Dokumen
-                </a>
-                <a href="pengajuan.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'pengajuan.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
-                    › Pengajuan Dokumen
                 </a>
             </div>
         </div>
