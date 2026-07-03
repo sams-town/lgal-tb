@@ -9,6 +9,40 @@ if (!isset($_SESSION['user'])) {
     exit;
 }
 
+/**
+ * Helper to parse various date formats into Y-m-d format for database storage.
+ */
+function parseImportDate($dateStr) {
+    if (empty($dateStr)) {
+        return null;
+    }
+    
+    $dateStr = trim($dateStr);
+    
+    // Check if it's already YYYY-MM-DD
+    if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateStr)) {
+        return $dateStr;
+    }
+    
+    // Check for DD/MM/YYYY or DD-MM-YYYY format
+    if (preg_match('/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/', $dateStr, $matches)) {
+        return sprintf('%04d-%02d-%02d', $matches[3], $matches[2], $matches[1]);
+    }
+    
+    // Check for YYYY/MM/DD format
+    if (preg_match('/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/', $dateStr, $matches)) {
+        return sprintf('%04d-%02d-%02d', $matches[1], $matches[2], $matches[3]);
+    }
+    
+    // Try strtotime fallback
+    $timestamp = strtotime($dateStr);
+    if ($timestamp !== false) {
+        return date('Y-m-d', $timestamp);
+    }
+    
+    return null;
+}
+
 $action = $_GET['action'] ?? '';
 $module = $_GET['module'] ?? '';
 
@@ -213,8 +247,8 @@ if ($action === 'download_template') {
                         null, // rekomendasi_pengadaan
                         null, // rekomendasi_legal
                         $row[1] ?? '', // nomor_dokumen
-                        $row[3] ?? null, // tanggal_mulai
-                        $row[4] ?? null, // tanggal_berakhir
+                        parseImportDate($row[3] ?? null), // tanggal_mulai
+                        parseImportDate($row[4] ?? null), // tanggal_berakhir
                         null // file_path
                     ];
                 } elseif ($module === 'regulasi') {
@@ -222,15 +256,15 @@ if ($action === 'download_template') {
                         $row[0] ?? '', // judul_regulasi
                         $row[1] ?? '', // nomor_regulasi
                         $row[2] ?? '', // kategori_regulasi
-                        $row[3] ?? date('Y-m-d'), // tanggal_terbit
+                        parseImportDate($row[3] ?? null) ?? date('Y-m-d'), // tanggal_terbit
                         null // file_path
                     ];
                 } elseif ($module === 'perizinan') {
                     $insertData = [
                         $row[0] ?? '', // nama_izin
-                        $row[2] ?? 'RS THB', // pemilik_izin
-                        $row[3] ?? date('Y-m-d'), // masa_berlaku_mulai
-                        $row[4] ?? null, // masa_berlaku_akhir
+                        in_array(trim(strtoupper($row[2] ?? '')), ['RS THB', 'PT PBA']) ? trim(strtoupper($row[2])) : 'RS THB', // pemilik_izin
+                        parseImportDate($row[3] ?? null) ?? date('Y-m-d'), // masa_berlaku_mulai
+                        parseImportDate($row[4] ?? null), // masa_berlaku_akhir
                         $row[5] ?? '', // instansi_penerbit
                         $row[6] ?? '', // penanggung_jawab
                         null // file_path
@@ -250,8 +284,8 @@ if ($action === 'download_template') {
                         $row[9] ?? null, // no_str
                         null, // file_str
                         $row[10] ?? null, // no_sip
-                        $row[11] ?? null, // masa_berlaku_sip_mulai
-                        $row[12] ?? null, // masa_berlaku_sip_akhir
+                        parseImportDate($row[11] ?? null), // masa_berlaku_sip_mulai
+                        parseImportDate($row[12] ?? null), // masa_berlaku_sip_akhir
                         null, // file_sip
                         null, // no_pks
                         null, // masa_berlaku_pks_mulai
@@ -269,7 +303,7 @@ if ($action === 'download_template') {
                         $row[1] ?? '', // judul
                         $row[0] ?? '', // nomor_sop
                         $row[2] ?? '', // unit_kerja
-                        $row[3] ?? date('Y-m-d'), // tanggal_terbit
+                        parseImportDate($row[3] ?? null) ?? date('Y-m-d'), // tanggal_terbit
                         null, // tanggal_expired
                         null, // file_path
                         $_SESSION['user']['id'] ?? null // created_by
@@ -279,7 +313,7 @@ if ($action === 'download_template') {
                         $row[0] ?? '', // judul
                         $row[1] ?? '', // nomor_dokumen
                         $row[2] ?? 'GCG', // kategori
-                        $row[3] ?? date('Y-m-d'), // tanggal_terbit
+                        parseImportDate($row[3] ?? null) ?? date('Y-m-d'), // tanggal_terbit
                         null // file_path
                     ];
                 } elseif ($module === 'legal-arsip') {
@@ -288,8 +322,8 @@ if ($action === 'download_template') {
                         $row[1] ?? '', // perusahaan
                         $row[2] ?? null, // ruang_lingkup
                         !empty($row[3]) ? (float)$row[3] : null, // nilai_kontrak
-                        $row[4] ?? null, // tanggal_mulai
-                        $row[5] ?? null, // tanggal_berakhir
+                        parseImportDate($row[4] ?? null), // tanggal_mulai
+                        parseImportDate($row[5] ?? null), // tanggal_berakhir
                         $row[6] ?? null, // nama_pj
                         $row[7] ?? null, // no_telp_pj
                         null // file_path
