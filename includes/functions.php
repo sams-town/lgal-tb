@@ -234,4 +234,22 @@ function markAllNotificationsAsRead()
         return false;
     }
 }
+
+/**
+ * Format tanggal dari Y-m-d ke format Indonesia (d F Y)
+ * @param string|null $date Tanggal dalam format Y-m-d
+ * @return string Tanggal terformat atau '-' jika kosong/invalid
+ */
+if (!function_exists('formatDate')) {
+    function formatDate($date) {
+        if (!$date) return '-';
+        $months = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+        try {
+            $d = new DateTime($date);
+            return $d->format('d') . ' ' . $months[$d->format('n')] . ' ' . $d->format('Y');
+        } catch (Exception $e) {
+            return '-';
+        }
+    }
+}
 ?>

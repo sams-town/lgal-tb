@@ -190,11 +190,13 @@ function getCategoryBadgeClass($category) {
     }
 }
 
-function formatDate($date) {
-    if (!$date) return '-';
-    $months = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-    $d = new DateTime($date);
-    return $d->format('d') . ' ' . $months[$d->format('n')] . ' ' . $d->format('Y');
+if (!function_exists('formatDate')) {
+    function formatDate($date) {
+        if (!$date) return '-';
+        $months = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+        $d = new DateTime($date);
+        return $d->format('d') . ' ' . $months[$d->format('n')] . ' ' . $d->format('Y');
+    }
 }
 ?>
 <!DOCTYPE html>
