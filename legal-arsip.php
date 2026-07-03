@@ -172,6 +172,36 @@ try {
                     <?php unset($_SESSION['pks_error']); ?>
                 <?php endif; ?>
 
+                <?php if (isset($_SESSION['import_success'])): ?>
+                    <div class="p-4 bg-emerald-100 text-emerald-800 rounded-xl">
+                        <?php echo htmlspecialchars($_SESSION['import_success']); ?>
+                    </div>
+                    <?php unset($_SESSION['import_success']); ?>
+                <?php endif; ?>
+                
+                <?php if (isset($_SESSION['import_error'])): ?>
+                    <div class="p-4 bg-red-100 text-red-800 rounded-xl">
+                        <?php echo htmlspecialchars($_SESSION['import_error']); ?>
+                    </div>
+                    <?php unset($_SESSION['import_error']); ?>
+                <?php endif; ?>
+
+                <!-- Export/Import Buttons -->
+                <div class="flex items-center gap-3">
+                    <a href="export_handler.php?action=export_data&module=legal-arsip" class="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl font-medium hover:bg-emerald-700 transition-colors">
+                        📊
+                        <span>Export Excel</span>
+                    </a>
+                    <button onclick="openImportModal()" class="flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-xl font-medium hover:bg-gray-50 transition-colors">
+                        📤
+                        <span>Import Excel</span>
+                    </button>
+                    <a href="export_handler.php?action=download_template&module=legal-arsip" class="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium">
+                        📄
+                        <span>Download Template</span>
+                    </a>
+                </div>
+
                 <!-- Stats Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -382,5 +412,48 @@ try {
             </form>
         </div>
     </div>
+
+    <!-- Import Modal -->
+    <div id="importModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4">
+            <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+                <h2 class="text-xl font-bold text-gray-900">Import Excel (CSV)</h2>
+                <button onclick="closeImportModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            <form method="POST" action="export_handler.php?action=import_data&module=legal-arsip" enctype="multipart/form-data" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Pilih File CSV</label>
+                    <input type="file" name="csv_file" accept=".csv" required class="w-full px-4 py-2 border border-gray-300 rounded-xl">
+                    <p class="text-xs text-gray-500 mt-2">Pastikan format file sesuai dengan template. Tanggal dapat menggunakan format DD/MM/YYYY atau YYYY-MM-DD.</p>
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="closeImportModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors">
+                        Batal
+                    </button>
+                    <button type="submit" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors">
+                        Import
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openImportModal() {
+            openModal('importModal');
+        }
+
+        function closeImportModal() {
+            closeModal('importModal');
+        }
+        
+        function closeModal(modalId = 'modal') {
+            const element = document.getElementById(modalId);
+            if (element) {
+                element.classList.add('hidden');
+                element.classList.remove('flex');
+            }
+        }
+    </script>
 </body>
 </html>
