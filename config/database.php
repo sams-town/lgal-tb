@@ -45,6 +45,16 @@ try {
     } catch (Exception $ex) {
         // Silently continue if table not created yet
     }
+
+    // Auto-ensure file_path column exists on pengajuan_dokumen table
+    try {
+        $colExists = $pdo->query("SHOW COLUMNS FROM pengajuan_dokumen LIKE 'file_path'")->rowCount();
+        if ($colExists == 0) {
+            $pdo->exec("ALTER TABLE pengajuan_dokumen ADD COLUMN file_path VARCHAR(500) DEFAULT NULL AFTER alasan_pencabutan");
+        }
+    } catch (Exception $ex) {
+        // Silently continue if table not created yet
+    }
 } catch (PDOException $e) {
     die('Koneksi database gagal: ' . $e->getMessage());
 }
