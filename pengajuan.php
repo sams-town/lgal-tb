@@ -46,6 +46,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_pengajuan'])) 
     $alasanPerubahan = $_POST['alasan_perubahan'] ?? null;
     $alasanPencabutan = $_POST['alasan_pencabutan'] ?? null;
 
+    $filePath = null;
+    // Handle file upload
+    if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
+        $uploadDir = 'uploads/pengajuan/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+        $fileName = uniqid() . '_' . basename($_FILES['file']['name']);
+        $targetFile = $uploadDir . $fileName;
+        if (move_uploaded_file($_FILES['file']['tmp_name'], $targetFile)) {
+            $filePath = $targetFile;
+        }
+    }
+
     // Initialize step status
     $stepStatus = [
         'km' => 'pending',
@@ -72,8 +86,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_pengajuan'])) 
                 judul_dokumen, jenis_pengajuan, jenis_regulasi, kategori_akreditasi, 
                 unit_pengusul, pengusul, jenis_dokumen, tanggal, 
                 ruang_lingkup, tujuan_regulasi, dasar_hukum, 
-                alasan_perubahan, alasan_pencabutan, step_status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                alasan_perubahan, alasan_pencabutan, file_path, step_status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $stmt->execute([
             $judulDokumen,
@@ -89,6 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_pengajuan'])) 
             $dasarHukum,
             $alasanPerubahan,
             $alasanPencabutan,
+            $filePath,
             json_encode($stepStatus)
         ]);
         
@@ -261,7 +276,14 @@ try {
                                                 <p class="text-sm"><?php echo formatDate($doc['tanggal'] ?? null); ?></p>
                                             </td>
                                             <td class="px-6 py-4">
-                                                <span class="text-gray-400 text-sm">-</span>
+                                                <?php $file_path = $doc['file_path'] ?? ''; ?>
+                                                <?php if (!empty($file_path)): ?>
+                                                    <a href="<?php echo htmlspecialchars($file_path); ?>" target="_blank" class="text-emerald-600 hover:text-emerald-700 font-medium text-sm flex items-center gap-1">
+                                                        📄 Lihat
+                                                    </a>
+                                                <?php else: ?>
+                                                    <span class="text-gray-400 text-sm">-</span>
+                                                <?php endif; ?>
                                             </td>
                                             <td class="px-6 py-4">
                                                 <div class="flex flex-wrap gap-1">
@@ -301,7 +323,7 @@ try {
                 <h2 class="text-xl font-bold text-gray-900">Pengajuan Baru/Perubahan/Pencabutan</h2>
                 <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
             </div>
-            <form method="POST" class="p-6 space-y-4">
+            <form method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Judul Dokumen <span class="text-red-500">*</span></label>
                     <input type="text" name="judul_dokumen" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan judul dokumen">
@@ -379,6 +401,11 @@ try {
                 <div id="alasanPencabutanField" style="display: none;">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Alasan Pencabutan</label>
                     <textarea name="alasan_pencabutan" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Jelaskan alasan pencabutan dokumen"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Upload Berkas (PDF)</label>
+                    <input type="file" name="file" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-xl">
                 </div>
 
                 <div class="flex gap-3 pt-4">
