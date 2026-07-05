@@ -43,7 +43,8 @@ $notifications = getNotificationsForCurrentUser(10);
             'pks.php', 'regulasi.php', 'perizinan.php', 'legal-arsip.php', 'corsec.php', 
             'surat-masuk.php', 'surat-keluar.php', 'komite-medik.php', 'komite-keperawatan.php', 
             'komite-nakes.php', 'komite-tenaga-kesehatan-lainnya.php', 'sip-dokter.php', 
-            'str-nakes.php', 'tambah-tenaga-medis.php', 'akreditasi.php', 'sop.php'
+            'str-nakes.php', 'tambah-tenaga-medis.php', 'akreditasi.php', 'sop.php',
+            'pengajuan.php'
         ];
         if (in_array($current_page, $add_button_pages)): 
         ?>
@@ -51,6 +52,9 @@ $notifications = getNotificationsForCurrentUser(10);
                 <?php if ($current_page === 'pks.php'): ?>
                     <span class="text-xl">+</span>
                     <span>FORMULIR PENGAJUAN KERJASAMA</span>
+                <?php elseif ($current_page === 'pengajuan.php'): ?>
+                    <span class="text-xl">+</span>
+                    <span>Tambah Pengajuan</span>
                 <?php else: ?>
                     <span class="text-xl">+</span>
                     <span>Tambah Dokumen</span>
@@ -141,7 +145,8 @@ function handleOpenModal() {
         'pks.php', 'regulasi.php', 'perizinan.php', 'legal-arsip.php', 'corsec.php', 
         'surat-masuk.php', 'surat-keluar.php', 'komite-medik.php', 'komite-keperawatan.php', 
         'komite-nakes.php', 'komite-tenaga-kesehatan-lainnya.php', 'sip-dokter.php', 
-        'str-nakes.php', 'tambah-tenaga-medis.php', 'akreditasi.php', 'sop.php'
+        'str-nakes.php', 'tambah-tenaga-medis.php', 'akreditasi.php', 'sop.php',
+        'pengajuan.php'
     ];
     
     if (standardModalPages.includes(currentPage)) {
