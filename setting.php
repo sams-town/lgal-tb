@@ -298,10 +298,29 @@ try {
     $totalUsers = 0;
 }
 
-// Get disk free space (dummy safe)
-$diskFree = function_exists('disk_free_space') ? disk_free_space('.') : 1073741824;
-$diskTotal = function_exists('disk_total_space') ? disk_total_space('.') : 5368709120;
-$diskUsedPercent = round((($diskTotal - $diskFree) / $diskTotal) * 100);
+// Calculate uploads directory size relative to a 2 GB quota
+function getUploadsSize($dir = 'uploads') {
+    $size = 0;
+    if (!is_dir($dir)) return 0;
+    try {
+        $files = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::CHILD_FIRST
+        );
+        foreach ($files as $file) {
+            if ($file->isFile()) {
+                $size += $file->getSize();
+            }
+        }
+    } catch (Exception $e) {
+        // Fallback
+    }
+    return $size;
+}
+
+$uploadsSize = getUploadsSize(__DIR__ . '/uploads');
+$quota = 2 * 1024 * 1024 * 1024; // 2 GB quota
+$diskUsedPercent = min(100, max(0, round(($uploadsSize / $quota) * 100)));
 
 $permissionList = [
     'dashboard' => 'Dashboard',

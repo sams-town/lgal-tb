@@ -19,13 +19,23 @@ $kpiDireksi = 0;
 $monitoringRisiko = 0;
 
 try {
-    // 1. Total Dokumen Legal (dari dokumen_legal)
-    $stmt = $pdo->query("SELECT COUNT(*) as total FROM dokumen_legal WHERE status = 'Publish/Aktif'");
-    $totalDokumenLegal = $stmt->fetch()['total'] ?? 0;
+    // 1. Total Dokumen Legal (Sum of Regulasi, Perizinan, and Arsip Legal)
+    $countRegulasi = $pdo->query("SELECT COUNT(*) FROM dokumen_regulasi")->fetchColumn();
+    $countPerizinan = $pdo->query("SELECT COUNT(*) FROM dokumen_perizinan")->fetchColumn();
+    $countArsip = $pdo->query("SELECT COUNT(*) FROM dokumen_arsip_legal")->fetchColumn();
     
-    $stmt = $pdo->query("SELECT COUNT(*) as total FROM dokumen_legal WHERE status = 'Publish/Aktif' AND MONTH(tanggal) = MONTH(CURDATE()) AND YEAR(tanggal) = YEAR(CURDATE())");
-    $legalBaru = $stmt->fetch()['total'] ?? 0;
-} catch (PDOException $e) { $legalBaru = 0; }
+    $totalDokumenLegal = $countRegulasi + $countPerizinan + $countArsip;
+    
+    // New documents this month
+    $newRegulasi = $pdo->query("SELECT COUNT(*) FROM dokumen_regulasi WHERE MONTH(tanggal_terbit) = MONTH(CURDATE()) AND YEAR(tanggal_terbit) = YEAR(CURDATE())")->fetchColumn();
+    $newPerizinan = $pdo->query("SELECT COUNT(*) FROM dokumen_perizinan WHERE MONTH(masa_berlaku_mulai) = MONTH(CURDATE()) AND YEAR(masa_berlaku_mulai) = YEAR(CURDATE())")->fetchColumn();
+    $newArsip = $pdo->query("SELECT COUNT(*) FROM dokumen_arsip_legal WHERE MONTH(tanggal_mulai) = MONTH(CURDATE()) AND YEAR(tanggal_mulai) = YEAR(CURDATE())")->fetchColumn();
+    
+    $legalBaru = $newRegulasi + $newPerizinan + $newArsip;
+} catch (PDOException $e) { 
+    $totalDokumenLegal = 0;
+    $legalBaru = 0; 
+}
 
 try {
     // 2. SIP Akan Expired (H-30)
@@ -36,8 +46,7 @@ try {
 
 try {
     // 3. STR Akan Expired (H-60)
-    // Asumsi menggunakan tabel yang sama atau kolom lain jika ada, kita set 0 jika gagal
-    $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM tenaga_medis WHERE masa_berlaku_sk_akhir BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 60 DAY)");
+    $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM tenaga_medis WHERE masa_berlaku_str_akhir BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 60 DAY)");
     $stmt->execute();
     $strExpiring = $stmt->fetch()['total'] ?? 0;
 } catch (PDOException $e) {}
