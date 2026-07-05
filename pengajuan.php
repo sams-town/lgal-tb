@@ -10,6 +10,54 @@ if (!isset($_SESSION['user'])) {
 }
 
 $user = $_SESSION['user'];
+$isSuperAdmin = ($user['nama_role'] ?? $user['role'] ?? '') === 'Super Admin';
+
+// Handle delete with PIN verification
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['hapus_pengajuan'])) {
+    if ($isSuperAdmin) {
+        $deleteId = (int)$_POST['delete_id'];
+        $pin = $_POST['delete_pin'] ?? '';
+        
+        // Validate PIN against user's PIN in database
+        $stmtUser = $pdo->prepare("SELECT pin FROM users WHERE id = ?");
+        $stmtUser->execute([$user['id']]);
+        $dbUser = $stmtUser->fetch();
+        
+        $validPin = false;
+        if ($dbUser) {
+            if ($pin === $dbUser['pin'] || password_verify($pin, $dbUser['pin'])) {
+                $validPin = true;
+            }
+        }
+        
+        if ($validPin) {
+            try {
+                // Get file path before deleting
+                $stmt = $pdo->prepare("SELECT file_path FROM pengajuan_dokumen WHERE id = ?");
+                $stmt->execute([$deleteId]);
+                $doc = $stmt->fetch();
+                
+                // Delete from database
+                $stmt = $pdo->prepare("DELETE FROM pengajuan_dokumen WHERE id = ?");
+                $stmt->execute([$deleteId]);
+                
+                // Delete file if exists
+                if ($doc && !empty($doc['file_path']) && file_exists($doc['file_path'])) {
+                    unlink($doc['file_path']);
+                }
+                $_SESSION['pks_success'] = "Pengajuan dokumen berhasil dihapus!";
+            } catch (PDOException $e) {
+                $_SESSION['pks_error'] = "Gagal menghapus data: " . $e->getMessage();
+            }
+        } else {
+            $_SESSION['pks_error'] = "PIN Keamanan tidak valid!";
+        }
+    } else {
+        $_SESSION['pks_error'] = "Anda tidak memiliki akses untuk menghapus data.";
+    }
+    header("Location: pengajuan.php");
+    exit;
+}
 
 function renderStepIndicator($stepId, $stepStatus) {
     $status = $stepStatus[$stepId] ?? 'pending';
@@ -243,12 +291,15 @@ try {
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Tanggal Pengajuan</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Berkas</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Status Alur</th>
+                                    <?php if ($isSuperAdmin): ?>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Aksi</th>
+                                    <?php endif; ?>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100">
                                 <?php if (empty($documents)): ?>
                                     <tr>
-                                        <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                                        <td colspan="<?php echo $isSuperAdmin ? '8' : '7'; ?>" class="px-6 py-12 text-center text-gray-500">
                                             Belum ada pengajuan dokumen yang tersedia
                                         </td>
                                     </tr>
@@ -305,6 +356,21 @@ try {
                                                     ?>
                                                 </div>
                                             </td>
+                                            <?php if ($isSuperAdmin): ?>
+                                            <td class="px-6 py-4">
+                                                <div class="flex items-center gap-2">
+                                                    <button onclick="lihatDetail(<?php echo htmlspecialchars(json_encode($doc)); ?>)" class="px-3 py-1.5 text-xs bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors font-medium">
+                                                        👁 Lihat
+                                                    </button>
+                                                    <a href="pengajuan.php?edit=<?php echo $doc['id']; ?>" class="px-3 py-1.5 text-xs bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors font-medium">
+                                                        ✏️ Edit
+                                                    </a>
+                                                    <button onclick="openDeleteModal(<?php echo $doc['id']; ?>, '<?php echo htmlspecialchars(addslashes($doc['judul_dokumen'])); ?>')" class="px-3 py-1.5 text-xs bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium">
+                                                        🗑 Hapus
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            <?php endif; ?>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
@@ -419,6 +485,58 @@ try {
             </form>
         </div>
     </div>
+
+    <!-- Modal Delete dengan PIN -->
+    <div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4">
+            <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+                <h2 class="text-xl font-bold text-red-600">🗑 Konfirmasi Hapus</h2>
+                <button onclick="closeModal('deleteModal')" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            <form method="POST" class="p-6 space-y-4">
+                <input type="hidden" name="delete_id" id="deleteId">
+                <div class="p-4 bg-red-50 border border-red-200 rounded-xl">
+                    <p class="text-sm text-red-700">Anda akan menghapus pengajuan dokumen:</p>
+                    <p class="font-bold text-red-800 mt-1" id="deleteDocTitle"></p>
+                    <p class="text-xs text-red-600 mt-2">⚠️ Tindakan ini tidak dapat dibatalkan!</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">PIN Keamanan (6 Digit)</label>
+                    <input type="password" name="delete_pin" maxlength="6" pattern="\d{6}" required 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 font-mono tracking-widest text-center text-lg" 
+                        placeholder="Masukkan 6 digit PIN">
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button type="button" onclick="closeModal('deleteModal')" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors">
+                        Batal
+                    </button>
+                    <button type="submit" name="hapus_pengajuan" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors">
+                        Hapus Dokumen
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Detail Pengajuan -->
+    <div id="detailModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-2xl shadow-xl max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+                <h2 class="text-xl font-bold text-gray-900">📋 Detail Pengajuan Dokumen</h2>
+                <button onclick="closeModal('detailModal')" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="detailContent">
+                </div>
+            </div>
+            <div class="p-6 border-t border-gray-100">
+                <button onclick="closeModal('detailModal')" class="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-300 transition-colors">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
 <script>
     function toggleAlasanFields() {
         const jenis = document.getElementById('jenis_pengajuan').value;
@@ -427,6 +545,51 @@ try {
         
         perubahanField.style.display = jenis === 'Perubahan Dokumen' ? 'block' : 'none';
         pencabutanField.style.display = jenis === 'Pencabutan Dokumen' ? 'block' : 'none';
+    }
+
+    function openDeleteModal(id, title) {
+        document.getElementById('deleteId').value = id;
+        document.getElementById('deleteDocTitle').textContent = title;
+        openModal('deleteModal');
+    }
+
+    function lihatDetail(doc) {
+        const fields = [
+            { label: 'Judul Dokumen', value: doc.judul_dokumen },
+            { label: 'Jenis Pengajuan', value: doc.jenis_pengajuan },
+            { label: 'Jenis Regulasi', value: doc.jenis_regulasi },
+            { label: 'Kategori Akreditasi', value: doc.kategori_akreditasi },
+            { label: 'Unit Pengusul', value: doc.unit_pengusul },
+            { label: 'Nama Pengusul', value: doc.pengusul },
+            { label: 'Jenis Dokumen', value: doc.jenis_dokumen },
+            { label: 'Tanggal', value: doc.tanggal },
+            { label: 'Ruang Lingkup', value: doc.ruang_lingkup, full: true },
+            { label: 'Tujuan Regulasi', value: doc.tujuan_regulasi, full: true },
+            { label: 'Dasar Hukum', value: doc.dasar_hukum, full: true },
+            { label: 'Alasan Perubahan', value: doc.alasan_perubahan, full: true },
+            { label: 'Alasan Pencabutan', value: doc.alasan_pencabutan, full: true }
+        ];
+
+        let html = '';
+        fields.forEach(f => {
+            if (f.value && f.value.trim() !== '') {
+                const colClass = f.full ? 'md:col-span-2' : '';
+                html += `<div class="${colClass} p-3 bg-gray-50 rounded-xl">
+                    <p class="text-xs font-semibold text-gray-500 uppercase mb-1">${f.label}</p>
+                    <p class="text-sm text-gray-800">${f.value}</p>
+                </div>`;
+            }
+        });
+
+        if (doc.file_path) {
+            html += `<div class="md:col-span-2 p-3 bg-gray-50 rounded-xl">
+                <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Berkas</p>
+                <a href="${doc.file_path}" target="_blank" class="text-emerald-600 hover:text-emerald-700 font-medium text-sm">📄 Lihat / Download Berkas</a>
+            </div>`;
+        }
+
+        document.getElementById('detailContent').innerHTML = html;
+        openModal('detailModal');
     }
 </script>
 </body>
