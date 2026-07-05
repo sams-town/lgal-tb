@@ -19,14 +19,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['hapus_pengajuan'])) {
         $pin = $_POST['delete_pin'] ?? '';
         
         // Validate PIN against user's PIN in database
-        $stmtUser = $pdo->prepare("SELECT pin FROM users WHERE id = ?");
-        $stmtUser->execute([$user['id']]);
-        $dbUser = $stmtUser->fetch();
-        
         $validPin = false;
-        if ($dbUser) {
-            if ($pin === $dbUser['pin'] || password_verify($pin, $dbUser['pin'])) {
-                $validPin = true;
+        try {
+            $stmtUser = $pdo->prepare("SELECT pin FROM users WHERE id = ?");
+            $stmtUser->execute([$user['id']]);
+            $dbUser = $stmtUser->fetch();
+            
+            if ($dbUser && !empty($dbUser['pin'])) {
+                // Support both plain text PIN and hashed PIN
+                if ($pin === $dbUser['pin'] || password_verify($pin, $dbUser['pin'])) {
+                    $validPin = true;
+                }
+            }
+        } catch (Exception $e) {
+            // If users table query fails, skip
+        }
+        
+        // Fallback: if no PIN found in DB, try matching by email
+        if (!$validPin) {
+            try {
+                $stmtUser = $pdo->prepare("SELECT pin FROM users WHERE email = ?");
+                $stmtUser->execute([$user['email'] ?? '']);
+                $dbUser = $stmtUser->fetch();
+                if ($dbUser && !empty($dbUser['pin'])) {
+                    if ($pin === $dbUser['pin'] || password_verify($pin, $dbUser['pin'])) {
+                        $validPin = true;
+                    }
+                }
+            } catch (Exception $e) {
+                // Skip
             }
         }
         
@@ -54,6 +75,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['hapus_pengajuan'])) {
         }
     } else {
         $_SESSION['pks_error'] = "Anda tidak memiliki akses untuk menghapus data.";
+    }
+    header("Location: pengajuan.php");
+    exit;
+}
+
+// Handle edit submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_pengajuan'])) {
+    if ($isSuperAdmin) {
+        $editId = (int)$_POST['edit_id'];
+        $judulDokumen = $_POST['judul_dokumen'] ?? null;
+        $jenisPengajuan = $_POST['jenis_pengajuan'] ?? null;
+        $jenisRegulasi = $_POST['jenis_regulasi'] ?? null;
+        $kategoriAkreditasi = $_POST['kategori_akreditasi'] ?? null;
+        $unitPengusul = $_POST['unit_pengusul'] ?? null;
+        $pengusul = $_POST['pengusul'] ?? null;
+        $jenisDokumen = $_POST['jenis_dokumen'] ?? null;
+        $ruangLingkup = $_POST['ruang_lingkup'] ?? null;
+        $tujuanRegulasi = $_POST['tujuan_regulasi'] ?? null;
+        $dasarHukum = $_POST['dasar_hukum'] ?? null;
+        $tanggal = $_POST['tanggal'] ?? null;
+        $alasanPerubahan = $_POST['alasan_perubahan'] ?? null;
+        $alasanPencabutan = $_POST['alasan_pencabutan'] ?? null;
+
+        // Handle file upload for edit
+        $filePath = null;
+        if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
+            $uploadDir = 'uploads/pengajuan/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
+            $fileName = uniqid() . '_' . basename($_FILES['file']['name']);
+            $targetFile = $uploadDir . $fileName;
+            if (move_uploaded_file($_FILES['file']['tmp_name'], $targetFile)) {
+                $filePath = $targetFile;
+            }
+        }
+
+        try {
+            $sql = "UPDATE pengajuan_dokumen SET 
+                judul_dokumen = ?, jenis_pengajuan = ?, jenis_regulasi = ?, 
+                kategori_akreditasi = ?, unit_pengusul = ?, pengusul = ?, 
+                jenis_dokumen = ?, tanggal = ?, ruang_lingkup = ?, 
+                tujuan_regulasi = ?, dasar_hukum = ?, 
+                alasan_perubahan = ?, alasan_pencabutan = ?";
+            $params = [
+                $judulDokumen, $jenisPengajuan, $jenisRegulasi,
+                $kategoriAkreditasi, $unitPengusul, $pengusul,
+                $jenisDokumen, $tanggal, $ruangLingkup,
+                $tujuanRegulasi, $dasarHukum,
+                $alasanPerubahan, $alasanPencabutan
+            ];
+
+            if ($filePath) {
+                $sql .= ", file_path = ?";
+                $params[] = $filePath;
+            }
+
+            $sql .= " WHERE id = ?";
+            $params[] = $editId;
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
+            $_SESSION['pks_success'] = "Pengajuan dokumen berhasil diperbarui!";
+        } catch (PDOException $e) {
+            $_SESSION['pks_error'] = "Gagal memperbarui data: " . $e->getMessage();
+        }
+    } else {
+        $_SESSION['pks_error'] = "Anda tidak memiliki akses untuk mengedit data.";
     }
     header("Location: pengajuan.php");
     exit;
@@ -362,9 +451,9 @@ try {
                                                     <button onclick="lihatDetail(<?php echo htmlspecialchars(json_encode($doc)); ?>)" class="px-3 py-1.5 text-xs bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors font-medium">
                                                         👁 Lihat
                                                     </button>
-                                                    <a href="pengajuan.php?edit=<?php echo $doc['id']; ?>" class="px-3 py-1.5 text-xs bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors font-medium">
+                                                    <button onclick="openEditModal(<?php echo htmlspecialchars(json_encode($doc)); ?>)" class="px-3 py-1.5 text-xs bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors font-medium">
                                                         ✏️ Edit
-                                                    </a>
+                                                    </button>
                                                     <button onclick="openDeleteModal(<?php echo $doc['id']; ?>, '<?php echo htmlspecialchars(addslashes($doc['judul_dokumen'])); ?>')" class="px-3 py-1.5 text-xs bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium">
                                                         🗑 Hapus
                                                     </button>
@@ -386,13 +475,14 @@ try {
     <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
         <div class="bg-white rounded-2xl shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div class="p-6 border-b border-gray-100 flex items-center justify-between">
-                <h2 class="text-xl font-bold text-gray-900">Pengajuan Baru/Perubahan/Pencabutan</h2>
+                <h2 class="text-xl font-bold text-gray-900" id="modalTitle">Pengajuan Baru/Perubahan/Pencabutan</h2>
                 <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
             </div>
-            <form method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
+            <form method="POST" enctype="multipart/form-data" class="p-6 space-y-4" id="pengajuanForm">
+                <input type="hidden" name="edit_id" id="modal_edit_id">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Judul Dokumen <span class="text-red-500">*</span></label>
-                    <input type="text" name="judul_dokumen" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan judul dokumen">
+                    <input type="text" name="judul_dokumen" id="modal_judul_dokumen" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan judul dokumen">
                 </div>
 
                 <div>
@@ -406,7 +496,7 @@ try {
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Regulasi <span class="text-red-500">*</span></label>
-                    <select name="jenis_regulasi" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <select name="jenis_regulasi" id="modal_jenis_regulasi" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                         <option value="Peraturan Direktur">Peraturan Direktur</option>
                         <option value="SPO">SPO</option>
                         <option value="Kebijakan Mutu">Kebijakan Mutu</option>
@@ -415,7 +505,7 @@ try {
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Kategori Akreditasi <span class="text-red-500">*</span></label>
-                    <select name="kategori_akreditasi" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <select name="kategori_akreditasi" id="modal_kategori_akreditasi" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                         <option value="Tata Kelola Rumah Sakit">Tata Kelola Rumah Sakit</option>
                         <option value="Pelayanan Medis">Pelayanan Medis</option>
                         <option value="Keperawatan">Keperawatan</option>
@@ -426,47 +516,47 @@ try {
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Unit Pengusul <span class="text-red-500">*</span></label>
-                    <input type="text" name="unit_pengusul" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan unit pengusul">
+                    <input type="text" name="unit_pengusul" id="modal_unit_pengusul" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan unit pengusul">
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Nama Pengusul <span class="text-red-500">*</span></label>
-                    <input type="text" name="pengusul" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan nama pengusul">
+                    <input type="text" name="pengusul" id="modal_pengusul" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan nama pengusul">
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Dokumen <span class="text-red-500">*</span></label>
-                    <input type="text" name="jenis_dokumen" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan jenis dokumen">
+                    <input type="text" name="jenis_dokumen" id="modal_jenis_dokumen" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan jenis dokumen">
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Ruang Lingkup <span class="text-red-500">*</span></label>
-                    <textarea name="ruang_lingkup" required rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Deskripsikan ruang lingkup"></textarea>
+                    <textarea name="ruang_lingkup" id="modal_ruang_lingkup" required rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Deskripsikan ruang lingkup"></textarea>
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Tujuan Regulasi <span class="text-red-500">*</span></label>
-                    <textarea name="tujuan_regulasi" required rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Deskripsikan tujuan regulasi"></textarea>
+                    <textarea name="tujuan_regulasi" id="modal_tujuan_regulasi" required rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Deskripsikan tujuan regulasi"></textarea>
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Dasar Hukum/Referensi</label>
-                    <textarea name="dasar_hukum" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan dasar hukum atau referensi (opsional)"></textarea>
+                    <textarea name="dasar_hukum" id="modal_dasar_hukum" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan dasar hukum atau referensi (opsional)"></textarea>
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Pengajuan <span class="text-red-500">*</span></label>
-                    <input type="date" name="tanggal" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <input type="date" name="tanggal" id="modal_tanggal" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                 </div>
 
                 <div id="alasanPerubahanField" style="display: none;">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Alasan Perubahan</label>
-                    <textarea name="alasan_perubahan" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Jelaskan alasan perubahan dokumen"></textarea>
+                    <textarea name="alasan_perubahan" id="modal_alasan_perubahan" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Jelaskan alasan perubahan dokumen"></textarea>
                 </div>
 
                 <div id="alasanPencabutanField" style="display: none;">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Alasan Pencabutan</label>
-                    <textarea name="alasan_pencabutan" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Jelaskan alasan pencabutan dokumen"></textarea>
+                    <textarea name="alasan_pencabutan" id="modal_alasan_pencabutan" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Jelaskan alasan pencabutan dokumen"></textarea>
                 </div>
 
                 <div>
@@ -478,7 +568,7 @@ try {
                     <button type="button" onclick="closeModal()" class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-300 transition-colors">
                         Batal
                     </button>
-                    <button type="submit" name="tambah_pengajuan" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors">
+                    <button type="submit" name="tambah_pengajuan" id="modalSubmitBtn" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors">
                         Submit Pengajuan
                     </button>
                 </div>
@@ -545,6 +635,60 @@ try {
         
         perubahanField.style.display = jenis === 'Perubahan Dokumen' ? 'block' : 'none';
         pencabutanField.style.display = jenis === 'Pencabutan Dokumen' ? 'block' : 'none';
+    }
+
+    // Override openModal to handle default "Tambah" state reset
+    const originalOpenModal = window.openModal;
+    window.openModal = function(modalId = 'modal') {
+        if (modalId === 'modal' && !document.getElementById('modal_edit_id').value) {
+            // Reset to Add Mode
+            document.getElementById('modalTitle').textContent = "Pengajuan Baru/Perubahan/Pencabutan";
+            document.getElementById('modalSubmitBtn').name = "tambah_pengajuan";
+            document.getElementById('modalSubmitBtn').textContent = "Submit Pengajuan";
+            document.getElementById('pengajuanForm').reset();
+            toggleAlasanFields();
+        }
+        if (typeof originalOpenModal === 'function') {
+            originalOpenModal(modalId);
+        } else {
+            const element = document.getElementById(modalId);
+            if (element) {
+                element.classList.remove('hidden');
+                element.classList.add('flex');
+            }
+        }
+    };
+
+    function openEditModal(doc) {
+        // Prepare to Edit Mode
+        document.getElementById('modal_edit_id').value = doc.id;
+        document.getElementById('modalTitle').textContent = "✏️ Edit Pengajuan Dokumen";
+        document.getElementById('modalSubmitBtn').name = "edit_pengajuan";
+        document.getElementById('modalSubmitBtn').textContent = "Simpan Perubahan";
+        
+        // Populate inputs
+        document.getElementById('modal_judul_dokumen').value = doc.judul_dokumen || '';
+        document.getElementById('jenis_pengajuan').value = doc.jenis_pengajuan || 'Pengajuan Baru';
+        document.getElementById('modal_jenis_regulasi').value = doc.jenis_regulasi || 'Peraturan Direktur';
+        document.getElementById('modal_kategori_akreditasi').value = doc.kategori_akreditasi || 'Tata Kelola Rumah Sakit';
+        document.getElementById('modal_unit_pengusul').value = doc.unit_pengusul || '';
+        document.getElementById('modal_pengusul').value = doc.pengusul || '';
+        document.getElementById('modal_jenis_dokumen').value = doc.jenis_dokumen || '';
+        document.getElementById('modal_ruang_lingkup').value = doc.ruang_lingkup || '';
+        document.getElementById('modal_tujuan_regulasi').value = doc.tujuan_regulasi || '';
+        document.getElementById('modal_dasar_hukum').value = doc.dasar_hukum || '';
+        document.getElementById('modal_tanggal').value = doc.tanggal || '';
+        document.getElementById('modal_alasan_perubahan').value = doc.alasan_perubahan || '';
+        document.getElementById('modal_alasan_pencabutan').value = doc.alasan_pencabutan || '';
+        
+        toggleAlasanFields();
+        
+        // Open Modal
+        const element = document.getElementById('modal');
+        if (element) {
+            element.classList.remove('hidden');
+            element.classList.add('flex');
+        }
     }
 
     function openDeleteModal(id, title) {
