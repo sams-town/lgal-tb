@@ -37,25 +37,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_pengajuan'])) 
     $jenisRegulasi = $_POST['jenis_regulasi'] ?? null;
     $kategoriAkreditasi = $_POST['kategori_akreditasi'] ?? null;
     $unitPengusul = $_POST['unit_pengusul'] ?? null;
+    $pengusul = $_POST['pengusul'] ?? null;
+    $jenisDokumen = $_POST['jenis_dokumen'] ?? null;
     $ruangLingkup = $_POST['ruang_lingkup'] ?? null;
     $tujuanRegulasi = $_POST['tujuan_regulasi'] ?? null;
     $dasarHukum = $_POST['dasar_hukum'] ?? null;
-    $tanggalPengajuan = $_POST['tanggal_pengajuan'] ?? null;
-    $catatanPengusul = $_POST['catatan_pengusul'] ?? null;
-    
-    $filePath = null;
-    // Handle file upload
-    if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
-        $uploadDir = 'uploads/pengajuan/';
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0777, true);
-        }
-        $fileName = uniqid() . '_' . basename($_FILES['file']['name']);
-        $targetFile = $uploadDir . $fileName;
-        if (move_uploaded_file($_FILES['file']['tmp_name'], $targetFile)) {
-            $filePath = $targetFile;
-        }
-    }
+    $tanggal = $_POST['tanggal'] ?? null;
+    $alasanPerubahan = $_POST['alasan_perubahan'] ?? null;
+    $alasanPencabutan = $_POST['alasan_pencabutan'] ?? null;
 
     // Initialize step status
     $stepStatus = [
@@ -81,9 +70,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_pengajuan'])) 
         $stmt = $pdo->prepare("
             INSERT INTO pengajuan_dokumen (
                 judul_dokumen, jenis_pengajuan, jenis_regulasi, kategori_akreditasi, 
-                unit_pengusul, ruang_lingkup, tujuan_regulasi, dasar_hukum, 
-                tanggal_pengajuan, file_path, catatan_pengusul, step_status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                unit_pengusul, pengusul, jenis_dokumen, tanggal, 
+                ruang_lingkup, tujuan_regulasi, dasar_hukum, 
+                alasan_perubahan, alasan_pencabutan, step_status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $stmt->execute([
             $judulDokumen,
@@ -91,12 +81,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_pengajuan'])) 
             $jenisRegulasi,
             $kategoriAkreditasi,
             $unitPengusul,
+            $pengusul,
+            $jenisDokumen,
+            $tanggal,
             $ruangLingkup,
             $tujuanRegulasi,
             $dasarHukum,
-            $tanggalPengajuan,
-            $filePath,
-            $catatanPengusul,
+            $alasanPerubahan,
+            $alasanPencabutan,
             json_encode($stepStatus)
         ]);
         
@@ -266,17 +258,10 @@ try {
                                                 <p class="text-sm"><?php echo htmlspecialchars($doc['unit_pengusul'] ?? '-'); ?></p>
                                             </td>
                                             <td class="px-6 py-4 text-gray-700">
-                                                <p class="text-sm"><?php echo formatDate($doc['tanggal_pengajuan'] ?? null); ?></p>
+                                                <p class="text-sm"><?php echo formatDate($doc['tanggal'] ?? null); ?></p>
                                             </td>
                                             <td class="px-6 py-4">
-                                                <?php $file_path = $doc['file_path'] ?? ''; ?>
-                                                <?php if (!empty($file_path)): ?>
-                                                    <a href="<?php echo htmlspecialchars($file_path); ?>" target="_blank" class="text-emerald-600 hover:text-emerald-700 font-medium text-sm flex items-center gap-1">
-                                                        📄 Lihat
-                                                    </a>
-                                                <?php else: ?>
-                                                    <span class="text-gray-400 text-sm">-</span>
-                                                <?php endif; ?>
+                                                <span class="text-gray-400 text-sm">-</span>
                                             </td>
                                             <td class="px-6 py-4">
                                                 <div class="flex flex-wrap gap-1">
@@ -316,7 +301,7 @@ try {
                 <h2 class="text-xl font-bold text-gray-900">Pengajuan Baru/Perubahan/Pencabutan</h2>
                 <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
             </div>
-            <form method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
+            <form method="POST" class="p-6 space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Judul Dokumen <span class="text-red-500">*</span></label>
                     <input type="text" name="judul_dokumen" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan judul dokumen">
@@ -324,7 +309,7 @@ try {
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Pengajuan <span class="text-red-500">*</span></label>
-                    <select name="jenis_pengajuan" id="jenis_pengajuan" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <select name="jenis_pengajuan" id="jenis_pengajuan" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" onchange="toggleAlasanFields()">
                         <option value="Pengajuan Baru">Dokumen Baru</option>
                         <option value="Perubahan Dokumen">Perubahan Dokumen</option>
                         <option value="Pencabutan Dokumen">Pencabutan Dokumen</option>
@@ -357,6 +342,16 @@ try {
                 </div>
 
                 <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Nama Pengusul <span class="text-red-500">*</span></label>
+                    <input type="text" name="pengusul" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan nama pengusul">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Dokumen <span class="text-red-500">*</span></label>
+                    <input type="text" name="jenis_dokumen" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan jenis dokumen">
+                </div>
+
+                <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Ruang Lingkup <span class="text-red-500">*</span></label>
                     <textarea name="ruang_lingkup" required rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Deskripsikan ruang lingkup"></textarea>
                 </div>
@@ -373,17 +368,17 @@ try {
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Pengajuan <span class="text-red-500">*</span></label>
-                    <input type="date" name="tanggal_pengajuan" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <input type="date" name="tanggal" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Upload Draft Regulasi <span class="text-red-500">*</span></label>
-                    <input type="file" name="file" accept=".pdf" required class="w-full px-4 py-2 border border-gray-300 rounded-xl">
+                <div id="alasanPerubahanField" style="display: none;">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Alasan Perubahan</label>
+                    <textarea name="alasan_perubahan" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Jelaskan alasan perubahan dokumen"></textarea>
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Catatan Pengusul</label>
-                    <textarea name="catatan_pengusul" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Tambahkan catatan pengusul (opsional)"></textarea>
+                <div id="alasanPencabutanField" style="display: none;">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Alasan Pencabutan</label>
+                    <textarea name="alasan_pencabutan" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Jelaskan alasan pencabutan dokumen"></textarea>
                 </div>
 
                 <div class="flex gap-3 pt-4">
@@ -397,5 +392,15 @@ try {
             </form>
         </div>
     </div>
+<script>
+    function toggleAlasanFields() {
+        const jenis = document.getElementById('jenis_pengajuan').value;
+        const perubahanField = document.getElementById('alasanPerubahanField');
+        const pencabutanField = document.getElementById('alasanPencabutanField');
+        
+        perubahanField.style.display = jenis === 'Perubahan Dokumen' ? 'block' : 'none';
+        pencabutanField.style.display = jenis === 'Pencabutan Dokumen' ? 'block' : 'none';
+    }
+</script>
 </body>
 </html>
