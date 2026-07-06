@@ -55,6 +55,22 @@ try {
     } catch (Exception $ex) {
         // Silently continue if table not created yet
     }
+
+    // Auto-ensure required columns on dokumen_arsip_legal table exist
+    try {
+        $checkLegalCols = [
+            'potongan_harga' => "DECIMAL(15,2) NULL AFTER nilai_kontrak",
+            'cara_pembayaran' => "VARCHAR(255) NULL AFTER potongan_harga"
+        ];
+        foreach ($checkLegalCols as $cName => $cDef) {
+            $colExists = $pdo->query("SHOW COLUMNS FROM dokumen_arsip_legal LIKE '$cName'")->rowCount();
+            if ($colExists == 0) {
+                $pdo->exec("ALTER TABLE dokumen_arsip_legal ADD COLUMN $cName $cDef");
+            }
+        }
+    } catch (Exception $ex) {
+        // Silently continue if table not created yet
+    }
 } catch (PDOException $e) {
     die('Koneksi database gagal: ' . $e->getMessage());
 }

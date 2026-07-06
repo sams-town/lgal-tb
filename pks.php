@@ -9,6 +9,12 @@ if (!isset($_SESSION['user'])) {
     exit;
 }
 
+// Check access permission for Legal
+if (!isUserLegalOrAdmin()) {
+    header('Location: dashboard.php');
+    exit;
+}
+
 $user = $_SESSION['user'];
 
 // Handle form submission for adding new PKS
@@ -112,6 +118,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_pks'])) {
 
 // Handle delete
 if (isset($_GET['delete'])) {
+    if (!isUserLegalOrAdmin()) {
+        $_SESSION['pks_error'] = "Anda tidak memiliki akses untuk menghapus data ini!";
+        header("Location: pks.php");
+        exit;
+    }
     $id = (int)$_GET['delete'];
     try {
         // Get file path before deleting
@@ -135,9 +146,24 @@ if (isset($_GET['delete'])) {
     exit;
 }
 
+// Capture search query
+$search_query = isset($_GET['search']) ? trim($_GET['search']) : '';
+
 // Get PKS documents
 try {
-    $stmt = $pdo->query("SELECT * FROM pengajuan_pks ORDER BY created_at DESC");
+    if (!empty($search_query)) {
+        $stmt = $pdo->prepare("
+            SELECT * FROM pengajuan_pks 
+            WHERE jenis_kerjasama LIKE :search 
+               OR objek_kerjasama LIKE :search 
+               OR nomor_dokumen LIKE :search 
+               OR calon_mitra LIKE :search
+            ORDER BY created_at DESC
+        ");
+        $stmt->execute(['search' => "%$search_query%"]);
+    } else {
+        $stmt = $pdo->query("SELECT * FROM pengajuan_pks ORDER BY created_at DESC");
+    }
     $documents = $stmt->fetchAll();
 } catch (PDOException $e) {
     $documents = [];
@@ -267,6 +293,33 @@ try {
 
                 <!-- Documents Table -->
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <!-- Search Bar -->
+                    <div class="p-6 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gray-50/50">
+                        <div>
+                            <h2 class="text-lg font-bold text-gray-900">Daftar Pengajuan PKS</h2>
+                            <p class="text-xs text-gray-500 mt-1">Total: <?php echo count($documents); ?> dokumen ditemukan</p>
+                        </div>
+                        <form method="GET" class="flex items-center gap-2 w-full md:w-auto">
+                            <div class="relative flex-1 md:w-80">
+                                <input 
+                                    type="text" 
+                                    name="search" 
+                                    value="<?php echo htmlspecialchars($search_query); ?>" 
+                                    placeholder="Cari tipe, nama, atau nomor dokumen..." 
+                                    class="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:border-emerald-500 transition-all"
+                                >
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+                            </div>
+                            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors shadow-sm">
+                                Cari
+                            </button>
+                            <?php if (!empty($search_query)): ?>
+                                <a href="pks.php" class="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition-colors">
+                                    Reset
+                                </a>
+                            <?php endif; ?>
+                        </form>
+                    </div>
                     <div class="overflow-x-auto">
                         <table class="w-full">
                             <thead class="bg-gray-50">
@@ -339,9 +392,11 @@ try {
                                                             Lihat
                                                         </a>
                                                     <?php endif; ?>
-                                                    <a href="pks.php?delete=<?php echo $doc['id']; ?>" onclick="return confirm('Apakah Anda yakin ingin menghapus dokumen ini?');" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
-                                                        Hapus
-                                                    </a>
+                                                    <?php if (isUserLegalOrAdmin()): ?>
+                                                        <a href="pks.php?delete=<?php echo $doc['id']; ?>" onclick="return confirm('Apakah Anda yakin ingin menghapus dokumen ini?');" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
+                                                            Hapus
+                                                        </a>
+                                                    <?php endif; ?>
                                                 </div>
                                             </td>
                                         </tr>

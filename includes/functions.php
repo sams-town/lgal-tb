@@ -252,4 +252,33 @@ if (!function_exists('formatDate')) {
         }
     }
 }
+
+/**
+ * Memvalidasi apakah user yang sedang login memiliki hak akses Legal atau merupakan Super Admin.
+ * @return bool
+ */
+function isUserLegalOrAdmin() {
+    if (!isset($_SESSION['user'])) {
+        return false;
+    }
+    
+    $user = $_SESSION['user'];
+    $role = $user['nama_role'] ?? $user['role'] ?? '';
+    $nama = $user['nama'] ?? $user['name'] ?? '';
+    $email = $user['email'] ?? '';
+    
+    // Super Admin check
+    if ($role === 'Super Admin') {
+        return true;
+    }
+    
+    // Legal check: role contains "legal", or name contains "legal", or email contains "legal"
+    if (stripos($role, 'legal') !== false || 
+        stripos($nama, 'legal') !== false || 
+        stripos($email, 'legal') !== false) {
+        return true;
+    }
+    
+    return false;
+}
 ?>

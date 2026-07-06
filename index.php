@@ -21,7 +21,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: dashboard.php');
         exit;
     } else {
-        $error = 'Email atau password salah!';
+        // Check database
+        try {
+            $stmt = $pdo->prepare("
+                SELECT u.*, r.nama_role 
+                FROM users u 
+                LEFT JOIN roles r ON u.role_id = r.id 
+                WHERE u.email = ?
+            ");
+            $stmt->execute([$email]);
+            $db_user = $stmt->fetch();
+
+            if ($db_user && password_verify($password, $db_user['password'])) {
+                if ($db_user['is_active'] == 1) {
+                    $_SESSION['user'] = [
+                        'id' => $db_user['id'],
+                        'name' => $db_user['nama'],
+                        'nama' => $db_user['nama'],
+                        'email' => $db_user['email'],
+                        'role' => $db_user['nama_role'],
+                        'nama_role' => $db_user['nama_role'],
+                        'role_id' => $db_user['role_id'],
+                        'department' => $db_user['nama_role']
+                    ];
+                    header('Location: dashboard.php');
+                    exit;
+                } else {
+                    $error = 'Akun Anda tidak aktif!';
+                }
+            } else {
+                $error = 'Email atau password salah!';
+            }
+        } catch (PDOException $e) {
+            $error = 'Terjadi kesalahan sistem: ' . $e->getMessage();
+        }
     }
 }
 ?>

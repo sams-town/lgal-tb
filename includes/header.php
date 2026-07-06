@@ -47,6 +47,8 @@ $notifications = getNotificationsForCurrentUser(10);
             'pengajuan.php'
         ];
         if (in_array($current_page, $add_button_pages)): 
+            $is_legal_page = in_array($current_page, ['pks.php', 'regulasi.php', 'perizinan.php', 'legal-arsip.php']);
+            if (!$is_legal_page || isUserLegalOrAdmin()):
         ?>
             <button id="openModalBtn" onclick="handleOpenModal()" class="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium transition-colors shadow-sm hover:shadow-md">
                 <?php if ($current_page === 'pks.php'): ?>
@@ -60,6 +62,7 @@ $notifications = getNotificationsForCurrentUser(10);
                     <span>Tambah Dokumen</span>
                 <?php endif; ?>
             </button>
+            <?php endif; ?>
         <?php endif; ?>
         
         <!-- Notification Bell -->

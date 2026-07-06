@@ -9,6 +9,12 @@ if (!isset($_SESSION['user'])) {
     exit;
 }
 
+// Check access permission for Legal
+if (!isUserLegalOrAdmin()) {
+    header('Location: dashboard.php');
+    exit;
+}
+
 $user = $_SESSION['user'];
 
 function getLegalArsipStatus($tanggalBerakhir) {
@@ -35,6 +41,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_arsip_legal'])
     $perusahaan = $_POST['perusahaan'] ?? null;
     $ruang_lingkup = $_POST['ruang_lingkup'] ?? null;
     $nilai_kontrak = !empty($_POST['nilai_kontrak']) ? (float)$_POST['nilai_kontrak'] : null;
+    $potongan_harga = !empty($_POST['potongan_harga']) ? (float)$_POST['potongan_harga'] : null;
+    $cara_pembayaran = $_POST['cara_pembayaran'] ?? null;
     $tanggal_mulai = !empty($_POST['tanggal_mulai']) ? $_POST['tanggal_mulai'] : null;
     $tanggal_berakhir = !empty($_POST['tanggal_berakhir']) ? $_POST['tanggal_berakhir'] : null;
     $nama_pj = $_POST['nama_pj'] ?? null;
@@ -59,10 +67,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_arsip_legal'])
 
     try {
         $stmt = $pdo->prepare("
-            INSERT INTO dokumen_arsip_legal (tipe_kontrak, perusahaan, ruang_lingkup, nilai_kontrak, tanggal_mulai, tanggal_berakhir, nama_pj, no_telp_pj, file_path)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO dokumen_arsip_legal (tipe_kontrak, perusahaan, ruang_lingkup, nilai_kontrak, potongan_harga, cara_pembayaran, tanggal_mulai, tanggal_berakhir, nama_pj, no_telp_pj, file_path)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
-        $stmt->execute([$tipe_kontrak, $perusahaan, $ruang_lingkup, $nilai_kontrak, $tanggal_mulai, $tanggal_berakhir, $nama_pj, $no_telp_pj, $file_path]);
+        $stmt->execute([$tipe_kontrak, $perusahaan, $ruang_lingkup, $nilai_kontrak, $potongan_harga, $cara_pembayaran, $tanggal_mulai, $tanggal_berakhir, $nama_pj, $no_telp_pj, $file_path]);
 
         $_SESSION['pks_success'] = "Dokumen Arsip Legal berhasil ditambahkan!";
     } catch (PDOException $e) {
@@ -75,6 +83,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_arsip_legal'])
 
 // Handle delete
 if (isset($_GET['delete'])) {
+    if (!isUserLegalOrAdmin()) {
+        $_SESSION['pks_error'] = "Anda tidak memiliki akses untuk menghapus data ini!";
+        header("Location: legal-arsip.php");
+        exit;
+    }
     $id = (int)$_GET['delete'];
     try {
         // Get file path before deleting
@@ -98,9 +111,23 @@ if (isset($_GET['delete'])) {
     exit;
 }
 
+// Capture search query
+$search_query = isset($_GET['search']) ? trim($_GET['search']) : '';
+
 // Get Arsip documents
 try {
-    $stmt = $pdo->query("SELECT * FROM dokumen_arsip_legal ORDER BY created_at DESC");
+    if (!empty($search_query)) {
+        $stmt = $pdo->prepare("
+            SELECT * FROM dokumen_arsip_legal 
+            WHERE tipe_kontrak LIKE :search 
+               OR perusahaan LIKE :search 
+               OR ruang_lingkup LIKE :search
+            ORDER BY created_at DESC
+        ");
+        $stmt->execute(['search' => "%$search_query%"]);
+    } else {
+        $stmt = $pdo->query("SELECT * FROM dokumen_arsip_legal ORDER BY created_at DESC");
+    }
     $documents = $stmt->fetchAll();
 } catch (PDOException $e) {
     $documents = [];
@@ -244,6 +271,33 @@ try {
 
                 <!-- Documents Table -->
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <!-- Search Bar -->
+                    <div class="p-6 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gray-50/50">
+                        <div>
+                            <h2 class="text-lg font-bold text-gray-900">Daftar Arsip Dokumen Legal</h2>
+                            <p class="text-xs text-gray-500 mt-1">Total: <?php echo count($documents); ?> dokumen ditemukan</p>
+                        </div>
+                        <form method="GET" class="flex items-center gap-2 w-full md:w-auto">
+                            <div class="relative flex-1 md:w-80">
+                                <input 
+                                    type="text" 
+                                    name="search" 
+                                    value="<?php echo htmlspecialchars($search_query); ?>" 
+                                    placeholder="Cari tipe atau nama dokumen..." 
+                                    class="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:border-emerald-500 transition-all"
+                                >
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+                            </div>
+                            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors shadow-sm">
+                                Cari
+                            </button>
+                            <?php if (!empty($search_query)): ?>
+                                <a href="legal-arsip.php" class="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition-colors">
+                                    Reset
+                                </a>
+                            <?php endif; ?>
+                        </form>
+                    </div>
                     <div class="overflow-x-auto">
                         <table class="w-full">
                             <thead class="bg-gray-50">
@@ -290,6 +344,12 @@ try {
                                                 <p class="text-sm font-semibold">
                                                     <?php echo $doc['nilai_kontrak'] ? 'Rp ' . number_format($doc['nilai_kontrak'], 2, ',', '.') : '-'; ?>
                                                 </p>
+                                                <?php if (!empty($doc['potongan_harga'])): ?>
+                                                    <p class="text-xs text-red-500 mt-1">Potongan: Rp <?php echo number_format($doc['potongan_harga'], 2, ',', '.'); ?></p>
+                                                <?php endif; ?>
+                                                <?php if (!empty($doc['cara_pembayaran'])): ?>
+                                                    <p class="text-xs text-gray-500 mt-0.5"><?php echo htmlspecialchars($doc['cara_pembayaran']); ?></p>
+                                                <?php endif; ?>
                                             </td>
                                             <td class="px-6 py-4 text-gray-700">
                                                 <p class="text-sm">
@@ -329,9 +389,11 @@ try {
                                                             Lihat
                                                         </a>
                                                     <?php endif; ?>
-                                                    <a href="legal-arsip.php?delete=<?php echo $doc['id']; ?>" onclick="return confirm('Apakah Anda yakin ingin menghapus dokumen ini?');" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
-                                                        Hapus
-                                                    </a>
+                                                    <?php if (isUserLegalOrAdmin()): ?>
+                                                        <a href="legal-arsip.php?delete=<?php echo $doc['id']; ?>" onclick="return confirm('Apakah Anda yakin ingin menghapus dokumen ini?');" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
+                                                            Hapus
+                                                        </a>
+                                                    <?php endif; ?>
                                                 </div>
                                             </td>
                                         </tr>
@@ -376,6 +438,16 @@ try {
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Nilai Kontrak</label>
                     <input type="number" name="nilai_kontrak" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Potongan Harga</label>
+                        <input type="number" name="potongan_harga" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Rp 0,00">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Cara Pembayaran</label>
+                        <input type="text" name="cara_pembayaran" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Misal: Transfer, Tahunan, dll.">
+                    </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>

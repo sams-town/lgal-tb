@@ -26,32 +26,34 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
         </a>
 
         <!-- Legal -->
-        <?php 
-        $is_legal_active = in_array($current_page, ['pks.php', 'legal-arsip.php', 'regulasi.php', 'perizinan.php']); 
-        ?>
-        <div class="space-y-1">
-            <button class="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg transition-colors <?php echo $is_legal_active ? 'bg-emerald-900/50 text-white font-medium border-l-4 border-emerald-400' : 'text-emerald-100 hover:bg-emerald-700/60'; ?>">
-                <div class="flex items-center gap-3">
-                    <span class="text-xl">📑</span>
-                    <span>Legal</span>
+        <?php if (isUserLegalOrAdmin()): ?>
+            <?php 
+            $is_legal_active = in_array($current_page, ['pks.php', 'legal-arsip.php', 'regulasi.php', 'perizinan.php']); 
+            ?>
+            <div class="space-y-1">
+                <button class="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg transition-colors <?php echo $is_legal_active ? 'bg-emerald-900/50 text-white font-medium border-l-4 border-emerald-400' : 'text-emerald-100 hover:bg-emerald-700/60'; ?>">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl">📑</span>
+                        <span>Legal</span>
+                    </div>
+                    <span class="text-xs">▼</span>
+                </button>
+                <div class="ml-2 pl-2 border-l border-emerald-700/40 space-y-1 py-1">
+                    <a href="pks.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'pks.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
+                        Perjanjian Kerjasama (PKS)
+                    </a>
+                    <a href="legal-arsip.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'legal-arsip.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
+                        › Arsip PKS
+                    </a>
+                    <a href="regulasi.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'regulasi.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
+                        › Regulasi
+                    </a>
+                    <a href="perizinan.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'perizinan.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
+                        › Perizinan
+                    </a>
                 </div>
-                <span class="text-xs">▼</span>
-            </button>
-            <div class="ml-2 pl-2 border-l border-emerald-700/40 space-y-1 py-1">
-                <a href="pks.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'pks.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
-                    Perjanjian Kerjasama (PKS)
-                </a>
-                <a href="legal-arsip.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'legal-arsip.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
-                    › Arsip PKS
-                </a>
-                <a href="regulasi.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'regulasi.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
-                    › Regulasi
-                </a>
-                <a href="perizinan.php" class="block px-4 py-2 rounded-lg text-sm transition-colors <?php echo ($current_page === 'perizinan.php') ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-100 hover:bg-emerald-700/40'; ?>">
-                    › Perizinan
-                </a>
             </div>
-        </div>
+        <?php endif; ?>
 
         <!-- Sekretariat -->
         <?php 
