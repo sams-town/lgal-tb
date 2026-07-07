@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_arsip_legal'])
     $perusahaan = $_POST['perusahaan'] ?? null;
     $ruang_lingkup = $_POST['ruang_lingkup'] ?? null;
     $nilai_kontrak = !empty($_POST['nilai_kontrak']) ? (float)$_POST['nilai_kontrak'] : null;
-    $potongan_harga = !empty($_POST['potongan_harga']) ? (float)$_POST['potongan_harga'] : null;
+    $potongan_harga = $_POST['potongan_harga'] ?? null;
     $cara_pembayaran = $_POST['cara_pembayaran'] ?? null;
     $tanggal_mulai = !empty($_POST['tanggal_mulai']) ? $_POST['tanggal_mulai'] : null;
     $tanggal_berakhir = !empty($_POST['tanggal_berakhir']) ? $_POST['tanggal_berakhir'] : null;
@@ -345,7 +345,7 @@ try {
                                                     <?php echo $doc['nilai_kontrak'] ? 'Rp ' . number_format($doc['nilai_kontrak'], 2, ',', '.') : '-'; ?>
                                                 </p>
                                                 <?php if (!empty($doc['potongan_harga'])): ?>
-                                                    <p class="text-xs text-red-500 mt-1">Potongan: Rp <?php echo number_format($doc['potongan_harga'], 2, ',', '.'); ?></p>
+                                                    <p class="text-xs text-red-500 mt-1">Potongan: <?php echo htmlspecialchars($doc['potongan_harga']); ?></p>
                                                 <?php endif; ?>
                                                 <?php if (!empty($doc['cara_pembayaran'])): ?>
                                                     <p class="text-xs text-gray-500 mt-0.5"><?php echo htmlspecialchars($doc['cara_pembayaran']); ?></p>
@@ -442,7 +442,7 @@ try {
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Potongan Harga</label>
-                        <input type="number" name="potongan_harga" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Rp 0,00">
+                        <input type="text" name="potongan_harga" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Misal: 10%, Rp 50.000, dll.">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Cara Pembayaran</label>

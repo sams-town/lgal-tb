@@ -59,7 +59,7 @@ try {
     // Auto-ensure required columns on dokumen_arsip_legal table exist
     try {
         $checkLegalCols = [
-            'potongan_harga' => "DECIMAL(15,2) NULL AFTER nilai_kontrak",
+            'potongan_harga' => "VARCHAR(255) NULL AFTER nilai_kontrak",
             'cara_pembayaran' => "VARCHAR(255) NULL AFTER potongan_harga"
         ];
         foreach ($checkLegalCols as $cName => $cDef) {
@@ -67,6 +67,12 @@ try {
             if ($colExists == 0) {
                 $pdo->exec("ALTER TABLE dokumen_arsip_legal ADD COLUMN $cName $cDef");
             }
+        }
+
+        // Ensure potongan_harga is VARCHAR if it was previously DECIMAL
+        $colInfo = $pdo->query("SHOW COLUMNS FROM dokumen_arsip_legal LIKE 'potongan_harga'")->fetch();
+        if ($colInfo && strpos(strtolower($colInfo['Type']), 'varchar') === false) {
+            $pdo->exec("ALTER TABLE dokumen_arsip_legal MODIFY COLUMN potongan_harga VARCHAR(255) NULL");
         }
     } catch (Exception $ex) {
         // Silently continue if table not created yet
