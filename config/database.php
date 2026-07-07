@@ -92,6 +92,22 @@ try {
         } catch (Exception $ex) {
             // Silently continue if table not created yet
         }
+
+        // Auto-ensure required columns on pengajuan_pks table exist
+        try {
+            $checkPksCols = [
+                'status' => "VARCHAR(50) NOT NULL DEFAULT 'Dalam Proses' AFTER step_status",
+                'reject_reason' => "TEXT NULL AFTER status"
+            ];
+            foreach ($checkPksCols as $cName => $cDef) {
+                $colExists = $pdo->query("SHOW COLUMNS FROM pengajuan_pks LIKE '$cName'")->rowCount();
+                if ($colExists == 0) {
+                    $pdo->exec("ALTER TABLE pengajuan_pks ADD COLUMN $cName $cDef");
+                }
+            }
+        } catch (Exception $ex) {
+            // Silently continue if table not created yet
+        }
     }
 } catch (PDOException $e) {
     die('Koneksi database gagal: ' . $e->getMessage());

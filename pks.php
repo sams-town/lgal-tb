@@ -17,6 +17,23 @@ if (!isUserLegalOrAdmin()) {
 
 $user = $_SESSION['user'];
 
+// Handle status and reject reason update
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
+    $pks_id = (int)$_POST['pks_id'];
+    $new_status = $_POST['status'] ?? 'Dalam Proses';
+    $reject_reason = $_POST['reject_reason'] ?? null;
+    
+    try {
+        $stmt = $pdo->prepare("UPDATE pengajuan_pks SET status = ?, reject_reason = ? WHERE id = ?");
+        $stmt->execute([$new_status, $reject_reason, $pks_id]);
+        $_SESSION['pks_success'] = "Status pengajuan berhasil diperbarui!";
+    } catch (PDOException $e) {
+        $_SESSION['pks_error'] = "Gagal memperbarui status: " . $e->getMessage();
+    }
+    header("Location: pks.php");
+    exit;
+}
+
 // Handle form submission for adding new PKS
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_pks'])) {
     $tanggal_pengajuan = $_POST['tanggal_pengajuan'] ?? null;
@@ -146,24 +163,31 @@ if (isset($_GET['delete'])) {
     exit;
 }
 
-// Capture search query
+// Capture search query and status filter
 $search_query = isset($_GET['search']) ? trim($_GET['search']) : '';
+$status_filter = isset($_GET['status_filter']) ? trim($_GET['status_filter']) : '';
 
 // Get PKS documents
 try {
+    $sql = "SELECT * FROM pengajuan_pks WHERE 1=1";
+    $params = [];
+    
     if (!empty($search_query)) {
-        $stmt = $pdo->prepare("
-            SELECT * FROM pengajuan_pks 
-            WHERE jenis_kerjasama LIKE :search 
-               OR objek_kerjasama LIKE :search 
-               OR nomor_dokumen LIKE :search 
-               OR calon_mitra LIKE :search
-            ORDER BY created_at DESC
-        ");
-        $stmt->execute(['search' => "%$search_query%"]);
-    } else {
-        $stmt = $pdo->query("SELECT * FROM pengajuan_pks ORDER BY created_at DESC");
+        $sql .= " AND (jenis_kerjasama LIKE :search 
+                   OR objek_kerjasama LIKE :search 
+                   OR nomor_dokumen LIKE :search 
+                   OR calon_mitra LIKE :search)";
+        $params['search'] = "%$search_query%";
     }
+    
+    if (!empty($status_filter)) {
+        $sql .= " AND status = :status_filter";
+        $params['status_filter'] = $status_filter;
+    }
+    
+    $sql .= " ORDER BY created_at DESC";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
     $documents = $stmt->fetchAll();
 } catch (PDOException $e) {
     $documents = [];
@@ -258,13 +282,24 @@ try {
 
                 <!-- Stats Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 relative cursor-pointer hover:bg-gray-50 transition-colors" onclick="toggleFilterDropdown(event)">
                         <div class="flex items-start justify-between">
                             <div>
-                                <p class="text-sm text-gray-500 mb-1">Total Pengajuan</p>
+                                <p class="text-sm text-gray-500 mb-1 flex items-center gap-1">
+                                    <span>Total Pengajuan</span>
+                                    <span class="text-xs">▼</span>
+                                </p>
                                 <h3 class="text-3xl font-bold text-gray-900"><?php echo $totalDocs; ?></h3>
                             </div>
                             <div class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center text-3xl">📄</div>
+                        </div>
+                        
+                        <!-- Dropdown Menu for filtering -->
+                        <div id="filterDropdown" class="hidden absolute left-6 top-20 bg-white border border-gray-200 rounded-xl shadow-lg z-10 w-48 py-2" onclick="event.stopPropagation()">
+                            <a href="pks.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-medium">Semua Status</a>
+                            <a href="pks.php?status_filter=Dalam+Proses" class="block px-4 py-2 text-sm text-amber-700 hover:bg-amber-50">Dalam Proses</a>
+                            <a href="pks.php?status_filter=Diterima" class="block px-4 py-2 text-sm text-emerald-700 hover:bg-emerald-50">Diterima</a>
+                            <a href="pks.php?status_filter=Ditolak" class="block px-4 py-2 text-sm text-red-700 hover:bg-red-50">Ditolak</a>
                         </div>
                     </div>
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -327,13 +362,14 @@ try {
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Objek Kerjasama</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Calon Mitra</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Berkas</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Status</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100">
                                 <?php if (empty($documents)): ?>
                                     <tr>
-                                        <td colspan="8" class="px-6 py-12 text-center text-gray-500">
+                                        <td colspan="9" class="px-6 py-12 text-center text-gray-500">
                                             Belum ada pengajuan kerjasama yang tersedia
                                         </td>
                                     </tr>
@@ -378,6 +414,33 @@ try {
                                                     </a>
                                                 <?php else: ?>
                                                     <span class="text-gray-400 text-sm">-</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <form method="POST" action="pks.php" id="statusForm_<?php echo $doc['id']; ?>" class="inline-block">
+                                                    <input type="hidden" name="update_status" value="1">
+                                                    <input type="hidden" name="pks_id" value="<?php echo $doc['id']; ?>">
+                                                    <select 
+                                                        name="status" 
+                                                        onchange="handleStatusChange(<?php echo $doc['id']; ?>, this.value)"
+                                                        class="px-2 py-1 rounded-full text-xs font-semibold border cursor-pointer focus:outline-none 
+                                                            <?php 
+                                                            $currentStatus = $doc['status'] ?? 'Dalam Proses';
+                                                            if ($currentStatus === 'Diterima') echo 'bg-emerald-100 text-emerald-800 border-emerald-200';
+                                                            elseif ($currentStatus === 'Ditolak') echo 'bg-red-100 text-red-800 border-red-200';
+                                                            else echo 'bg-amber-100 text-amber-800 border-amber-200';
+                                                            ?>"
+                                                    >
+                                                        <option value="Dalam Proses" <?php echo $currentStatus === 'Dalam Proses' ? 'selected' : ''; ?>>Dalam Proses</option>
+                                                        <option value="Diterima" <?php echo $currentStatus === 'Diterima' ? 'selected' : ''; ?>>Diterima</option>
+                                                        <option value="Ditolak" <?php echo $currentStatus === 'Ditolak' ? 'selected' : ''; ?>>Ditolak</option>
+                                                    </select>
+                                                    <input type="hidden" name="reject_reason" id="rejectReason_<?php echo $doc['id']; ?>" value="<?php echo htmlspecialchars($doc['reject_reason'] ?? ''); ?>">
+                                                </form>
+                                                <?php if (($doc['status'] ?? '') === 'Ditolak' && !empty($doc['reject_reason'])): ?>
+                                                    <p class="text-xs text-red-500 mt-1 font-medium max-w-[150px] break-words" title="<?php echo htmlspecialchars($doc['reject_reason']); ?>">
+                                                        Ket: <?php echo htmlspecialchars($doc['reject_reason']); ?>
+                                                    </p>
                                                 <?php endif; ?>
                                             </td>
                                             <td class="px-6 py-4">
@@ -604,6 +667,33 @@ try {
                 element.classList.remove('flex');
             }
         }
+
+        function handleStatusChange(pksId, value) {
+            if (value === 'Ditolak') {
+                const reason = prompt('Masukkan alasan penolakan:', document.getElementById('rejectReason_' + pksId).value);
+                if (reason === null) {
+                    // Cancelled, reset select to previous value
+                    location.reload();
+                    return;
+                }
+                document.getElementById('rejectReason_' + pksId).value = reason;
+            }
+            document.getElementById('statusForm_' + pksId).submit();
+        }
+
+        function toggleFilterDropdown(event) {
+            event.stopPropagation();
+            const dropdown = document.getElementById('filterDropdown');
+            dropdown.classList.toggle('hidden');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function() {
+            const dropdown = document.getElementById('filterDropdown');
+            if (dropdown) {
+                dropdown.classList.add('hidden');
+            }
+        });
     </script>
 
     <!-- Import Modal -->
