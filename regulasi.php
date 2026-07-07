@@ -87,23 +87,30 @@ if (isset($_GET['delete'])) {
     exit;
 }
 
-// Capture search query
+// Capture search query and category filter
 $search_query = isset($_GET['search']) ? trim($_GET['search']) : '';
+$kategori_filter = isset($_GET['kategori_filter']) ? trim($_GET['kategori_filter']) : '';
 
 // Get Regulasi documents
 try {
+    $sql = "SELECT * FROM dokumen_regulasi WHERE 1=1";
+    $params = [];
+    
     if (!empty($search_query)) {
-        $stmt = $pdo->prepare("
-            SELECT * FROM dokumen_regulasi 
-            WHERE kategori_regulasi LIKE :search 
-               OR judul_regulasi LIKE :search 
-               OR nomor_regulasi LIKE :search
-            ORDER BY created_at DESC
-        ");
-        $stmt->execute(['search' => "%$search_query%"]);
-    } else {
-        $stmt = $pdo->query("SELECT * FROM dokumen_regulasi ORDER BY created_at DESC");
+        $sql .= " AND (kategori_regulasi LIKE :search 
+                   OR judul_regulasi LIKE :search 
+                   OR nomor_regulasi LIKE :search)";
+        $params['search'] = "%$search_query%";
     }
+    
+    if (!empty($kategori_filter)) {
+        $sql .= " AND kategori_regulasi = :kategori_filter";
+        $params['kategori_filter'] = $kategori_filter;
+    }
+    
+    $sql .= " ORDER BY created_at DESC";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
     $documents = $stmt->fetchAll();
 } catch (PDOException $e) {
     $documents = [];
@@ -207,13 +214,24 @@ try {
 
                 <!-- Stats Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 relative cursor-pointer hover:bg-gray-50 transition-colors" onclick="toggleFilterDropdown(event)">
                         <div class="flex items-start justify-between">
                             <div>
-                                <p class="text-sm text-gray-500 mb-1">Total Regulasi</p>
+                                <p class="text-sm text-gray-500 mb-1 flex items-center gap-1">
+                                    <span>Total Regulasi</span>
+                                    <span class="text-xs">▼</span>
+                                </p>
                                 <h3 class="text-3xl font-bold text-gray-900"><?php echo $totalDocs; ?></h3>
                             </div>
                             <div class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center text-3xl">📄</div>
+                        </div>
+                        
+                        <!-- Dropdown Menu for filtering -->
+                        <div id="filterDropdown" class="hidden absolute left-6 top-20 bg-white border border-gray-200 rounded-xl shadow-lg z-10 w-52 py-2" onclick="event.stopPropagation()">
+                            <a href="regulasi.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-medium">Semua Regulasi</a>
+                            <a href="regulasi.php?kategori_filter=Peraturan+Direktur" class="block px-4 py-2 text-sm text-blue-700 hover:bg-blue-50">Peraturan Direksi</a>
+                            <a href="regulasi.php?kategori_filter=Keputusan+Direktur" class="block px-4 py-2 text-sm text-emerald-700 hover:bg-emerald-50">Keputusan Direksi</a>
+                            <a href="regulasi.php?kategori_filter=SPO" class="block px-4 py-2 text-sm text-amber-700 hover:bg-amber-50">SOP (SPO)</a>
                         </div>
                     </div>
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -437,6 +455,20 @@ try {
                 element.classList.remove('flex');
             }
         }
+
+        function toggleFilterDropdown(event) {
+            event.stopPropagation();
+            const dropdown = document.getElementById('filterDropdown');
+            dropdown.classList.toggle('hidden');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function() {
+            const dropdown = document.getElementById('filterDropdown');
+            if (dropdown) {
+                dropdown.classList.add('hidden');
+            }
+        });
     </script>
 </body>
 </html>
