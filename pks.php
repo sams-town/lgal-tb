@@ -210,10 +210,6 @@ try {
                         <h1 class="text-3xl font-bold text-gray-900">Perjanjian Kerjasama (PKS)</h1>
                         <p class="text-gray-600 mt-2">Manajemen seluruh perjanjian kerjasama rumah sakit dengan mitra dan pihak ketiga</p>
                     </div>
-                    <a href="pengajuan.php" class="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl font-medium hover:bg-emerald-700 transition-colors shadow-sm">
-                        📝
-                        <span>Pengajuan Dokumen</span>
-                    </a>
                 </div>
 
                 <?php if (isset($_SESSION['pks_success'])): ?>
