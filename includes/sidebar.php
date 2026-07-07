@@ -2,6 +2,7 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+require_once __DIR__ . '/functions.php';
 $current_page = basename($_SERVER['PHP_SELF']);
 $page_param = isset($_GET['page']) ? $_GET['page'] : '';
 $type_param = isset($_GET['type']) ? $_GET['type'] : '';
