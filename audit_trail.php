@@ -32,54 +32,56 @@ if ($_SESSION['user']['role'] !== 'Super Admin') {
 $user = $_SESSION['user'];
 
 // Initialize audit_logs table and insert sample data if empty
-try {
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS audit_logs (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT NULL,
-            user_name VARCHAR(255) NOT NULL,
-            user_email VARCHAR(255) NOT NULL,
-            action VARCHAR(50) NOT NULL,
-            module VARCHAR(100) NOT NULL,
-            details TEXT NOT NULL,
-            timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_timestamp (timestamp),
-            INDEX idx_module (module),
-            INDEX idx_action (action)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    ");
-
-    // Insert sample data if table is empty
-    $stmt = $pdo->query("SELECT COUNT(*) FROM audit_logs");
-    if (false && $stmt->fetchColumn() == 0) {
-        $sampleLogs = [
-            ['user_id' => 1, 'user_name' => 'Irsad Super Admin', 'user_email' => 'irsad@thb.id', 'action' => 'LOGIN', 'module' => 'Sistem', 'details' => 'User berhasil login ke sistem'],
-            ['user_id' => 1, 'user_name' => 'Irsad Super Admin', 'user_email' => 'irsad@thb.id', 'action' => 'CREATE', 'module' => 'PKS', 'details' => 'Menambahkan draf PKS baru dengan PT Mitra Sehat Sentosa'],
-            ['user_id' => 1, 'user_name' => 'Irsad Super Admin', 'user_email' => 'irsad@thb.id', 'action' => 'UPDATE', 'module' => 'Akreditasi', 'details' => 'Memperbarui status elemen penilaian EP-102 menjadi Sudah Terpenuhi'],
-            ['user_id' => 1, 'user_name' => 'Irsad Super Admin', 'user_email' => 'irsad@thb.id', 'action' => 'CREATE', 'module' => 'Surat Masuk', 'details' => 'Menambahkan surat masuk dari Dinas Kesehatan Propinsi'],
-            ['user_id' => 1, 'user_name' => 'Irsad Super Admin', 'user_email' => 'irsad@thb.id', 'action' => 'APPROVE', 'module' => 'Persetujuan', 'details' => 'Menyetujui perjanjian kerjasama pada tahap Komite Medik'],
-            ['user_id' => 1, 'user_name' => 'Irsad Super Admin', 'user_email' => 'irsad@thb.id', 'action' => 'DELETE', 'module' => 'SOP', 'details' => 'Menghapus dokumen SOP lama yang sudah tidak berlaku'],
-            ['user_id' => 1, 'user_name' => 'Irsad Super Admin', 'user_email' => 'irsad@thb.id', 'action' => 'LOGIN', 'module' => 'Sistem', 'details' => 'User berhasil login ke sistem']
-        ];
-
-        $stmt = $pdo->prepare("
-            INSERT INTO audit_logs (user_id, user_name, user_email, action, module, details)
-            VALUES (?, ?, ?, ?, ?, ?)
+if (isset($isLocal) && $isLocal) {
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS audit_logs (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NULL,
+                user_name VARCHAR(255) NOT NULL,
+                user_email VARCHAR(255) NOT NULL,
+                action VARCHAR(50) NOT NULL,
+                module VARCHAR(100) NOT NULL,
+                details TEXT NOT NULL,
+                timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_timestamp (timestamp),
+                INDEX idx_module (module),
+                INDEX idx_action (action)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         ");
 
-        foreach ($sampleLogs as $log) {
-            $stmt->execute([
-                $log['user_id'],
-                $log['user_name'],
-                $log['user_email'],
-                $log['action'],
-                $log['module'],
-                $log['details']
-            ]);
+        // Insert sample data if table is empty
+        $stmt = $pdo->query("SELECT COUNT(*) FROM audit_logs");
+        if (false && $stmt->fetchColumn() == 0) {
+            $sampleLogs = [
+                ['user_id' => 1, 'user_name' => 'Irsad Super Admin', 'user_email' => 'irsad@thb.id', 'action' => 'LOGIN', 'module' => 'Sistem', 'details' => 'User berhasil login ke sistem'],
+                ['user_id' => 1, 'user_name' => 'Irsad Super Admin', 'user_email' => 'irsad@thb.id', 'action' => 'CREATE', 'module' => 'PKS', 'details' => 'Menambahkan draf PKS baru dengan PT Mitra Sehat Sentosa'],
+                ['user_id' => 1, 'user_name' => 'Irsad Super Admin', 'user_email' => 'irsad@thb.id', 'action' => 'UPDATE', 'module' => 'Akreditasi', 'details' => 'Memperbarui status elemen penilaian EP-102 menjadi Sudah Terpenuhi'],
+                ['user_id' => 1, 'user_name' => 'Irsad Super Admin', 'user_email' => 'irsad@thb.id', 'action' => 'CREATE', 'module' => 'Surat Masuk', 'details' => 'Menambahkan surat masuk dari Dinas Kesehatan Propinsi'],
+                ['user_id' => 1, 'user_name' => 'Irsad Super Admin', 'user_email' => 'irsad@thb.id', 'action' => 'APPROVE', 'module' => 'Persetujuan', 'details' => 'Menyetujui perjanjian kerjasama pada tahap Komite Medik'],
+                ['user_id' => 1, 'user_name' => 'Irsad Super Admin', 'user_email' => 'irsad@thb.id', 'action' => 'DELETE', 'module' => 'SOP', 'details' => 'Menghapus dokumen SOP lama yang sudah tidak berlaku'],
+                ['user_id' => 1, 'user_name' => 'Irsad Super Admin', 'user_email' => 'irsad@thb.id', 'action' => 'LOGIN', 'module' => 'Sistem', 'details' => 'User berhasil login ke sistem']
+            ];
+
+            $stmt = $pdo->prepare("
+                INSERT INTO audit_logs (user_id, user_name, user_email, action, module, details)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ");
+
+            foreach ($sampleLogs as $log) {
+                $stmt->execute([
+                    $log['user_id'],
+                    $log['user_name'],
+                    $log['user_email'],
+                    $log['action'],
+                    $log['module'],
+                    $log['details']
+                ]);
+            }
         }
+    } catch (PDOException $e) {
+        // Continue if sample data fails to insert
     }
-} catch (PDOException $e) {
-    // Continue if sample data fails to insert
 }
 
 // Get statistics

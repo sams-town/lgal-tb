@@ -54,25 +54,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_document'])) {
         }
     }
 
-    try {
-        // Create table if not exists
-        $pdo->exec("
-            CREATE TABLE IF NOT EXISTS `dokumen_akreditasi` (
-                `id` int(11) NOT NULL AUTO_INCREMENT,
-                `bab` varchar(2) NOT NULL,
-                `nama_dokumen` varchar(255) NOT NULL,
-                `kode_ep` varchar(50) NOT NULL,
-                `tanggal_review` date NOT NULL,
-                `target_capaian` int(3) NOT NULL,
-                `status_pemenuhan` enum('Belum Lengkap','Dalam Review','Sudah Terpenuhi') NOT NULL DEFAULT 'Belum Lengkap',
-                `file_path` varchar(255) DEFAULT NULL,
-                `file_status` enum('Tidak Ada','Ada') NOT NULL DEFAULT 'Tidak Ada',
-                `created_by` int(11) DEFAULT NULL,
-                `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                PRIMARY KEY (`id`)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-        ");
+    if (isset($isLocal) && $isLocal) {
+        try {
+            // Create table if not exists
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS `dokumen_akreditasi` (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `bab` varchar(2) NOT NULL,
+                    `nama_dokumen` varchar(255) NOT NULL,
+                    `kode_ep` varchar(50) NOT NULL,
+                    `tanggal_review` date NOT NULL,
+                    `target_capaian` int(3) NOT NULL,
+                    `status_pemenuhan` enum('Belum Lengkap','Dalam Review','Sudah Terpenuhi') NOT NULL DEFAULT 'Belum Lengkap',
+                    `file_path` varchar(255) DEFAULT NULL,
+                    `file_status` enum('Tidak Ada','Ada') NOT NULL DEFAULT 'Tidak Ada',
+                    `created_by` int(11) DEFAULT NULL,
+                    `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (`id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            ");
+        } catch (PDOException $e) {
+            // Ignore
+        }
+    }
 
+    try {
         // Insert document
         $stmt = $pdo->prepare("
             INSERT INTO dokumen_akreditasi 
@@ -113,25 +119,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
 
 // Get filter and documents
 $filter_bab = isset($_GET['bab']) ? $_GET['bab'] : '';
-try {
-    // Check if table exists, if not, create it
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS `dokumen_akreditasi` (
-            `id` int(11) NOT NULL AUTO_INCREMENT,
-            `bab` varchar(2) NOT NULL,
-            `nama_dokumen` varchar(255) NOT NULL,
-            `kode_ep` varchar(50) NOT NULL,
-            `tanggal_review` date NOT NULL,
-            `target_capaian` int(3) NOT NULL,
-            `status_pemenuhan` enum('Belum Lengkap','Dalam Review','Sudah Terpenuhi') NOT NULL DEFAULT 'Belum Lengkap',
-            `file_path` varchar(255) DEFAULT NULL,
-            `file_status` enum('Tidak Ada','Ada') NOT NULL DEFAULT 'Tidak Ada',
-            `created_by` int(11) DEFAULT NULL,
-            `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (`id`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    ");
+if (isset($isLocal) && $isLocal) {
+    try {
+        // Check if table exists, if not, create it
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS `dokumen_akreditasi` (
+                `id` int(11) NOT NULL AUTO_INCREMENT,
+                `bab` varchar(2) NOT NULL,
+                `nama_dokumen` varchar(255) NOT NULL,
+                `kode_ep` varchar(50) NOT NULL,
+                `tanggal_review` date NOT NULL,
+                `target_capaian` int(3) NOT NULL,
+                `status_pemenuhan` enum('Belum Lengkap','Dalam Review','Sudah Terpenuhi') NOT NULL DEFAULT 'Belum Lengkap',
+                `file_path` varchar(255) DEFAULT NULL,
+                `file_status` enum('Tidak Ada','Ada') NOT NULL DEFAULT 'Tidak Ada',
+                `created_by` int(11) DEFAULT NULL,
+                `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (`id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        ");
+    } catch (PDOException $e) {
+        // Ignore
+    }
+}
 
+try {
     $sql = "SELECT * FROM dokumen_akreditasi";
     $params = [];
     if ($filter_bab) {

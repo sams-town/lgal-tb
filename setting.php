@@ -18,57 +18,59 @@ if ($userRole !== 'Super Admin') {
 $user = $_SESSION['user'];
 
 // Initialize tables if not exists
-try {
-    // Create users table
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS users (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            name VARCHAR(255) NOT NULL,
-            email VARCHAR(255) NOT NULL UNIQUE,
-            password VARCHAR(255) NOT NULL,
-            role VARCHAR(100) NOT NULL,
-            status ENUM('Aktif', 'Nonaktif') NOT NULL DEFAULT 'Aktif',
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    ");
+if (isset($isLocal) && $isLocal) {
+    try {
+        // Create users table
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS users (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                email VARCHAR(255) NOT NULL UNIQUE,
+                password VARCHAR(255) NOT NULL,
+                role VARCHAR(100) NOT NULL,
+                status ENUM('Aktif', 'Nonaktif') NOT NULL DEFAULT 'Aktif',
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        ");
 
-    // Create roles table
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS roles (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            nama_role VARCHAR(100) NOT NULL UNIQUE,
-            deskripsi TEXT NULL,
-            permissions JSON NULL,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    ");
+        // Create roles table
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS roles (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nama_role VARCHAR(100) NOT NULL UNIQUE,
+                deskripsi TEXT NULL,
+                permissions JSON NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        ");
 
-    // Insert sample roles if none
-    $stmt = $pdo->query("SELECT COUNT(*) FROM roles");
-    if (false && $stmt->fetchColumn() == 0) {
-        $sampleRoles = [
-            ['name' => 'Super Admin', 'permissions' => '["dashboard", "legal", "sekretariat", "akreditasi", "corporate-secretary", "sop", "tenaga-medis", "audit-trail", "setting"]'],
-            ['name' => 'Staf Legal', 'permissions' => '["dashboard", "legal", "akreditasi"]'],
-            ['name' => 'Staf Sekretariat', 'permissions' => '["dashboard", "sekretariat"]'],
-            ['name' => 'Direktur', 'permissions' => '["dashboard", "legal", "sekretariat", "akreditasi", "corporate-secretary", "sop", "tenaga-medis", "audit-trail"]']
-        ];
+        // Insert sample roles if none
+        $stmt = $pdo->query("SELECT COUNT(*) FROM roles");
+        if (false && $stmt->fetchColumn() == 0) {
+            $sampleRoles = [
+                ['name' => 'Super Admin', 'permissions' => '["dashboard", "legal", "sekretariat", "akreditasi", "corporate-secretary", "sop", "tenaga-medis", "audit-trail", "setting"]'],
+                ['name' => 'Staf Legal', 'permissions' => '["dashboard", "legal", "akreditasi"]'],
+                ['name' => 'Staf Sekretariat', 'permissions' => '["dashboard", "sekretariat"]'],
+                ['name' => 'Direktur', 'permissions' => '["dashboard", "legal", "sekretariat", "akreditasi", "corporate-secretary", "sop", "tenaga-medis", "audit-trail"]']
+            ];
 
-        $stmt = $pdo->prepare("INSERT INTO roles (nama_role, permissions) VALUES (?, ?)");
-        foreach ($sampleRoles as $role) {
-            $stmt->execute([$role['name'], $role['permissions']]);
+            $stmt = $pdo->prepare("INSERT INTO roles (nama_role, permissions) VALUES (?, ?)");
+            foreach ($sampleRoles as $role) {
+                $stmt->execute([$role['name'], $role['permissions']]);
+            }
         }
-    }
 
-    // Insert sample admin if none
-    $stmt = $pdo->query("SELECT COUNT(*) FROM users");
-    if (false && $stmt->fetchColumn() == 0) {
-        $password = password_hash('admin123', PASSWORD_DEFAULT);
-        $stmt = $pdo->prepare("INSERT INTO users (name, email, password, role, status) VALUES (?, ?, ?, ?, ?)");
-        $stmt->execute(['Super Admin', 'admin@thb.id', $password, 'Super Admin', 'Aktif']);
+        // Insert sample admin if none
+        $stmt = $pdo->query("SELECT COUNT(*) FROM users");
+        if (false && $stmt->fetchColumn() == 0) {
+            $password = password_hash('admin123', PASSWORD_DEFAULT);
+            $stmt = $pdo->prepare("INSERT INTO users (name, email, password, role, status) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute(['Super Admin', 'admin@thb.id', $password, 'Super Admin', 'Aktif']);
+        }
+    } catch (PDOException $e) {
+        // Continue if tables already exist
     }
-} catch (PDOException $e) {
-    // Continue if tables already exist
 }
 
 // Handle add user

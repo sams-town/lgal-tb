@@ -82,6 +82,19 @@ function notifyByPermission($title, $message, $permission, $user_id = null) {
  */
 function ensureNotificationsTableExists()
 {
+    static $alreadyChecked = false;
+    if ($alreadyChecked) {
+        return;
+    }
+    
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    if (isset($_SESSION['notifications_table_checked'])) {
+        $alreadyChecked = true;
+        return;
+    }
+    
     global $pdo;
     
     try {
@@ -100,6 +113,8 @@ function ensureNotificationsTableExists()
                 KEY is_read (is_read)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ");
+        $_SESSION['notifications_table_checked'] = true;
+        $alreadyChecked = true;
     } catch (PDOException $e) {
         // Table already exists or error
         error_log("Error ensuring notifications table: " . $e->getMessage());

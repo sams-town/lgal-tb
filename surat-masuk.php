@@ -12,27 +12,29 @@ if (!isset($_SESSION['user'])) {
 $user = $_SESSION['user'];
 
 // Initialize database check/creation just in case
-try {
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS manajemen_surat (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            nomor_surat VARCHAR(255) NOT NULL,
-            kategori VARCHAR(50) NOT NULL,
-            asal_pengirim VARCHAR(255) NOT NULL,
-            perihal TEXT NOT NULL,
-            tanggal_surat DATE NOT NULL,
-            tanggal_diterima DATE NULL,
-            status_tindak_lanjut VARCHAR(50) NOT NULL DEFAULT 'Pending',
-            file_path VARCHAR(255) NULL,
-            kepada TEXT NULL,
-            cc TEXT NULL,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_kategori (kategori),
-            INDEX idx_status_tindak_lanjut (status_tindak_lanjut)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    ");
-} catch (PDOException $e) {
-    // Fail silently
+if (isset($isLocal) && $isLocal) {
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS manajemen_surat (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nomor_surat VARCHAR(255) NOT NULL,
+                kategori VARCHAR(50) NOT NULL,
+                asal_pengirim VARCHAR(255) NOT NULL,
+                perihal TEXT NOT NULL,
+                tanggal_surat DATE NOT NULL,
+                tanggal_diterima DATE NULL,
+                status_tindak_lanjut VARCHAR(50) NOT NULL DEFAULT 'Pending',
+                file_path VARCHAR(255) NULL,
+                kepada TEXT NULL,
+                cc TEXT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_kategori (kategori),
+                INDEX idx_status_tindak_lanjut (status_tindak_lanjut)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        ");
+    } catch (PDOException $e) {
+        // Fail silently
+    }
 }
 
 // Handle form submission for adding new document

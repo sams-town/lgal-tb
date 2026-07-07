@@ -14,47 +14,49 @@ $success = null;
 $error = null;
 
 // Initialize dokumen_corsec table and insert sample data if empty
-try {
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS dokumen_corsec (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            judul VARCHAR(255) NOT NULL,
-            nomor_dokumen VARCHAR(255) NULL,
-            kategori VARCHAR(100) NOT NULL,
-            tanggal_terbit DATE NOT NULL,
-            file_path VARCHAR(255) NULL,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_kategori (kategori)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    ");
-
-    // Insert sample data if table is empty
-    $stmt = $pdo->query("SELECT COUNT(*) FROM dokumen_corsec");
-    if (false && $stmt->fetchColumn() == 0) {
-        $sampleData = [
-            ['judul' => 'Rapat Direksi Q1 2024', 'nomor_dokumen' => 'CORSEC/001/2024', 'kategori' => 'Board Meeting', 'tanggal_terbit' => '2024-03-15', 'file_path' => 'uploads/corsec/rapat-q1-2024.pdf'],
-            ['judul' => 'Pedoman GCG 2024', 'nomor_dokumen' => 'CORSEC/002/2024', 'kategori' => 'GCG', 'tanggal_terbit' => '2024-02-20', 'file_path' => 'uploads/corsec/pedoman-gcg-2024.pdf'],
-            ['judul' => 'Laporan KPI Direksi Semester 1', 'nomor_dokumen' => 'CORSEC/003/2024', 'kategori' => 'KPI Direksi', 'tanggal_terbit' => '2024-06-30', 'file_path' => null],
-            ['judul' => 'Daftar Risiko Operasional 2024', 'nomor_dokumen' => 'CORSEC/004/2024', 'kategori' => 'Risk Management', 'tanggal_terbit' => '2024-04-10', 'file_path' => null]
-        ];
-
-        $stmt = $pdo->prepare("
-            INSERT INTO dokumen_corsec (judul, nomor_dokumen, kategori, tanggal_terbit, file_path)
-            VALUES (?, ?, ?, ?, ?)
+if (isset($isLocal) && $isLocal) {
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS dokumen_corsec (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                judul VARCHAR(255) NOT NULL,
+                nomor_dokumen VARCHAR(255) NULL,
+                kategori VARCHAR(100) NOT NULL,
+                tanggal_terbit DATE NOT NULL,
+                file_path VARCHAR(255) NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_kategori (kategori)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         ");
 
-        foreach ($sampleData as $data) {
-            $stmt->execute([
-                $data['judul'],
-                $data['nomor_dokumen'],
-                $data['kategori'],
-                $data['tanggal_terbit'],
-                $data['file_path']
-            ]);
+        // Insert sample data if table is empty
+        $stmt = $pdo->query("SELECT COUNT(*) FROM dokumen_corsec");
+        if (false && $stmt->fetchColumn() == 0) {
+            $sampleData = [
+                ['judul' => 'Rapat Direksi Q1 2024', 'nomor_dokumen' => 'CORSEC/001/2024', 'kategori' => 'Board Meeting', 'tanggal_terbit' => '2024-03-15', 'file_path' => 'uploads/corsec/rapat-q1-2024.pdf'],
+                ['judul' => 'Pedoman GCG 2024', 'nomor_dokumen' => 'CORSEC/002/2024', 'kategori' => 'GCG', 'tanggal_terbit' => '2024-02-20', 'file_path' => 'uploads/corsec/pedoman-gcg-2024.pdf'],
+                ['judul' => 'Laporan KPI Direksi Semester 1', 'nomor_dokumen' => 'CORSEC/003/2024', 'kategori' => 'KPI Direksi', 'tanggal_terbit' => '2024-06-30', 'file_path' => null],
+                ['judul' => 'Daftar Risiko Operasional 2024', 'nomor_dokumen' => 'CORSEC/004/2024', 'kategori' => 'Risk Management', 'tanggal_terbit' => '2024-04-10', 'file_path' => null]
+            ];
+
+            $stmt = $pdo->prepare("
+                INSERT INTO dokumen_corsec (judul, nomor_dokumen, kategori, tanggal_terbit, file_path)
+                VALUES (?, ?, ?, ?, ?)
+            ");
+
+            foreach ($sampleData as $data) {
+                $stmt->execute([
+                    $data['judul'],
+                    $data['nomor_dokumen'],
+                    $data['kategori'],
+                    $data['tanggal_terbit'],
+                    $data['file_path']
+                ]);
+            }
         }
+    } catch (PDOException $e) {
+        // Continue if sample data fails to insert
     }
-} catch (PDOException $e) {
-    // Continue if sample data fails to insert
 }
 
 // Handle form submission for adding new document

@@ -21,40 +21,42 @@ $stepConfig = [
 ];
 
 // Initialize sample documents data if table doesn't exist
-try {
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS approval_documents (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            name VARCHAR(255) NOT NULL,
-            proposer VARCHAR(255) NOT NULL,
-            date DATE NOT NULL,
-            step_status JSON NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    ");
-
-    // Insert sample data if empty
-    $stmt = $pdo->query("SELECT COUNT(*) FROM approval_documents");
-    if (false && $stmt->fetchColumn() == 0) {
-        $initialStepStatus = json_encode([
-            'km' => 'pending',
-            'lg' => 'pending',
-            'sk' => 'pending',
-            'dk' => 'pending',
-            'du' => 'pending'
-        ]);
-        
-        $stmt = $pdo->prepare("
-            INSERT INTO approval_documents (name, proposer, date, step_status)
-            VALUES 
-                ('Perjanjian Kerjasama Mitra Klinik Utama', 'Dr. Andi Wijaya', '2026-06-05', ?),
-                ('SOP Penanganan Pasien Gawat Darurat', 'Nurse Ratna', '2026-06-08', ?),
-                ('Pengadaan Alat Medis Laboratorium', 'Divisi Keuangan', '2026-06-09', ?)
+if (isset($isLocal) && $isLocal) {
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS approval_documents (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                proposer VARCHAR(255) NOT NULL,
+                date DATE NOT NULL,
+                step_status JSON NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         ");
-        $stmt->execute([$initialStepStatus, $initialStepStatus, $initialStepStatus]);
+
+        // Insert sample data if empty
+        $stmt = $pdo->query("SELECT COUNT(*) FROM approval_documents");
+        if (false && $stmt->fetchColumn() == 0) {
+            $initialStepStatus = json_encode([
+                'km' => 'pending',
+                'lg' => 'pending',
+                'sk' => 'pending',
+                'dk' => 'pending',
+                'du' => 'pending'
+            ]);
+            
+            $stmt = $pdo->prepare("
+                INSERT INTO approval_documents (name, proposer, date, step_status)
+                VALUES 
+                    ('Perjanjian Kerjasama Mitra Klinik Utama', 'Dr. Andi Wijaya', '2026-06-05', ?),
+                    ('SOP Penanganan Pasien Gawat Darurat', 'Nurse Ratna', '2026-06-08', ?),
+                    ('Pengadaan Alat Medis Laboratorium', 'Divisi Keuangan', '2026-06-09', ?)
+            ");
+            $stmt->execute([$initialStepStatus, $initialStepStatus, $initialStepStatus]);
+        }
+    } catch (PDOException $e) {
+        // Continue, sample data not critical
     }
-} catch (PDOException $e) {
-    // Continue, sample data not critical
 }
 
 // Handle new document upload
