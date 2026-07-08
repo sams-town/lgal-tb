@@ -264,9 +264,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_pengajuan'])) 
     exit;
 }
 
+// Capture filter query
+$filter_jenis = isset($_GET['jenis_pengajuan']) ? trim($_GET['jenis_pengajuan']) : '';
+
 // Get Pengajuan documents
 try {
-    $stmt = $pdo->query("SELECT * FROM pengajuan_dokumen ORDER BY created_at DESC");
+    if (!empty($filter_jenis)) {
+        $stmt = $pdo->prepare("
+            SELECT * FROM pengajuan_dokumen 
+            WHERE jenis_pengajuan = :jenis_pengajuan
+            ORDER BY created_at DESC
+        ");
+        $stmt->execute(['jenis_pengajuan' => $filter_jenis]);
+    } else {
+        $stmt = $pdo->query("SELECT * FROM pengajuan_dokumen ORDER BY created_at DESC");
+    }
     $documents = $stmt->fetchAll();
 } catch (PDOException $e) {
     $documents = [];
@@ -374,6 +386,36 @@ try {
 
                 <!-- Documents Table -->
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <!-- Search Bar -->
+                    <div class="p-6 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gray-50/50">
+                        <div class="flex flex-col md:flex-row md:items-center gap-4">
+                            <div>
+                                <h2 class="text-lg font-bold text-gray-900">Daftar Pengajuan Dokumen</h2>
+                                <p class="text-xs text-gray-500 mt-1">Total: <?php echo count($documents); ?> dokumen ditemukan</p>
+                            </div>
+                            <form method="GET" class="flex items-center gap-2">
+                                <div class="relative w-64">
+                                    <select 
+                                        name="jenis_pengajuan" 
+                                        onchange="this.form.submit()"
+                                        class="w-full pl-10 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:border-emerald-500 transition-all appearance-none cursor-pointer"
+                                    >
+                                        <option value="">-- Semua Jenis Pengajuan --</option>
+                                        <option value="Pengajuan Baru" <?php echo $filter_jenis === 'Pengajuan Baru' ? 'selected' : ''; ?>>Dokumen Baru</option>
+                                        <option value="Perubahan Dokumen" <?php echo $filter_jenis === 'Perubahan Dokumen' ? 'selected' : ''; ?>>Perubahan Dokumen</option>
+                                        <option value="Pencabutan Dokumen" <?php echo $filter_jenis === 'Pencabutan Dokumen' ? 'selected' : ''; ?>>Pencabutan Dokumen</option>
+                                    </select>
+                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">📁</span>
+                                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">▼</span>
+                                </div>
+                                <?php if (!empty($filter_jenis)): ?>
+                                    <a href="pengajuan.php" class="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition-colors">
+                                        Reset
+                                    </a>
+                                <?php endif; ?>
+                            </form>
+                        </div>
+                    </div>
                     <div class="overflow-x-auto">
                         <table class="w-full">
                             <thead class="bg-gray-50">

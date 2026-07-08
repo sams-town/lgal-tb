@@ -89,21 +89,18 @@ if (isset($_GET['delete'])) {
     exit;
 }
 
-// Capture search query
-$search_query = isset($_GET['search']) ? trim($_GET['search']) : '';
+// Capture filter query
+$filter_pemilik = isset($_GET['pemilik_izin']) ? trim($_GET['pemilik_izin']) : '';
 
 // Get Perizinan documents
 try {
-    if (!empty($search_query)) {
+    if (!empty($filter_pemilik)) {
         $stmt = $pdo->prepare("
             SELECT * FROM dokumen_perizinan 
-            WHERE pemilik_izin LIKE :search 
-               OR nama_izin LIKE :search 
-               OR instansi_penerbit LIKE :search 
-               OR penanggung_jawab LIKE :search
+            WHERE pemilik_izin = :pemilik_izin
             ORDER BY created_at DESC
         ");
-        $stmt->execute(['search' => "%$search_query%"]);
+        $stmt->execute(['pemilik_izin' => $filter_pemilik]);
     } else {
         $stmt = $pdo->query("SELECT * FROM dokumen_perizinan ORDER BY created_at DESC");
     }
@@ -247,30 +244,32 @@ try {
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                     <!-- Search Bar -->
                     <div class="p-6 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gray-50/50">
-                        <div>
-                            <h2 class="text-lg font-bold text-gray-900">Daftar Dokumen Perizinan</h2>
-                            <p class="text-xs text-gray-500 mt-1">Total: <?php echo count($documents); ?> dokumen ditemukan</p>
-                        </div>
-                        <form method="GET" class="flex items-center gap-2 w-full md:w-auto">
-                            <div class="relative flex-1 md:w-80">
-                                <input 
-                                    type="text" 
-                                    name="search" 
-                                    value="<?php echo htmlspecialchars($search_query); ?>" 
-                                    placeholder="Cari tipe, nama izin, atau instansi..." 
-                                    class="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:border-emerald-500 transition-all"
-                                >
-                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+                        <div class="flex flex-col md:flex-row md:items-center gap-4">
+                            <div>
+                                <h2 class="text-lg font-bold text-gray-900">Daftar Dokumen Perizinan</h2>
+                                <p class="text-xs text-gray-500 mt-1">Total: <?php echo count($documents); ?> dokumen ditemukan</p>
                             </div>
-                            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors shadow-sm">
-                                Cari
-                            </button>
-                            <?php if (!empty($search_query)): ?>
-                                <a href="perizinan.php" class="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition-colors">
-                                    Reset
-                                </a>
-                            <?php endif; ?>
-                        </form>
+                            <form method="GET" class="flex items-center gap-2">
+                                <div class="relative w-64">
+                                    <select 
+                                        name="pemilik_izin" 
+                                        onchange="this.form.submit()"
+                                        class="w-full pl-10 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:border-emerald-500 transition-all appearance-none cursor-pointer"
+                                    >
+                                        <option value="">-- Semua Pemilik Izin --</option>
+                                        <option value="RS THB" <?php echo $filter_pemilik === 'RS THB' ? 'selected' : ''; ?>>RS THB</option>
+                                        <option value="PT PBA" <?php echo $filter_pemilik === 'PT PBA' ? 'selected' : ''; ?>>PT PBA</option>
+                                    </select>
+                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">📁</span>
+                                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">▼</span>
+                                </div>
+                                <?php if (!empty($filter_pemilik)): ?>
+                                    <a href="perizinan.php" class="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition-colors">
+                                        Reset
+                                    </a>
+                                <?php endif; ?>
+                            </form>
+                        </div>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full">
