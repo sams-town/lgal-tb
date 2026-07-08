@@ -307,6 +307,8 @@ try {
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Perusahaan/Instansi</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Ruang Lingkup Kerjasama</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Nilai Kontrak</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Potongan Harga</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Cara Pembayaran</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Jangka Waktu</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Penanggung Jawab Mitra</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Status</th>
@@ -317,7 +319,7 @@ try {
                             <tbody class="divide-y divide-gray-100">
                                 <?php if (empty($documents)): ?>
                                     <tr>
-                                        <td colspan="10" class="px-6 py-12 text-center text-gray-500">
+                                        <td colspan="12" class="px-6 py-12 text-center text-gray-500">
                                             Belum ada dokumen arsip yang tersedia
                                         </td>
                                     </tr>
@@ -344,12 +346,12 @@ try {
                                                 <p class="text-sm font-semibold">
                                                     <?php echo $doc['nilai_kontrak'] ? 'Rp ' . number_format($doc['nilai_kontrak'], 2, ',', '.') : '-'; ?>
                                                 </p>
-                                                <?php if (!empty($doc['potongan_harga'])): ?>
-                                                    <p class="text-xs text-red-500 mt-1">Potongan: <?php echo htmlspecialchars($doc['potongan_harga']); ?></p>
-                                                <?php endif; ?>
-                                                <?php if (!empty($doc['cara_pembayaran'])): ?>
-                                                    <p class="text-xs text-gray-500 mt-0.5"><?php echo htmlspecialchars($doc['cara_pembayaran']); ?></p>
-                                                <?php endif; ?>
+                                            </td>
+                                            <td class="px-6 py-4 text-gray-700">
+                                                <p class="text-sm"><?php echo !empty($doc['potongan_harga']) ? htmlspecialchars($doc['potongan_harga']) : '-'; ?></p>
+                                            </td>
+                                            <td class="px-6 py-4 text-gray-700">
+                                                <p class="text-sm"><?php echo !empty($doc['cara_pembayaran']) ? htmlspecialchars($doc['cara_pembayaran']) : '-'; ?></p>
                                             </td>
                                             <td class="px-6 py-4 text-gray-700">
                                                 <p class="text-sm">

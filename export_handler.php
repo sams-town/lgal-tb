@@ -146,12 +146,14 @@ $moduleConfigs = [
             'Perusahaan' => 'perusahaan',
             'Ruang Lingkup' => 'ruang_lingkup',
             'Nilai Kontrak' => 'nilai_kontrak',
+            'Potongan Harga' => 'potongan_harga',
+            'Cara Pembayaran' => 'cara_pembayaran',
             'Tanggal Mulai' => 'tanggal_mulai',
             'Tanggal Berakhir' => 'tanggal_berakhir',
             'Nama PJ' => 'nama_pj',
             'No Telp PJ' => 'no_telp_pj'
         ],
-        'insertColumns' => ['tipe_kontrak', 'perusahaan', 'ruang_lingkup', 'nilai_kontrak', 'tanggal_mulai', 'tanggal_berakhir', 'nama_pj', 'no_telp_pj', 'file_path'],
+        'insertColumns' => ['tipe_kontrak', 'perusahaan', 'ruang_lingkup', 'nilai_kontrak', 'potongan_harga', 'cara_pembayaran', 'tanggal_mulai', 'tanggal_berakhir', 'nama_pj', 'no_telp_pj', 'file_path'],
         'displayName' => 'Arsip Dokumen Legal'
     ]
 ];
@@ -322,10 +324,12 @@ if ($action === 'download_template') {
                         $row[1] ?? '', // perusahaan
                         $row[2] ?? null, // ruang_lingkup
                         !empty($row[3]) ? (float)$row[3] : null, // nilai_kontrak
-                        parseImportDate($row[4] ?? null), // tanggal_mulai
-                        parseImportDate($row[5] ?? null), // tanggal_berakhir
-                        $row[6] ?? null, // nama_pj
-                        $row[7] ?? null, // no_telp_pj
+                        $row[4] ?? null, // potongan_harga
+                        $row[5] ?? null, // cara_pembayaran
+                        parseImportDate($row[6] ?? null), // tanggal_mulai
+                        parseImportDate($row[7] ?? null), // tanggal_berakhir
+                        $row[8] ?? null, // nama_pj
+                        $row[9] ?? null, // no_telp_pj
                         null // file_path
                     ];
                 }
