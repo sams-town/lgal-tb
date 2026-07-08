@@ -111,20 +111,18 @@ if (isset($_GET['delete'])) {
     exit;
 }
 
-// Capture search query
-$search_query = isset($_GET['search']) ? trim($_GET['search']) : '';
+// Capture filter query
+$filter_tipe = isset($_GET['tipe_kontrak']) ? trim($_GET['tipe_kontrak']) : '';
 
 // Get Arsip documents
 try {
-    if (!empty($search_query)) {
+    if (!empty($filter_tipe)) {
         $stmt = $pdo->prepare("
             SELECT * FROM dokumen_arsip_legal 
-            WHERE tipe_kontrak LIKE :search 
-               OR perusahaan LIKE :search 
-               OR ruang_lingkup LIKE :search
+            WHERE tipe_kontrak = :tipe_kontrak
             ORDER BY created_at DESC
         ");
-        $stmt->execute(['search' => "%$search_query%"]);
+        $stmt->execute(['tipe_kontrak' => $filter_tipe]);
     } else {
         $stmt = $pdo->query("SELECT * FROM dokumen_arsip_legal ORDER BY created_at DESC");
     }
@@ -278,20 +276,25 @@ try {
                             <p class="text-xs text-gray-500 mt-1">Total: <?php echo count($documents); ?> dokumen ditemukan</p>
                         </div>
                         <form method="GET" class="flex items-center gap-2 w-full md:w-auto">
-                            <div class="relative flex-1 md:w-80">
-                                <input 
-                                    type="text" 
-                                    name="search" 
-                                    value="<?php echo htmlspecialchars($search_query); ?>" 
-                                    placeholder="Cari tipe atau nama dokumen..." 
-                                    class="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:border-emerald-500 transition-all"
+                            <div class="relative flex-1 md:w-64">
+                                <select 
+                                    name="tipe_kontrak" 
+                                    onchange="this.form.submit()"
+                                    class="w-full pl-10 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:border-emerald-500 transition-all appearance-none cursor-pointer"
                                 >
-                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+                                    <option value="">-- Semua Tipe Kontrak --</option>
+                                    <option value="Asuransi" <?php echo $filter_tipe === 'Asuransi' ? 'selected' : ''; ?>>Asuransi</option>
+                                    <option value="Perusahaan" <?php echo $filter_tipe === 'Perusahaan' ? 'selected' : ''; ?>>Perusahaan</option>
+                                    <option value="Umum" <?php echo $filter_tipe === 'Umum' ? 'selected' : ''; ?>>Umum</option>
+                                    <option value="Operasional" <?php echo $filter_tipe === 'Operasional' ? 'selected' : ''; ?>>Operasional</option>
+                                    <option value="Farmasi" <?php echo $filter_tipe === 'Farmasi' ? 'selected' : ''; ?>>Farmasi</option>
+                                    <option value="Alat Kesehatan" <?php echo $filter_tipe === 'Alat Kesehatan' ? 'selected' : ''; ?>>Alat Kesehatan</option>
+                                    <option value="Penelitian/Pendidikan" <?php echo $filter_tipe === 'Penelitian/Pendidikan' ? 'selected' : ''; ?>>Penelitian/Pendidikan</option>
+                                </select>
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">📁</span>
+                                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">▼</span>
                             </div>
-                            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors shadow-sm">
-                                Cari
-                            </button>
-                            <?php if (!empty($search_query)): ?>
+                            <?php if (!empty($filter_tipe)): ?>
                                 <a href="legal-arsip.php" class="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition-colors">
                                     Reset
                                 </a>
