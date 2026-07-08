@@ -271,35 +271,37 @@ try {
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                     <!-- Search Bar -->
                     <div class="p-6 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gray-50/50">
-                        <div>
-                            <h2 class="text-lg font-bold text-gray-900">Daftar Arsip Dokumen Legal</h2>
-                            <p class="text-xs text-gray-500 mt-1">Total: <?php echo count($documents); ?> dokumen ditemukan</p>
-                        </div>
-                        <form method="GET" class="flex items-center gap-2 w-full md:w-auto">
-                            <div class="relative flex-1 md:w-64">
-                                <select 
-                                    name="tipe_kontrak" 
-                                    onchange="this.form.submit()"
-                                    class="w-full pl-10 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:border-emerald-500 transition-all appearance-none cursor-pointer"
-                                >
-                                    <option value="">-- Semua Tipe Kontrak --</option>
-                                    <option value="Asuransi" <?php echo $filter_tipe === 'Asuransi' ? 'selected' : ''; ?>>Asuransi</option>
-                                    <option value="Perusahaan" <?php echo $filter_tipe === 'Perusahaan' ? 'selected' : ''; ?>>Perusahaan</option>
-                                    <option value="Umum" <?php echo $filter_tipe === 'Umum' ? 'selected' : ''; ?>>Umum</option>
-                                    <option value="Operasional" <?php echo $filter_tipe === 'Operasional' ? 'selected' : ''; ?>>Operasional</option>
-                                    <option value="Farmasi" <?php echo $filter_tipe === 'Farmasi' ? 'selected' : ''; ?>>Farmasi</option>
-                                    <option value="Alat Kesehatan" <?php echo $filter_tipe === 'Alat Kesehatan' ? 'selected' : ''; ?>>Alat Kesehatan</option>
-                                    <option value="Penelitian/Pendidikan" <?php echo $filter_tipe === 'Penelitian/Pendidikan' ? 'selected' : ''; ?>>Penelitian/Pendidikan</option>
-                                </select>
-                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">📁</span>
-                                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">▼</span>
+                        <div class="flex flex-col md:flex-row md:items-center gap-4">
+                            <div>
+                                <h2 class="text-lg font-bold text-gray-900">Daftar Arsip Dokumen Legal</h2>
+                                <p class="text-xs text-gray-500 mt-1">Total: <?php echo count($documents); ?> dokumen ditemukan</p>
                             </div>
-                            <?php if (!empty($filter_tipe)): ?>
-                                <a href="legal-arsip.php" class="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition-colors">
-                                    Reset
-                                </a>
-                            <?php endif; ?>
-                        </form>
+                            <form method="GET" class="flex items-center gap-2">
+                                <div class="relative w-64">
+                                    <select 
+                                        name="tipe_kontrak" 
+                                        onchange="this.form.submit()"
+                                        class="w-full pl-10 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:border-emerald-500 transition-all appearance-none cursor-pointer"
+                                    >
+                                        <option value="">-- Semua Tipe Kontrak --</option>
+                                        <option value="Asuransi" <?php echo $filter_tipe === 'Asuransi' ? 'selected' : ''; ?>>Asuransi</option>
+                                        <option value="Perusahaan" <?php echo $filter_tipe === 'Perusahaan' ? 'selected' : ''; ?>>Perusahaan</option>
+                                        <option value="Umum" <?php echo $filter_tipe === 'Umum' ? 'selected' : ''; ?>>Umum</option>
+                                        <option value="Operasional" <?php echo $filter_tipe === 'Operasional' ? 'selected' : ''; ?>>Operasional</option>
+                                        <option value="Farmasi" <?php echo $filter_tipe === 'Farmasi' ? 'selected' : ''; ?>>Farmasi</option>
+                                        <option value="Alat Kesehatan" <?php echo $filter_tipe === 'Alat Kesehatan' ? 'selected' : ''; ?>>Alat Kesehatan</option>
+                                        <option value="Penelitian/Pendidikan" <?php echo $filter_tipe === 'Penelitian/Pendidikan' ? 'selected' : ''; ?>>Penelitian/Pendidikan</option>
+                                    </select>
+                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">📁</span>
+                                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">▼</span>
+                                </div>
+                                <?php if (!empty($filter_tipe)): ?>
+                                    <a href="legal-arsip.php" class="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition-colors">
+                                        Reset
+                                    </a>
+                                <?php endif; ?>
+                            </form>
+                        </div>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full">
