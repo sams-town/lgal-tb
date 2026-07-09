@@ -53,16 +53,18 @@ $moduleConfigs = [
         'filename' => 'pks_data',
         'columns' => [
             'Nama Instansi' => 'unit_pengusul',
-            'Nomor Dokumen' => 'nomor_dokumen',
             'Kategori PKS' => 'jenis_kerjasama',
-            'Tanggal Mulai' => 'tanggal_mulai',
-            'Tanggal Berakhir' => 'tanggal_berakhir'
+            'Objek Kerjasama' => 'objek_kerjasama',
+            'Analisa Dasar' => 'analisa_alasan',
+            'Nama Calon Mitra' => 'calon_mitra',
+            'Biaya' => 'biaya',
+            'Potongan Harga' => 'potongan_harga'
         ],
         'insertColumns' => [
             'tanggal_pengajuan', 'unit_pengusul', 'jenis_kerjasama', 'objek_kerjasama', 
             'analisa_alasan', 'calon_mitra', 'keunggulan_mitra', 'kekurangan_mitra', 
-            'biaya', 'referensi_kerjasama', 'capaian_mutu', 'rekomendasi_pengadaan', 
-            'rekomendasi_legal', 'nomor_dokumen', 'tanggal_mulai', 'tanggal_berakhir', 'file_path'
+            'biaya', 'potongan_harga', 'referensi_kerjasama', 'capaian_mutu', 'rekomendasi_pengadaan', 
+            'rekomendasi_legal', 'rekomendasi_keuangan', 'nomor_dokumen', 'tanggal_mulai', 'tanggal_berakhir', 'file_path'
         ],
         'displayName' => 'Perjanjian Kerjasama (PKS)'
     ],
@@ -233,24 +235,26 @@ if ($action === 'download_template') {
                 $insertData = [];
                 
                 if ($module === 'pks') {
-                    // For PKS, we need to handle minimal data from template
+                    // For PKS, we need to handle data from template
                     $insertData = [
                         date('Y-m-d'), // tanggal_pengajuan (today)
                         $row[0] ?? '', // unit_pengusul
-                        $row[2] ?? 'Klinis', // jenis_kerjasama
-                        'Diimpor dari CSV', // objek_kerjasama
-                        'Diimpor dari CSV', // analisa_alasan
+                        $row[1] ?? 'Klinis', // jenis_kerjasama
+                        $row[2] ?? 'Diimpor dari CSV', // objek_kerjasama
+                        $row[3] ?? 'Diimpor dari CSV', // analisa_alasan
                         json_encode([]), // calon_mitra
                         null, // keunggulan_mitra
                         null, // kekurangan_mitra
-                        null, // biaya
+                        $row[4] ?? null, // biaya
+                        $row[5] ?? null, // potongan_harga
                         null, // referensi_kerjasama
                         null, // capaian_mutu
                         null, // rekomendasi_pengadaan
                         null, // rekomendasi_legal
-                        $row[1] ?? '', // nomor_dokumen
-                        parseImportDate($row[3] ?? null), // tanggal_mulai
-                        parseImportDate($row[4] ?? null), // tanggal_berakhir
+                        null, // rekomendasi_keuangan
+                        null, // nomor_dokumen
+                        null, // tanggal_mulai
+                        null, // tanggal_berakhir
                         null // file_path
                     ];
                 } elseif ($module === 'regulasi') {

@@ -59,6 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_pks'])) {
     $keunggulan_mitra = $_POST['keunggulan_mitra'] ?? null;
     $kekurangan_mitra = $_POST['kekurangan_mitra'] ?? null;
     $biaya = $_POST['biaya'] ?? null;
+    $potongan_harga = $_POST['potongan_harga'] ?? null;
     $referensi_kerjasama = $_POST['referensi_kerjasama'] ?? null;
     $capaian_mutu = $_POST['capaian_mutu'] ?? null;
     $rekomendasi_pengadaan = $_POST['rekomendasi_pengadaan'] ?? null;
@@ -129,15 +130,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_pks'])) {
             INSERT INTO pengajuan_pks (
                 tanggal_pengajuan, unit_pengusul, jenis_kerjasama, objek_kerjasama, 
                 analisa_alasan, calon_mitra, keunggulan_mitra, kekurangan_mitra, 
-                biaya, referensi_kerjasama, capaian_mutu, rekomendasi_pengadaan, 
+                biaya, potongan_harga, referensi_kerjasama, capaian_mutu, rekomendasi_pengadaan, 
                 rekomendasi_legal, rekomendasi_keuangan, nomor_dokumen, tanggal_mulai, tanggal_berakhir, 
                 file_path, step_status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $stmt->execute([
             $tanggal_pengajuan, $unit_pengusul, $jenis_kerjasama, $objek_kerjasama,
             $analisa_alasan, $calon_mitra_json, $keunggulan_mitra, $kekurangan_mitra,
-            $biaya, $referensi_kerjasama, $capaian_mutu, $rekomendasi_pengadaan,
+            $biaya, $potongan_harga, $referensi_kerjasama, $capaian_mutu, $rekomendasi_pengadaan,
             $rekomendasi_legal, $rekomendasi_keuangan_json, $nomor_dokumen, $tanggal_mulai, $tanggal_berakhir,
             $file_path, $step_status_json
         ]);
@@ -389,7 +390,10 @@ try {
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Unit Pengusul</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Jenis Kerjasama</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Objek Kerjasama</th>
-                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Calon Mitra</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Analisa Dasar</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Nama Calon Mitra</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Biaya</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Potongan Harga</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Berkas</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Status</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Aksi</th>
@@ -398,7 +402,7 @@ try {
                             <tbody class="divide-y divide-gray-100">
                                 <?php if (empty($documents)): ?>
                                     <tr>
-                                        <td colspan="9" class="px-6 py-12 text-center text-gray-500">
+                                        <td colspan="12" class="px-6 py-12 text-center text-gray-500">
                                             Belum ada pengajuan kerjasama yang tersedia
                                         </td>
                                     </tr>
@@ -424,6 +428,9 @@ try {
                                                 <p class="text-sm truncate" title="<?php echo htmlspecialchars($doc['objek_kerjasama'] ?? '-'); ?>"><?php echo htmlspecialchars($doc['objek_kerjasama'] ?? '-'); ?></p>
                                             </td>
                                             <td class="px-6 py-4 text-gray-700 max-w-xs">
+                                                <p class="text-sm truncate" title="<?php echo htmlspecialchars($doc['analisa_alasan'] ?? '-'); ?>"><?php echo htmlspecialchars($doc['analisa_alasan'] ?? '-'); ?></p>
+                                            </td>
+                                            <td class="px-6 py-4 text-gray-700 max-w-xs">
                                                 <?php 
                                                 $calonMitra = json_decode($doc['calon_mitra'] ?? '[]', true);
                                                 if (!empty($calonMitra)) {
@@ -433,6 +440,12 @@ try {
                                                     echo '<span class="text-gray-400 text-sm">-</span>';
                                                 }
                                                 ?>
+                                            </td>
+                                            <td class="px-6 py-4 text-gray-700 max-w-xs">
+                                                <p class="text-sm truncate" title="<?php echo htmlspecialchars($doc['biaya'] ?? '-'); ?>"><?php echo htmlspecialchars($doc['biaya'] ?? '-'); ?></p>
+                                            </td>
+                                            <td class="px-6 py-4 text-gray-700 max-w-xs">
+                                                <p class="text-sm truncate" title="<?php echo htmlspecialchars($doc['potongan_harga'] ?? '-'); ?>"><?php echo htmlspecialchars($doc['potongan_harga'] ?? '-'); ?></p>
                                             </td>
                                             <td class="px-6 py-4">
                                                 <?php $file_path = $doc['file_path'] ?? ''; ?>
@@ -614,6 +627,11 @@ try {
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Biaya-biaya</label>
                         <textarea name="biaya" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Potongan Harga</label>
+                        <input type="text" name="potongan_harga" placeholder="Misal: 10%, Rp 5.000.000, dll." class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                     </div>
 
                     <div>
