@@ -67,58 +67,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_pks'])) {
     $referensi_kerjasama = $_POST['referensi_kerjasama'] ?? null;
     $capaian_mutu = $_POST['capaian_mutu'] ?? null;
     $rekomendasi_pengadaan = $_POST['rekomendasi_pengadaan'] ?? null;
-    $rekomendasi_legal = $_POST['rekomendasi_legal'] ?? null;
+    
+    // Process Rekomendasi Legal (Dynamic Table)
+    $rekomendasi_legal_arr = [];
+    if (isset($_POST['rek_legal_nama']) && is_array($_POST['rek_legal_nama'])) {
+        foreach ($_POST['rek_legal_nama'] as $index => $nama) {
+            if (!empty($nama)) {
+                $file_path_rek = $_POST['rek_legal_existing_file'][$index] ?? null;
+                if (isset($_FILES['rek_legal_file']['error'][$index]) && $_FILES['rek_legal_file']['error'][$index] === UPLOAD_ERR_OK) {
+                    $uploadDir = 'uploads/pks/';
+                    if (!is_dir($uploadDir)) {
+                        mkdir($uploadDir, 0777, true);
+                    }
+                    $fileName = uniqid() . '_rek_leg_' . basename($_FILES['rek_legal_file']['name'][$index]);
+                    $targetFile = $uploadDir . $fileName;
+                    if (move_uploaded_file($_FILES['rek_legal_file']['tmp_name'][$index], $targetFile)) {
+                        $file_path_rek = $targetFile;
+                    }
+                }
+                $rekomendasi_legal_arr[] = [
+                    'nama' => $nama,
+                    'file_path' => $file_path_rek
+                ];
+            }
+        }
+    }
+    $rekomendasi_legal_json = json_encode($rekomendasi_legal_arr);
+    
+    // Process multiple softcopy uploads
+    $softcopy_files = [];
+    if (!empty($pks_id)) {
+        if (isset($_POST['softcopy_existing_files']) && is_array($_POST['softcopy_existing_files'])) {
+            foreach ($_POST['softcopy_existing_files'] as $existing_f) {
+                if (!empty($existing_f)) {
+                    $softcopy_files[] = $existing_f;
+                }
+            }
+        }
+    }
+    
+    if (isset($_FILES['softcopy_files'])) {
+        $uploadDir = 'uploads/pks/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+        foreach ($_FILES['softcopy_files']['name'] as $index => $name) {
+            if ($_FILES['softcopy_files']['error'][$index] === UPLOAD_ERR_OK) {
+                $fileName = uniqid() . '_soft_' . basename($name);
+                $targetFile = $uploadDir . $fileName;
+                if (move_uploaded_file($_FILES['softcopy_files']['tmp_name'][$index], $targetFile)) {
+                    $softcopy_files[] = $targetFile;
+                }
+            }
+        }
+    }
+    $file_path_json = json_encode($softcopy_files);
     
     $nomor_dokumen = null;
     $tanggal_mulai = null;
     $tanggal_berakhir = null;
+    $rekomendasi_keuangan_json = '[]';
     
     try {
         if (!empty($pks_id)) {
             // EDIT MODE
-            $stmt = $pdo->prepare("SELECT * FROM pengajuan_pks WHERE id = ?");
-            $stmt->execute([$pks_id]);
-            $existingDoc = $stmt->fetch();
-            
-            $final_file_path = $existingDoc['file_path'] ?? null;
-            if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
-                $uploadDir = 'uploads/pks/';
-                if (!is_dir($uploadDir)) {
-                    mkdir($uploadDir, 0777, true);
-                }
-                $fileName = uniqid() . '_' . basename($_FILES['file']['name']);
-                $targetFile = $uploadDir . $fileName;
-                if (move_uploaded_file($_FILES['file']['tmp_name'], $targetFile)) {
-                    $final_file_path = $targetFile;
-                }
-            }
-            
-            // Process Rekomendasi Keuangan
-            $rekomendasi_keuangan = [];
-            if (isset($_POST['rek_keuangan_nama']) && is_array($_POST['rek_keuangan_nama'])) {
-                foreach ($_POST['rek_keuangan_nama'] as $index => $nama) {
-                    if (!empty($nama)) {
-                        $file_path_rek = $_POST['rek_keuangan_existing_file'][$index] ?? null;
-                        if (isset($_FILES['rek_keuangan_file']['error'][$index]) && $_FILES['rek_keuangan_file']['error'][$index] === UPLOAD_ERR_OK) {
-                            $uploadDir = 'uploads/pks/';
-                            if (!is_dir($uploadDir)) {
-                                mkdir($uploadDir, 0777, true);
-                            }
-                            $fileName = uniqid() . '_rek_keu_' . basename($_FILES['rek_keuangan_file']['name'][$index]);
-                            $targetFile = $uploadDir . $fileName;
-                            if (move_uploaded_file($_FILES['rek_keuangan_file']['tmp_name'][$index], $targetFile)) {
-                                $file_path_rek = $targetFile;
-                            }
-                        }
-                        $rekomendasi_keuangan[] = [
-                            'nama' => $nama,
-                            'file_path' => $file_path_rek
-                        ];
-                    }
-                }
-            }
-            $rekomendasi_keuangan_json = json_encode($rekomendasi_keuangan);
-            
             $stmt = $pdo->prepare("
                 UPDATE pengajuan_pks SET 
                     tanggal_pengajuan = ?, unit_pengusul = ?, jenis_kerjasama = ?, objek_kerjasama = ?, 
@@ -132,51 +144,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_pks'])) {
                 $tanggal_pengajuan, $unit_pengusul, $jenis_kerjasama, $objek_kerjasama,
                 $analisa_alasan, $calon_mitra_json, $keunggulan_mitra, $kekurangan_mitra,
                 $biaya, $potongan_harga, $referensi_kerjasama, $capaian_mutu, 
-                $rekomendasi_pengadaan, $rekomendasi_legal, $rekomendasi_keuangan_json,
-                $final_file_path, $pks_id
+                $rekomendasi_pengadaan, $rekomendasi_legal_json, $rekomendasi_keuangan_json,
+                $file_path_json, $pks_id
             ]);
             
             $_SESSION['pks_success'] = "Pengajuan PKS berhasil diperbarui!";
         } else {
             // ADD MODE
-            $rekomendasi_keuangan = [];
-            if (isset($_POST['rek_keuangan_nama']) && is_array($_POST['rek_keuangan_nama'])) {
-                foreach ($_POST['rek_keuangan_nama'] as $index => $nama) {
-                    if (!empty($nama)) {
-                        $file_path_rek = null;
-                        if (isset($_FILES['rek_keuangan_file']['error'][$index]) && $_FILES['rek_keuangan_file']['error'][$index] === UPLOAD_ERR_OK) {
-                            $uploadDir = 'uploads/pks/';
-                            if (!is_dir($uploadDir)) {
-                                mkdir($uploadDir, 0777, true);
-                            }
-                            $fileName = uniqid() . '_rek_keu_' . basename($_FILES['rek_keuangan_file']['name'][$index]);
-                            $targetFile = $uploadDir . $fileName;
-                            if (move_uploaded_file($_FILES['rek_keuangan_file']['tmp_name'][$index], $targetFile)) {
-                                    $file_path_rek = $targetFile;
-                            }
-                        }
-                        $rekomendasi_keuangan[] = [
-                            'nama' => $nama,
-                            'file_path' => $file_path_rek
-                        ];
-                    }
-                }
-            }
-            $rekomendasi_keuangan_json = json_encode($rekomendasi_keuangan);
-            
-            $file_path = null;
-            if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
-                $uploadDir = 'uploads/pks/';
-                if (!is_dir($uploadDir)) {
-                    mkdir($uploadDir, 0777, true);
-                }
-                $fileName = uniqid() . '_' . basename($_FILES['file']['name']);
-                $targetFile = $uploadDir . $fileName;
-                if (move_uploaded_file($_FILES['file']['tmp_name'], $targetFile)) {
-                    $file_path = $targetFile;
-                }
-            }
-            
             $initialStepStatus = [
                 'km' => 'pending',
                 'legal' => 'pending',
@@ -200,8 +174,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_pks'])) {
                 $tanggal_pengajuan, $unit_pengusul, $jenis_kerjasama, $objek_kerjasama,
                 $analisa_alasan, $calon_mitra_json, $keunggulan_mitra, $kekurangan_mitra,
                 $biaya, $potongan_harga, $referensi_kerjasama, $capaian_mutu, $rekomendasi_pengadaan,
-                $rekomendasi_legal, $rekomendasi_keuangan_json, $nomor_dokumen, $tanggal_mulai, $tanggal_berakhir,
-                $file_path, $step_status_json
+                $rekomendasi_legal_json, $rekomendasi_keuangan_json, $nomor_dokumen, $tanggal_mulai, $tanggal_berakhir,
+                $file_path_json, $step_status_json
             ]);
             
             notifyByPermission(
@@ -572,15 +546,35 @@ try {
                                             </td>
                                             <td class="px-6 py-4">
                                                 <div class="flex flex-col gap-1.5">
-                                                    <?php $file_path = $doc['file_path'] ?? ''; ?>
-                                                    <?php if (!empty($file_path)): ?>
-                                                        <a href="view_pdf.php?file=<?php echo urlencode($file_path); ?>" target="_blank" class="px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded hover:bg-blue-100 text-center transition-colors font-medium">
-                                                            Lihat
-                                                        </a>
-                                                        <a href="download_pdf.php?file=<?php echo urlencode($file_path); ?>" target="_blank" class="px-2 py-1 text-xs bg-emerald-50 text-emerald-700 rounded hover:bg-emerald-100 text-center transition-colors font-medium">
-                                                            Download
-                                                        </a>
-                                                    <?php endif; ?>
+                                                    <?php 
+                                                    $file_paths = [];
+                                                    if (!empty($doc['file_path'])) {
+                                                        if (strpos($doc['file_path'], '[') === 0) {
+                                                            $file_paths = json_decode($doc['file_path'], true) ?: [];
+                                                        } else {
+                                                            $file_paths = [$doc['file_path']];
+                                                        }
+                                                    }
+                                                    if (!empty($file_paths)):
+                                                        foreach ($file_paths as $fIdx => $fPath):
+                                                            if (!empty($fPath)):
+                                                    ?>
+                                                                <div class="bg-blue-50/30 p-1.5 rounded border border-blue-100/50 space-y-1">
+                                                                    <span class="text-[9px] font-semibold text-blue-700 block">Softcopy #<?php echo $fIdx + 1; ?>:</span>
+                                                                    <div class="flex gap-1.5">
+                                                                        <a href="view_pdf.php?file=<?php echo urlencode($fPath); ?>" target="_blank" class="flex-1 px-1 py-0.5 text-[10px] bg-blue-50 text-blue-700 rounded hover:bg-blue-100 text-center transition-colors font-medium">
+                                                                            Lihat
+                                                                        </a>
+                                                                        <a href="download_pdf.php?file=<?php echo urlencode($fPath); ?>" target="_blank" class="flex-1 px-1 py-0.5 text-[10px] bg-emerald-50 text-emerald-700 rounded hover:bg-emerald-100 text-center transition-colors font-medium">
+                                                                            Download
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
+                                                    <?php 
+                                                            endif;
+                                                        endforeach;
+                                                    endif; 
+                                                    ?>
                                                     
                                                     <?php 
                                                     $isReturn = (
@@ -613,30 +607,30 @@ try {
                                                     <?php endif; ?>
                                                     
                                                     <?php 
-                                                    $keuDocs = json_decode($doc['rekomendasi_keuangan'] ?? '[]', true);
-                                                    if (!empty($keuDocs)):
-                                                        $hasKeuFiles = false;
-                                                        foreach ($keuDocs as $keuDoc) {
-                                                            if (!empty($keuDoc['file_path'])) {
-                                                                $hasKeuFiles = true;
+                                                    $legDocs = json_decode($doc['rekomendasi_legal'] ?? '[]', true);
+                                                    if (!empty($legDocs)):
+                                                        $hasLegFiles = false;
+                                                        foreach ($legDocs as $legDoc) {
+                                                            if (!empty($legDoc['file_path'])) {
+                                                                $hasLegFiles = true;
                                                                 break;
                                                             }
                                                         }
-                                                        if ($hasKeuFiles):
+                                                        if ($hasLegFiles):
                                                     ?>
                                                             <div class="mt-2 border-t pt-1 text-left">
-                                                                <p class="text-[10px] font-semibold text-gray-500 mb-1">Rekomendasi Keuangan:</p>
+                                                                <p class="text-[10px] font-semibold text-gray-500 mb-1">Rekomendasi Legal:</p>
                                                                 <?php 
-                                                                foreach ($keuDocs as $keuDoc):
-                                                                    if (!empty($keuDoc['file_path'])):
+                                                                foreach ($legDocs as $legDoc):
+                                                                    if (!empty($legDoc['file_path'])):
                                                                 ?>
                                                                         <div class="mt-1 bg-gray-50 p-1 rounded border border-gray-100 text-[10px]">
-                                                                            <p class="truncate text-gray-700 font-medium max-w-[120px]" title="<?php echo htmlspecialchars($keuDoc['nama'] ?? 'Dokumen'); ?>">
-                                                                                📄 <?php echo htmlspecialchars($keuDoc['nama'] ?? 'Dokumen'); ?>
+                                                                            <p class="truncate text-gray-700 font-medium max-w-[120px]" title="<?php echo htmlspecialchars($legDoc['nama'] ?? 'Doc'); ?>">
+                                                                                📄 <?php echo htmlspecialchars($legDoc['nama'] ?? 'Doc'); ?>
                                                                             </p>
                                                                             <div class="flex gap-1.5 mt-0.5">
-                                                                                <a href="view_pdf.php?file=<?php echo urlencode($keuDoc['file_path']); ?>" target="_blank" class="text-[10px] text-blue-600 hover:underline">Lihat</a>
-                                                                                <a href="download_pdf.php?file=<?php echo urlencode($keuDoc['file_path']); ?>" target="_blank" class="text-[10px] text-emerald-600 hover:underline">Unduh</a>
+                                                                                <a href="view_pdf.php?file=<?php echo urlencode($legDoc['file_path']); ?>" target="_blank" class="text-[10px] text-blue-600 hover:underline">Lihat</a>
+                                                                                <a href="download_pdf.php?file=<?php echo urlencode($legDoc['file_path']); ?>" target="_blank" class="text-[10px] text-emerald-600 hover:underline">Unduh</a>
                                                                             </div>
                                                                         </div>
                                                                 <?php 
@@ -788,41 +782,37 @@ try {
                         <label class="block text-sm font-medium text-gray-700 mb-2">Hasil rekomendasi Bagian Pengadaan</label>
                         <textarea name="rekomendasi_pengadaan" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"></textarea>
                     </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Hasil rekomendasi Bagian Legal</label>
-                        <textarea name="rekomendasi_legal" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"></textarea>
-                    </div>
                 </div>
 
-                <!-- Bagian 4: Hasil Rekomendasi Bagian Keuangan -->
-                <div class="space-y-4 border-t pt-4">
-                    <h3 class="text-lg font-semibold text-gray-800 border-b pb-2">Hasil Rekomendasi Bagian Keuangan</h3>
+                <!-- Bagian Legal Rekomendasi (Dynamic Table) -->
+                <div class="space-y-4 pt-4 border-t border-gray-100">
+                    <h4 class="text-sm font-semibold text-gray-800">Hasil Rekomendasi Bagian Legal</h4>
                     <div class="overflow-x-auto">
-                        <table class="w-full text-sm text-left text-gray-500" id="table-keuangan">
-                            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                        <table class="min-w-full divide-y divide-gray-200" id="table-legal">
+                            <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-4 py-2 border-b">Nama Dokumen Rekomendasi</th>
-                                    <th class="px-4 py-2 border-b">Unggah Berkas (PDF)</th>
-                                    <th class="px-4 py-2 border-b text-center" style="width: 80px;">Aksi</th>
+                                    <th class="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Nama Dokumen Rekomendasi</th>
+                                    <th class="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Unggah Berkas (PDF)</th>
+                                    <th class="px-4 py-2 text-center text-xs font-semibold text-gray-600 uppercase w-20">Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody id="keuangan-container">
-                                <tr class="keuangan-item">
+                            <tbody id="legal-container" class="divide-y divide-gray-100 bg-white">
+                                <tr class="legal-item">
                                     <td class="px-4 py-2">
-                                        <input type="text" name="rek_keuangan_nama[]" placeholder="Contoh: Lampiran Keuangan A" class="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
+                                        <input type="text" name="rek_legal_nama[]" placeholder="Contoh: Lampiran Legal A" class="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
+                                        <input type="hidden" name="rek_legal_existing_file[]" value="">
                                     </td>
                                     <td class="px-4 py-2">
-                                        <input type="file" name="rek_keuangan_file[]" accept=".pdf" class="w-full text-xs">
+                                        <input type="file" name="rek_legal_file[]" accept=".pdf" class="w-full text-xs">
                                     </td>
                                     <td class="px-4 py-2 text-center">
-                                        <button type="button" onclick="removeKeuanganRow(this)" class="text-red-500 hover:text-red-700 font-medium text-xs">Hapus</button>
+                                        <button type="button" onclick="removeLegalRow(this)" class="text-red-500 hover:text-red-700 font-medium text-xs">Hapus</button>
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
-                    <button type="button" onclick="addKeuanganRow()" class="mt-2 text-emerald-600 hover:text-emerald-700 text-sm font-medium flex items-center gap-1">
+                    <button type="button" onclick="addLegalRow()" class="mt-2 text-emerald-600 hover:text-emerald-700 text-sm font-medium flex items-center gap-1">
                         <span>+</span> Tambah Baris Dokumen
                     </button>
                 </div>
@@ -832,7 +822,16 @@ try {
                     <h3 class="text-lg font-semibold text-gray-800">Informasi Dokumen (Opsional)</h3>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Upload Berkas Softcopy (PDF)</label>
-                        <input type="file" name="file" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-xl">
+                        <div id="softcopy-container" class="space-y-2">
+                            <div class="softcopy-item flex items-center gap-2">
+                                <input type="file" name="softcopy_files[]" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                                <input type="hidden" name="softcopy_existing_files[]" value="">
+                                <button type="button" onclick="removeSoftcopyRow(this)" class="text-red-500 hover:text-red-700 font-medium text-xs px-2 py-1">Hapus</button>
+                            </div>
+                        </div>
+                        <button type="button" onclick="addSoftcopyRow()" class="mt-2 text-emerald-600 hover:text-emerald-700 text-sm font-medium flex items-center gap-1">
+                            <span>+</span> Tambah Upload File
+                        </button>
                     </div>
                 </div>
 
@@ -866,32 +865,57 @@ try {
             container.appendChild(item);
         }
 
-        function addKeuanganRow() {
-            const container = document.getElementById('keuangan-container');
+        function addLegalRow() {
+            const container = document.getElementById('legal-container');
             const row = document.createElement('tr');
-            row.className = 'keuangan-item';
+            row.className = 'legal-item';
             row.innerHTML = `
                 <td class="px-4 py-2">
-                    <input type="text" name="rek_keuangan_nama[]" placeholder="Contoh: Lampiran Keuangan" class="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
+                    <input type="text" name="rek_legal_nama[]" placeholder="Contoh: Lampiran Legal" class="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
+                    <input type="hidden" name="rek_legal_existing_file[]" value="">
                 </td>
                 <td class="px-4 py-2">
-                    <input type="file" name="rek_keuangan_file[]" accept=".pdf" class="w-full text-xs">
+                    <input type="file" name="rek_legal_file[]" accept=".pdf" class="w-full text-xs">
                 </td>
                 <td class="px-4 py-2 text-center">
-                    <button type="button" onclick="removeKeuanganRow(this)" class="text-red-500 hover:text-red-700 font-medium text-xs">Hapus</button>
+                    <button type="button" onclick="removeLegalRow(this)" class="text-red-500 hover:text-red-700 font-medium text-xs">Hapus</button>
                 </td>
             `;
             container.appendChild(row);
         }
 
-        function removeKeuanganRow(btn) {
+        function removeLegalRow(btn) {
             const row = btn.closest('tr');
-            const container = document.getElementById('keuangan-container');
+            const container = document.getElementById('legal-container');
             if (container.children.length > 1) {
                 row.remove();
             } else {
                 row.querySelector('input[type="text"]').value = '';
                 row.querySelector('input[type="file"]').value = '';
+                row.querySelector('input[type="hidden"]').value = '';
+            }
+        }
+
+        function addSoftcopyRow() {
+            const container = document.getElementById('softcopy-container');
+            const div = document.createElement('div');
+            div.className = 'softcopy-item flex items-center gap-2 mt-2';
+            div.innerHTML = `
+                <input type="file" name="softcopy_files[]" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                <input type="hidden" name="softcopy_existing_files[]" value="">
+                <button type="button" onclick="removeSoftcopyRow(this)" class="text-red-500 hover:text-red-700 font-medium text-xs px-2 py-1">Hapus</button>
+            `;
+            container.appendChild(div);
+        }
+
+        function removeSoftcopyRow(btn) {
+            const item = btn.closest('.softcopy-item');
+            const container = document.getElementById('softcopy-container');
+            if (container.children.length > 1) {
+                item.remove();
+            } else {
+                item.querySelector('input[type="file"]').value = '';
+                item.querySelector('input[type="hidden"]').value = '';
             }
         }
 
@@ -923,9 +947,6 @@ try {
             document.getElementById('edit_pks_id').value = '';
             document.getElementById('pksForm').reset();
             
-            const note = document.querySelector('.existing-file-note');
-            if (note) note.remove();
-            
             document.getElementById('mitra-container').innerHTML = `
                 <div class="mitra-item grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -939,19 +960,27 @@ try {
                 </div>
             `;
             
-            document.getElementById('keuangan-container').innerHTML = `
-                <tr class="keuangan-item">
+            document.getElementById('legal-container').innerHTML = `
+                <tr class="legal-item">
                     <td class="px-4 py-2">
-                        <input type="text" name="rek_keuangan_nama[]" placeholder="Contoh: Lampiran Keuangan A" class="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
-                        <input type="hidden" name="rek_keuangan_existing_file[]" value="">
+                        <input type="text" name="rek_legal_nama[]" placeholder="Contoh: Lampiran Legal A" class="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
+                        <input type="hidden" name="rek_legal_existing_file[]" value="">
                     </td>
                     <td class="px-4 py-2">
-                        <input type="file" name="rek_keuangan_file[]" accept=".pdf" class="w-full text-xs">
+                        <input type="file" name="rek_legal_file[]" accept=".pdf" class="w-full text-xs">
                     </td>
                     <td class="px-4 py-2 text-center">
-                        <button type="button" onclick="removeKeuanganRow(this)" class="text-red-500 hover:text-red-700 font-medium text-xs">Hapus</button>
+                        <button type="button" onclick="removeLegalRow(this)" class="text-red-500 hover:text-red-700 font-medium text-xs">Hapus</button>
                     </td>
                 </tr>
+            `;
+            
+            document.getElementById('softcopy-container').innerHTML = `
+                <div class="softcopy-item flex items-center gap-2">
+                    <input type="file" name="softcopy_files[]" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                    <input type="hidden" name="softcopy_existing_files[]" value="">
+                    <button type="button" onclick="removeSoftcopyRow(this)" class="text-red-500 hover:text-red-700 font-medium text-xs px-2 py-1">Hapus</button>
+                </div>
             `;
             
             openModal('modal');
@@ -973,7 +1002,6 @@ try {
             document.querySelector('textarea[name="referensi_kerjasama"]').value = doc.referensi_kerjasama || '';
             document.querySelector('textarea[name="capaian_mutu"]').value = doc.capaian_mutu || '';
             document.querySelector('textarea[name="rekomendasi_pengadaan"]').value = doc.rekomendasi_pengadaan || '';
-            document.querySelector('textarea[name="rekomendasi_legal"]').value = doc.rekomendasi_legal || '';
             
             const mitraContainer = document.getElementById('mitra-container');
             mitraContainer.innerHTML = '';
@@ -1002,45 +1030,61 @@ try {
                 mitraContainer.appendChild(item);
             });
             
-            const keuContainer = document.getElementById('keuangan-container');
-            keuContainer.innerHTML = '';
-            let keuDocs = [];
+            const legContainer = document.getElementById('legal-container');
+            legContainer.innerHTML = '';
+            let legDocs = [];
             try {
-                keuDocs = JSON.parse(doc.rekomendasi_keuangan || '[]');
-            } catch(e) { keuDocs = []; }
+                legDocs = JSON.parse(doc.rekomendasi_legal || '[]');
+            } catch(e) { legDocs = []; }
             
-            if (keuDocs.length === 0) {
-                keuDocs = [{nama: '', file_path: ''}];
+            if (legDocs.length === 0) {
+                legDocs = [{nama: '', file_path: ''}];
             }
             
-            keuDocs.forEach((kd) => {
+            legDocs.forEach((ld) => {
                 const row = document.createElement('tr');
-                row.className = 'keuangan-item';
+                row.className = 'legal-item';
                 row.innerHTML = `
                     <td class="px-4 py-2">
-                        <input type="text" name="rek_keuangan_nama[]" value="${kd.nama || ''}" placeholder="Contoh: Lampiran Keuangan A" class="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
-                        ${kd.file_path ? `<div class="mt-1"><a href="view_pdf.php?file=${encodeURIComponent(kd.file_path)}" target="_blank" class="text-xs text-blue-600">📄 Lihat file saat ini</a><input type="hidden" name="rek_keuangan_existing_file[]" value="${kd.file_path}"></div>` : `<input type="hidden" name="rek_keuangan_existing_file[]" value="">`}
+                        <input type="text" name="rek_legal_nama[]" value="${ld.nama || ''}" placeholder="Contoh: Lampiran Legal A" class="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
+                        ${ld.file_path ? `<div class="mt-1"><a href="view_pdf.php?file=${encodeURIComponent(ld.file_path)}" target="_blank" class="text-xs text-blue-600">📄 Lihat file saat ini</a><input type="hidden" name="rek_legal_existing_file[]" value="${ld.file_path}"></div>` : `<input type="hidden" name="rek_legal_existing_file[]" value="">`}
                     </td>
                     <td class="px-4 py-2">
-                        <input type="file" name="rek_keuangan_file[]" accept=".pdf" class="w-full text-xs">
+                        <input type="file" name="rek_legal_file[]" accept=".pdf" class="w-full text-xs">
                     </td>
                     <td class="px-4 py-2 text-center">
-                        <button type="button" onclick="removeKeuanganRow(this)" class="text-red-500 hover:text-red-700 font-medium text-xs">Hapus</button>
+                        <button type="button" onclick="removeLegalRow(this)" class="text-red-500 hover:text-red-700 font-medium text-xs">Hapus</button>
                     </td>
                 `;
-                keuContainer.appendChild(row);
+                legContainer.appendChild(row);
             });
             
-            const fileInputWrapper = document.querySelector('input[name="file"]').parentNode;
-            const existingNote = fileInputWrapper.querySelector('.existing-file-note');
-            if (existingNote) existingNote.remove();
+            const softContainer = document.getElementById('softcopy-container');
+            softContainer.innerHTML = '';
+            let softPaths = [];
+            try {
+                if (doc.file_path && doc.file_path.startsWith('[')) {
+                    softPaths = JSON.parse(doc.file_path);
+                } else if (doc.file_path) {
+                    softPaths = [doc.file_path];
+                }
+            } catch(e) { softPaths = []; }
             
-            if (doc.file_path) {
-                const note = document.createElement('p');
-                note.className = 'text-xs text-blue-600 mt-1 existing-file-note';
-                note.innerHTML = `<a href="view_pdf.php?file=${encodeURIComponent(doc.file_path)}" target="_blank">📄 Lihat file utama saat ini</a>`;
-                fileInputWrapper.appendChild(note);
+            if (softPaths.length === 0) {
+                softPaths = [''];
             }
+            
+            softPaths.forEach((sp, idx) => {
+                const item = document.createElement('div');
+                item.className = 'softcopy-item flex items-center gap-2' + (idx > 0 ? ' mt-2' : '');
+                item.innerHTML = `
+                    <input type="file" name="softcopy_files[]" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                    <input type="hidden" name="softcopy_existing_files[]" value="${sp}">
+                    ${sp ? `<div class="text-xs text-blue-600 mt-1 whitespace-nowrap"><a href="view_pdf.php?file=${encodeURIComponent(sp)}" target="_blank">📄 Lihat file saat ini</a></div>` : ''}
+                    <button type="button" onclick="removeSoftcopyRow(this)" class="text-red-500 hover:text-red-700 font-medium text-xs px-2 py-1">Hapus</button>
+                `;
+                softContainer.appendChild(item);
+            });
             
             openModal('modal');
         }

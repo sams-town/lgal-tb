@@ -110,6 +110,16 @@ try {
                     $pdo->exec("ALTER TABLE pengajuan_pks ADD COLUMN $cName $cDef");
                 }
             }
+            
+            // Ensure rekomendasi_legal and file_path columns are TEXT to support JSON arrays
+            $colInfo = $pdo->query("SHOW COLUMNS FROM pengajuan_pks LIKE 'rekomendasi_legal'")->fetch();
+            if ($colInfo && strpos(strtolower($colInfo['Type']), 'text') === false) {
+                $pdo->exec("ALTER TABLE pengajuan_pks MODIFY COLUMN rekomendasi_legal TEXT NULL");
+            }
+            $colInfo = $pdo->query("SHOW COLUMNS FROM pengajuan_pks LIKE 'file_path'")->fetch();
+            if ($colInfo && strpos(strtolower($colInfo['Type']), 'text') === false) {
+                $pdo->exec("ALTER TABLE pengajuan_pks MODIFY COLUMN file_path TEXT NULL");
+            }
         } catch (Exception $ex) {
             // Silently continue if table not created yet
         }
