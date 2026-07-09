@@ -453,7 +453,6 @@ try {
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Nama Calon Mitra</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Biaya</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Potongan Harga</th>
-                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Berkas</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Status</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Aksi</th>
                                 </tr>
@@ -461,7 +460,7 @@ try {
                             <tbody class="divide-y divide-gray-100">
                                 <?php if (empty($documents)): ?>
                                     <tr>
-                                        <td colspan="12" class="px-6 py-12 text-center text-gray-500">
+                                        <td colspan="11" class="px-6 py-12 text-center text-gray-500">
                                             Belum ada pengajuan kerjasama yang tersedia
                                         </td>
                                     </tr>
@@ -506,41 +505,7 @@ try {
                                             <td class="px-6 py-4 text-gray-700 max-w-xs">
                                                 <p class="text-sm truncate" title="<?php echo htmlspecialchars($doc['potongan_harga'] ?? '-'); ?>"><?php echo htmlspecialchars($doc['potongan_harga'] ?? '-'); ?></p>
                                             </td>
-                                            <td class="px-6 py-4">
-                                                <?php $file_path = $doc['file_path'] ?? ''; ?>
-                                                <?php if (!empty($file_path)): ?>
-                                                    <div class="flex gap-2">
-                                                        <a href="view_pdf.php?file=<?php echo urlencode($file_path); ?>" target="_blank" class="text-blue-600 hover:text-blue-700 font-medium text-xs">
-                                                            Lihat
-                                                        </a>
-                                                        <a href="download_pdf.php?file=<?php echo urlencode($file_path); ?>" target="_blank" class="text-emerald-600 hover:text-emerald-700 font-medium text-xs">
-                                                            Download
-                                                        </a>
-                                                    </div>
-                                                <?php else: ?>
-                                                    <span class="text-gray-400 text-sm">-</span>
-                                                <?php endif; ?>
-                                                <?php 
-                                                $keuDocs = json_decode($doc['rekomendasi_keuangan'] ?? '[]', true);
-                                                if (!empty($keuDocs)):
-                                                    foreach ($keuDocs as $keuDoc):
-                                                        if (!empty($keuDoc['file_path'])):
-                                                ?>
-                                                            <div class="mt-2 border-t pt-1">
-                                                                <span class="text-[10px] text-gray-500 block truncate" title="<?php echo htmlspecialchars($keuDoc['nama'] ?? 'Dokumen Keuangan'); ?>">
-                                                                    📄 <?php echo htmlspecialchars($keuDoc['nama'] ?? 'Dokumen Keuangan'); ?>
-                                                                </span>
-                                                                <div class="flex gap-1.5 mt-0.5">
-                                                                    <a href="view_pdf.php?file=<?php echo urlencode($keuDoc['file_path']); ?>" target="_blank" class="text-[10px] text-blue-600 hover:underline">Lihat</a>
-                                                                    <a href="download_pdf.php?file=<?php echo urlencode($keuDoc['file_path']); ?>" target="_blank" class="text-[10px] text-emerald-600 hover:underline">Unduh</a>
-                                                                </div>
-                                                            </div>
-                                                <?php 
-                                                        endif;
-                                                    endforeach;
-                                                endif; 
-                                                ?>
-                                            </td>
+
                                             <td class="px-6 py-4 space-y-2">
                                                 <!-- Keuangan Dropdown -->
                                                 <div class="flex items-center justify-between gap-2 text-xs">
@@ -646,6 +611,43 @@ try {
                                                             Hapus
                                                         </a>
                                                     <?php endif; ?>
+                                                    
+                                                    <?php 
+                                                    $keuDocs = json_decode($doc['rekomendasi_keuangan'] ?? '[]', true);
+                                                    if (!empty($keuDocs)):
+                                                        $hasKeuFiles = false;
+                                                        foreach ($keuDocs as $keuDoc) {
+                                                            if (!empty($keuDoc['file_path'])) {
+                                                                $hasKeuFiles = true;
+                                                                break;
+                                                            }
+                                                        }
+                                                        if ($hasKeuFiles):
+                                                    ?>
+                                                            <div class="mt-2 border-t pt-1 text-left">
+                                                                <p class="text-[10px] font-semibold text-gray-500 mb-1">Rekomendasi Keuangan:</p>
+                                                                <?php 
+                                                                foreach ($keuDocs as $keuDoc):
+                                                                    if (!empty($keuDoc['file_path'])):
+                                                                ?>
+                                                                        <div class="mt-1 bg-gray-50 p-1 rounded border border-gray-100 text-[10px]">
+                                                                            <p class="truncate text-gray-700 font-medium max-w-[120px]" title="<?php echo htmlspecialchars($keuDoc['nama'] ?? 'Dokumen'); ?>">
+                                                                                📄 <?php echo htmlspecialchars($keuDoc['nama'] ?? 'Dokumen'); ?>
+                                                                            </p>
+                                                                            <div class="flex gap-1.5 mt-0.5">
+                                                                                <a href="view_pdf.php?file=<?php echo urlencode($keuDoc['file_path']); ?>" target="_blank" class="text-[10px] text-blue-600 hover:underline">Lihat</a>
+                                                                                <a href="download_pdf.php?file=<?php echo urlencode($keuDoc['file_path']); ?>" target="_blank" class="text-[10px] text-emerald-600 hover:underline">Unduh</a>
+                                                                            </div>
+                                                                        </div>
+                                                                <?php 
+                                                                    endif;
+                                                                endforeach; 
+                                                                ?>
+                                                            </div>
+                                                    <?php 
+                                                        endif;
+                                                    endif; 
+                                                    ?>
                                                 </div>
                                             </td>
                                         </tr>
@@ -663,7 +665,7 @@ try {
     <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
         <div class="bg-white rounded-2xl shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div class="p-6 border-b border-gray-100 flex items-center justify-between">
-                <h2 class="text-xl font-bold text-gray-900">FORMULIR PENGAJUAN KERJASAMA</h2>
+                <h2 class="text-xl font-bold text-gray-900" id="modal-title">FORMULIR PENGAJUAN KERJASAMA</h2>
                 <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
             </div>
             <form method="POST" enctype="multipart/form-data" class="p-6 space-y-6" id="pksForm">
