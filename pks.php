@@ -67,32 +67,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_pks'])) {
     $referensi_kerjasama = $_POST['referensi_kerjasama'] ?? null;
     $capaian_mutu = $_POST['capaian_mutu'] ?? null;
     $rekomendasi_pengadaan = $_POST['rekomendasi_pengadaan'] ?? null;
-    
-    // Process Rekomendasi Legal (Dynamic Table)
-    $rekomendasi_legal_arr = [];
-    if (isset($_POST['rek_legal_nama']) && is_array($_POST['rek_legal_nama'])) {
-        foreach ($_POST['rek_legal_nama'] as $index => $nama) {
-            if (!empty($nama)) {
-                $file_path_rek = $_POST['rek_legal_existing_file'][$index] ?? null;
-                if (isset($_FILES['rek_legal_file']['error'][$index]) && $_FILES['rek_legal_file']['error'][$index] === UPLOAD_ERR_OK) {
-                    $uploadDir = 'uploads/pks/';
-                    if (!is_dir($uploadDir)) {
-                        mkdir($uploadDir, 0777, true);
-                    }
-                    $fileName = uniqid() . '_rek_leg_' . basename($_FILES['rek_legal_file']['name'][$index]);
-                    $targetFile = $uploadDir . $fileName;
-                    if (move_uploaded_file($_FILES['rek_legal_file']['tmp_name'][$index], $targetFile)) {
-                        $file_path_rek = $targetFile;
-                    }
-                }
-                $rekomendasi_legal_arr[] = [
-                    'nama' => $nama,
-                    'file_path' => $file_path_rek
-                ];
-            }
-        }
-    }
-    $rekomendasi_legal_json = json_encode($rekomendasi_legal_arr);
+    $rekomendasi_legal = $_POST['rekomendasi_legal'] ?? null;
+    $rekomendasi_keuangan = $_POST['rekomendasi_keuangan'] ?? null;
     
     // Process multiple softcopy uploads
     $softcopy_files = [];
@@ -126,7 +102,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_pks'])) {
     $nomor_dokumen = null;
     $tanggal_mulai = null;
     $tanggal_berakhir = null;
-    $rekomendasi_keuangan_json = '[]';
     
     try {
         if (!empty($pks_id)) {
@@ -144,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_pks'])) {
                 $tanggal_pengajuan, $unit_pengusul, $jenis_kerjasama, $objek_kerjasama,
                 $analisa_alasan, $calon_mitra_json, $keunggulan_mitra, $kekurangan_mitra,
                 $biaya, $potongan_harga, $referensi_kerjasama, $capaian_mutu, 
-                $rekomendasi_pengadaan, $rekomendasi_legal_json, $rekomendasi_keuangan_json,
+                $rekomendasi_pengadaan, $rekomendasi_legal, $rekomendasi_keuangan,
                 $file_path_json, $pks_id
             ]);
             
@@ -174,7 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_pks'])) {
                 $tanggal_pengajuan, $unit_pengusul, $jenis_kerjasama, $objek_kerjasama,
                 $analisa_alasan, $calon_mitra_json, $keunggulan_mitra, $kekurangan_mitra,
                 $biaya, $potongan_harga, $referensi_kerjasama, $capaian_mutu, $rekomendasi_pengadaan,
-                $rekomendasi_legal_json, $rekomendasi_keuangan_json, $nomor_dokumen, $tanggal_mulai, $tanggal_berakhir,
+                $rekomendasi_legal, $rekomendasi_keuangan, $nomor_dokumen, $tanggal_mulai, $tanggal_berakhir,
                 $file_path_json, $step_status_json
             ]);
             
@@ -606,42 +581,7 @@ try {
                                                         </a>
                                                     <?php endif; ?>
                                                     
-                                                    <?php 
-                                                    $legDocs = json_decode($doc['rekomendasi_legal'] ?? '[]', true);
-                                                    if (!empty($legDocs)):
-                                                        $hasLegFiles = false;
-                                                        foreach ($legDocs as $legDoc) {
-                                                            if (!empty($legDoc['file_path'])) {
-                                                                $hasLegFiles = true;
-                                                                break;
-                                                            }
-                                                        }
-                                                        if ($hasLegFiles):
-                                                    ?>
-                                                            <div class="mt-2 border-t pt-1 text-left">
-                                                                <p class="text-[10px] font-semibold text-gray-500 mb-1">Rekomendasi Legal:</p>
-                                                                <?php 
-                                                                foreach ($legDocs as $legDoc):
-                                                                    if (!empty($legDoc['file_path'])):
-                                                                ?>
-                                                                        <div class="mt-1 bg-gray-50 p-1 rounded border border-gray-100 text-[10px]">
-                                                                            <p class="truncate text-gray-700 font-medium max-w-[120px]" title="<?php echo htmlspecialchars($legDoc['nama'] ?? 'Doc'); ?>">
-                                                                                📄 <?php echo htmlspecialchars($legDoc['nama'] ?? 'Doc'); ?>
-                                                                            </p>
-                                                                            <div class="flex gap-1.5 mt-0.5">
-                                                                                <a href="view_pdf.php?file=<?php echo urlencode($legDoc['file_path']); ?>" target="_blank" class="text-[10px] text-blue-600 hover:underline">Lihat</a>
-                                                                                <a href="download_pdf.php?file=<?php echo urlencode($legDoc['file_path']); ?>" target="_blank" class="text-[10px] text-emerald-600 hover:underline">Unduh</a>
-                                                                            </div>
-                                                                        </div>
-                                                                <?php 
-                                                                    endif;
-                                                                endforeach; 
-                                                                ?>
-                                                            </div>
-                                                    <?php 
-                                                        endif;
-                                                    endif; 
-                                                    ?>
+
                                                 </div>
                                             </td>
                                         </tr>
@@ -782,39 +722,16 @@ try {
                         <label class="block text-sm font-medium text-gray-700 mb-2">Hasil rekomendasi Bagian Pengadaan</label>
                         <textarea name="rekomendasi_pengadaan" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"></textarea>
                     </div>
-                </div>
 
-                <!-- Bagian Legal Rekomendasi (Dynamic Table) -->
-                <div class="space-y-4 pt-4 border-t border-gray-100">
-                    <h4 class="text-sm font-semibold text-gray-800">Hasil Rekomendasi Bagian Legal</h4>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200" id="table-legal">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Nama Dokumen Rekomendasi</th>
-                                    <th class="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Unggah Berkas (PDF)</th>
-                                    <th class="px-4 py-2 text-center text-xs font-semibold text-gray-600 uppercase w-20">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="legal-container" class="divide-y divide-gray-100 bg-white">
-                                <tr class="legal-item">
-                                    <td class="px-4 py-2">
-                                        <input type="text" name="rek_legal_nama[]" placeholder="Contoh: Lampiran Legal A" class="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
-                                        <input type="hidden" name="rek_legal_existing_file[]" value="">
-                                    </td>
-                                    <td class="px-4 py-2">
-                                        <input type="file" name="rek_legal_file[]" accept=".pdf" class="w-full text-xs">
-                                    </td>
-                                    <td class="px-4 py-2 text-center">
-                                        <button type="button" onclick="removeLegalRow(this)" class="text-red-500 hover:text-red-700 font-medium text-xs">Hapus</button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Hasil rekomendasi Bagian Legal</label>
+                        <textarea name="rekomendasi_legal" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"></textarea>
                     </div>
-                    <button type="button" onclick="addLegalRow()" class="mt-2 text-emerald-600 hover:text-emerald-700 text-sm font-medium flex items-center gap-1">
-                        <span>+</span> Tambah Baris Dokumen
-                    </button>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Hasil rekomendasi Bagian Keuangan</label>
+                        <textarea name="rekomendasi_keuangan" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"></textarea>
+                    </div>
                 </div>
 
                 <!-- Informasi Dokumen Tambahan -->
@@ -863,37 +780,6 @@ try {
                 </div>
             `;
             container.appendChild(item);
-        }
-
-        function addLegalRow() {
-            const container = document.getElementById('legal-container');
-            const row = document.createElement('tr');
-            row.className = 'legal-item';
-            row.innerHTML = `
-                <td class="px-4 py-2">
-                    <input type="text" name="rek_legal_nama[]" placeholder="Contoh: Lampiran Legal" class="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
-                    <input type="hidden" name="rek_legal_existing_file[]" value="">
-                </td>
-                <td class="px-4 py-2">
-                    <input type="file" name="rek_legal_file[]" accept=".pdf" class="w-full text-xs">
-                </td>
-                <td class="px-4 py-2 text-center">
-                    <button type="button" onclick="removeLegalRow(this)" class="text-red-500 hover:text-red-700 font-medium text-xs">Hapus</button>
-                </td>
-            `;
-            container.appendChild(row);
-        }
-
-        function removeLegalRow(btn) {
-            const row = btn.closest('tr');
-            const container = document.getElementById('legal-container');
-            if (container.children.length > 1) {
-                row.remove();
-            } else {
-                row.querySelector('input[type="text"]').value = '';
-                row.querySelector('input[type="file"]').value = '';
-                row.querySelector('input[type="hidden"]').value = '';
-            }
         }
 
         function addSoftcopyRow() {
@@ -960,21 +846,6 @@ try {
                 </div>
             `;
             
-            document.getElementById('legal-container').innerHTML = `
-                <tr class="legal-item">
-                    <td class="px-4 py-2">
-                        <input type="text" name="rek_legal_nama[]" placeholder="Contoh: Lampiran Legal A" class="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
-                        <input type="hidden" name="rek_legal_existing_file[]" value="">
-                    </td>
-                    <td class="px-4 py-2">
-                        <input type="file" name="rek_legal_file[]" accept=".pdf" class="w-full text-xs">
-                    </td>
-                    <td class="px-4 py-2 text-center">
-                        <button type="button" onclick="removeLegalRow(this)" class="text-red-500 hover:text-red-700 font-medium text-xs">Hapus</button>
-                    </td>
-                </tr>
-            `;
-            
             document.getElementById('softcopy-container').innerHTML = `
                 <div class="softcopy-item flex items-center gap-2">
                     <input type="file" name="softcopy_files[]" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
@@ -1002,6 +873,8 @@ try {
             document.querySelector('textarea[name="referensi_kerjasama"]').value = doc.referensi_kerjasama || '';
             document.querySelector('textarea[name="capaian_mutu"]').value = doc.capaian_mutu || '';
             document.querySelector('textarea[name="rekomendasi_pengadaan"]').value = doc.rekomendasi_pengadaan || '';
+            document.querySelector('textarea[name="rekomendasi_legal"]').value = doc.rekomendasi_legal || '';
+            document.querySelector('textarea[name="rekomendasi_keuangan"]').value = doc.rekomendasi_keuangan || '';
             
             const mitraContainer = document.getElementById('mitra-container');
             mitraContainer.innerHTML = '';
@@ -1028,35 +901,6 @@ try {
                     </div>
                 `;
                 mitraContainer.appendChild(item);
-            });
-            
-            const legContainer = document.getElementById('legal-container');
-            legContainer.innerHTML = '';
-            let legDocs = [];
-            try {
-                legDocs = JSON.parse(doc.rekomendasi_legal || '[]');
-            } catch(e) { legDocs = []; }
-            
-            if (legDocs.length === 0) {
-                legDocs = [{nama: '', file_path: ''}];
-            }
-            
-            legDocs.forEach((ld) => {
-                const row = document.createElement('tr');
-                row.className = 'legal-item';
-                row.innerHTML = `
-                    <td class="px-4 py-2">
-                        <input type="text" name="rek_legal_nama[]" value="${ld.nama || ''}" placeholder="Contoh: Lampiran Legal A" class="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
-                        ${ld.file_path ? `<div class="mt-1"><a href="view_pdf.php?file=${encodeURIComponent(ld.file_path)}" target="_blank" class="text-xs text-blue-600">📄 Lihat file saat ini</a><input type="hidden" name="rek_legal_existing_file[]" value="${ld.file_path}"></div>` : `<input type="hidden" name="rek_legal_existing_file[]" value="">`}
-                    </td>
-                    <td class="px-4 py-2">
-                        <input type="file" name="rek_legal_file[]" accept=".pdf" class="w-full text-xs">
-                    </td>
-                    <td class="px-4 py-2 text-center">
-                        <button type="button" onclick="removeLegalRow(this)" class="text-red-500 hover:text-red-700 font-medium text-xs">Hapus</button>
-                    </td>
-                `;
-                legContainer.appendChild(row);
             });
             
             const softContainer = document.getElementById('softcopy-container');
