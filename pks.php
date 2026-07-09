@@ -64,9 +64,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_pks'])) {
     $rekomendasi_pengadaan = $_POST['rekomendasi_pengadaan'] ?? null;
     $rekomendasi_legal = $_POST['rekomendasi_legal'] ?? null;
     
-    $nomor_dokumen = $_POST['nomor_dokumen'] ?? null;
-    $tanggal_mulai = $_POST['tanggal_mulai'] ?? null;
-    $tanggal_berakhir = $_POST['tanggal_berakhir'] ?? null;
+    $nomor_dokumen = null;
+    $tanggal_mulai = null;
+    $tanggal_berakhir = null;
+    
+    // Process Rekomendasi Keuangan
+    $rekomendasi_keuangan = [];
+    if (isset($_POST['rek_keuangan_nama']) && is_array($_POST['rek_keuangan_nama'])) {
+        foreach ($_POST['rek_keuangan_nama'] as $index => $nama) {
+            if (!empty($nama)) {
+                $file_path_rek = null;
+                // Handle file upload for this row
+                if (isset($_FILES['rek_keuangan_file']['error'][$index]) && $_FILES['rek_keuangan_file']['error'][$index] === UPLOAD_ERR_OK) {
+                    $uploadDir = 'uploads/pks/';
+                    if (!is_dir($uploadDir)) {
+                        mkdir($uploadDir, 0777, true);
+                    }
+                    $fileName = uniqid() . '_rek_keu_' . basename($_FILES['rek_keuangan_file']['name'][$index]);
+                    $targetFile = $uploadDir . $fileName;
+                    if (move_uploaded_file($_FILES['rek_keuangan_file']['tmp_name'][$index], $targetFile)) {
+                        $file_path_rek = $targetFile;
+                    }
+                }
+                $rekomendasi_keuangan[] = [
+                    'nama' => $nama,
+                    'file_path' => $file_path_rek
+                ];
+            }
+        }
+    }
+    $rekomendasi_keuangan_json = json_encode($rekomendasi_keuangan);
     
     $file_path = null;
 
@@ -103,15 +130,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_pks'])) {
                 tanggal_pengajuan, unit_pengusul, jenis_kerjasama, objek_kerjasama, 
                 analisa_alasan, calon_mitra, keunggulan_mitra, kekurangan_mitra, 
                 biaya, referensi_kerjasama, capaian_mutu, rekomendasi_pengadaan, 
-                rekomendasi_legal, nomor_dokumen, tanggal_mulai, tanggal_berakhir, 
+                rekomendasi_legal, rekomendasi_keuangan, nomor_dokumen, tanggal_mulai, tanggal_berakhir, 
                 file_path, step_status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $stmt->execute([
             $tanggal_pengajuan, $unit_pengusul, $jenis_kerjasama, $objek_kerjasama,
             $analisa_alasan, $calon_mitra_json, $keunggulan_mitra, $kekurangan_mitra,
             $biaya, $referensi_kerjasama, $capaian_mutu, $rekomendasi_pengadaan,
-            $rekomendasi_legal, $nomor_dokumen, $tanggal_mulai, $tanggal_berakhir,
+            $rekomendasi_legal, $rekomendasi_keuangan_json, $nomor_dokumen, $tanggal_mulai, $tanggal_berakhir,
             $file_path, $step_status_json
         ]);
         
@@ -417,6 +444,22 @@ try {
                                                 <?php else: ?>
                                                     <span class="text-gray-400 text-sm">-</span>
                                                 <?php endif; ?>
+                                                <?php 
+                                                $keuDocs = json_decode($doc['rekomendasi_keuangan'] ?? '[]', true);
+                                                if (!empty($keuDocs)):
+                                                    foreach ($keuDocs as $keuDoc):
+                                                        if (!empty($keuDoc['file_path'])):
+                                                ?>
+                                                            <div class="mt-1.5">
+                                                                <a href="<?php echo htmlspecialchars($keuDoc['file_path']); ?>" target="_blank" class="text-xs text-blue-600 hover:text-blue-700 font-medium inline-flex items-center gap-1">
+                                                                    📄 <?php echo htmlspecialchars($keuDoc['nama'] ?? 'Dokumen Keuangan'); ?>
+                                                                </a>
+                                                            </div>
+                                                <?php 
+                                                        endif;
+                                                    endforeach;
+                                                endif; 
+                                                ?>
                                             </td>
                                             <td class="px-6 py-4">
                                                 <form method="POST" action="pks.php" id="statusForm_<?php echo $doc['id']; ?>" class="inline-block">
@@ -599,25 +642,41 @@ try {
                     </div>
                 </div>
 
+                <!-- Bagian 4: Hasil Rekomendasi Bagian Keuangan -->
+                <div class="space-y-4 border-t pt-4">
+                    <h3 class="text-lg font-semibold text-gray-800 border-b pb-2">Hasil Rekomendasi Bagian Keuangan</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left text-gray-500" id="table-keuangan">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-2 border-b">Nama Dokumen Rekomendasi</th>
+                                    <th class="px-4 py-2 border-b">Unggah Berkas (PDF)</th>
+                                    <th class="px-4 py-2 border-b text-center" style="width: 80px;">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="keuangan-container">
+                                <tr class="keuangan-item">
+                                    <td class="px-4 py-2">
+                                        <input type="text" name="rek_keuangan_nama[]" placeholder="Contoh: Lampiran Keuangan A" class="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
+                                    </td>
+                                    <td class="px-4 py-2">
+                                        <input type="file" name="rek_keuangan_file[]" accept=".pdf" class="w-full text-xs">
+                                    </td>
+                                    <td class="px-4 py-2 text-center">
+                                        <button type="button" onclick="removeKeuanganRow(this)" class="text-red-500 hover:text-red-700 font-medium text-xs">Hapus</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" onclick="addKeuanganRow()" class="mt-2 text-emerald-600 hover:text-emerald-700 text-sm font-medium flex items-center gap-1">
+                        <span>+</span> Tambah Baris Dokumen
+                    </button>
+                </div>
+
                 <!-- Informasi Dokumen Tambahan -->
                 <div class="space-y-4 border-t pt-4">
                     <h3 class="text-lg font-semibold text-gray-800">Informasi Dokumen (Opsional)</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Nomor Dokumen</label>
-                            <input type="text" name="nomor_dokumen" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Mulai Kerjasama</label>
-                            <input type="date" name="tanggal_mulai" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Berakhir Kerjasama</label>
-                            <input type="date" name="tanggal_berakhir" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                        </div>
-                    </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Upload Berkas Softcopy (PDF)</label>
                         <input type="file" name="file" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-xl">
@@ -652,6 +711,35 @@ try {
                 </div>
             `;
             container.appendChild(item);
+        }
+
+        function addKeuanganRow() {
+            const container = document.getElementById('keuangan-container');
+            const row = document.createElement('tr');
+            row.className = 'keuangan-item';
+            row.innerHTML = `
+                <td class="px-4 py-2">
+                    <input type="text" name="rek_keuangan_nama[]" placeholder="Contoh: Lampiran Keuangan" class="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
+                </td>
+                <td class="px-4 py-2">
+                    <input type="file" name="rek_keuangan_file[]" accept=".pdf" class="w-full text-xs">
+                </td>
+                <td class="px-4 py-2 text-center">
+                    <button type="button" onclick="removeKeuanganRow(this)" class="text-red-500 hover:text-red-700 font-medium text-xs">Hapus</button>
+                </td>
+            `;
+            container.appendChild(row);
+        }
+
+        function removeKeuanganRow(btn) {
+            const row = btn.closest('tr');
+            const container = document.getElementById('keuangan-container');
+            if (container.children.length > 1) {
+                row.remove();
+            } else {
+                row.querySelector('input[type="text"]').value = '';
+                row.querySelector('input[type="file"]').value = '';
+            }
         }
 
         function openImportModal() {

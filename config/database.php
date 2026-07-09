@@ -97,7 +97,8 @@ try {
         try {
             $checkPksCols = [
                 'status' => "VARCHAR(50) NOT NULL DEFAULT 'Dalam Proses' AFTER step_status",
-                'reject_reason' => "TEXT NULL AFTER status"
+                'reject_reason' => "TEXT NULL AFTER status",
+                'rekomendasi_keuangan' => "TEXT NULL AFTER rekomendasi_legal"
             ];
             foreach ($checkPksCols as $cName => $cDef) {
                 $colExists = $pdo->query("SHOW COLUMNS FROM pengajuan_pks LIKE '$cName'")->rowCount();
