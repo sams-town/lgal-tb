@@ -17,25 +17,29 @@ if (!isUserLegalOrAdmin()) {
 
 $user = $_SESSION['user'];
 
-// Handle status and reject reason update
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
-    $pks_id = (int)$_POST['pks_id'];
-    $new_status = $_POST['status'] ?? 'Dalam Proses';
-    $reject_reason = $_POST['reject_reason'] ?? null;
+// Handle role status update from dropdowns
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_role_status'])) {
+    $pksId = (int)$_POST['pks_id'];
+    $role = $_POST['role'] ?? '';
+    $status = $_POST['status'] ?? 'Pending';
     
-    try {
-        $stmt = $pdo->prepare("UPDATE pengajuan_pks SET status = ?, reject_reason = ? WHERE id = ?");
-        $stmt->execute([$new_status, $reject_reason, $pks_id]);
-        $_SESSION['pks_success'] = "Status pengajuan berhasil diperbarui!";
-    } catch (PDOException $e) {
-        $_SESSION['pks_error'] = "Gagal memperbarui status: " . $e->getMessage();
+    if ($pksId && in_array($role, ['keuangan', 'pengadaan', 'legal']) && in_array($status, ['Pending', 'Approved', 'Declined', 'Return'])) {
+        try {
+            $column = 'status_' . $role;
+            $stmt = $pdo->prepare("UPDATE pengajuan_pks SET $column = ? WHERE id = ?");
+            $stmt->execute([$status, $pksId]);
+            $_SESSION['pks_success'] = "Status " . ucfirst($role) . " berhasil diperbarui menjadi " . $status . "!";
+        } catch (PDOException $e) {
+            $_SESSION['pks_error'] = "Gagal memperbarui status " . ucfirst($role) . ": " . $e->getMessage();
+        }
     }
     header("Location: pks.php");
     exit;
 }
 
-// Handle form submission for adding new PKS
+// Handle form submission for adding or editing PKS
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_pks'])) {
+    $pks_id = $_POST['pks_id'] ?? '';
     $tanggal_pengajuan = $_POST['tanggal_pengajuan'] ?? null;
     $unit_pengusul = $_POST['unit_pengusul'] ?? null;
     $jenis_kerjasama = $_POST['jenis_kerjasama'] ?? null;
@@ -69,94 +73,149 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_pks'])) {
     $tanggal_mulai = null;
     $tanggal_berakhir = null;
     
-    // Process Rekomendasi Keuangan
-    $rekomendasi_keuangan = [];
-    if (isset($_POST['rek_keuangan_nama']) && is_array($_POST['rek_keuangan_nama'])) {
-        foreach ($_POST['rek_keuangan_nama'] as $index => $nama) {
-            if (!empty($nama)) {
-                $file_path_rek = null;
-                // Handle file upload for this row
-                if (isset($_FILES['rek_keuangan_file']['error'][$index]) && $_FILES['rek_keuangan_file']['error'][$index] === UPLOAD_ERR_OK) {
-                    $uploadDir = 'uploads/pks/';
-                    if (!is_dir($uploadDir)) {
-                        mkdir($uploadDir, 0777, true);
-                    }
-                    $fileName = uniqid() . '_rek_keu_' . basename($_FILES['rek_keuangan_file']['name'][$index]);
-                    $targetFile = $uploadDir . $fileName;
-                    if (move_uploaded_file($_FILES['rek_keuangan_file']['tmp_name'][$index], $targetFile)) {
-                        $file_path_rek = $targetFile;
+    try {
+        if (!empty($pks_id)) {
+            // EDIT MODE
+            $stmt = $pdo->prepare("SELECT * FROM pengajuan_pks WHERE id = ?");
+            $stmt->execute([$pks_id]);
+            $existingDoc = $stmt->fetch();
+            
+            $final_file_path = $existingDoc['file_path'] ?? null;
+            if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
+                $uploadDir = 'uploads/pks/';
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0777, true);
+                }
+                $fileName = uniqid() . '_' . basename($_FILES['file']['name']);
+                $targetFile = $uploadDir . $fileName;
+                if (move_uploaded_file($_FILES['file']['tmp_name'], $targetFile)) {
+                    $final_file_path = $targetFile;
+                }
+            }
+            
+            // Process Rekomendasi Keuangan
+            $rekomendasi_keuangan = [];
+            if (isset($_POST['rek_keuangan_nama']) && is_array($_POST['rek_keuangan_nama'])) {
+                foreach ($_POST['rek_keuangan_nama'] as $index => $nama) {
+                    if (!empty($nama)) {
+                        $file_path_rek = $_POST['rek_keuangan_existing_file'][$index] ?? null;
+                        if (isset($_FILES['rek_keuangan_file']['error'][$index]) && $_FILES['rek_keuangan_file']['error'][$index] === UPLOAD_ERR_OK) {
+                            $uploadDir = 'uploads/pks/';
+                            if (!is_dir($uploadDir)) {
+                                mkdir($uploadDir, 0777, true);
+                            }
+                            $fileName = uniqid() . '_rek_keu_' . basename($_FILES['rek_keuangan_file']['name'][$index]);
+                            $targetFile = $uploadDir . $fileName;
+                            if (move_uploaded_file($_FILES['rek_keuangan_file']['tmp_name'][$index], $targetFile)) {
+                                $file_path_rek = $targetFile;
+                            }
+                        }
+                        $rekomendasi_keuangan[] = [
+                            'nama' => $nama,
+                            'file_path' => $file_path_rek
+                        ];
                     }
                 }
-                $rekomendasi_keuangan[] = [
-                    'nama' => $nama,
-                    'file_path' => $file_path_rek
-                ];
             }
+            $rekomendasi_keuangan_json = json_encode($rekomendasi_keuangan);
+            
+            $stmt = $pdo->prepare("
+                UPDATE pengajuan_pks SET 
+                    tanggal_pengajuan = ?, unit_pengusul = ?, jenis_kerjasama = ?, objek_kerjasama = ?, 
+                    analisa_alasan = ?, calon_mitra = ?, keunggulan_mitra = ?, kekurangan_mitra = ?, 
+                    biaya = ?, potongan_harga = ?, referensi_kerjasama = ?, capaian_mutu = ?, 
+                    rekomendasi_pengadaan = ?, rekomendasi_legal = ?, rekomendasi_keuangan = ?, 
+                    file_path = ?
+                WHERE id = ?
+            ");
+            $stmt->execute([
+                $tanggal_pengajuan, $unit_pengusul, $jenis_kerjasama, $objek_kerjasama,
+                $analisa_alasan, $calon_mitra_json, $keunggulan_mitra, $kekurangan_mitra,
+                $biaya, $potongan_harga, $referensi_kerjasama, $capaian_mutu, 
+                $rekomendasi_pengadaan, $rekomendasi_legal, $rekomendasi_keuangan_json,
+                $final_file_path, $pks_id
+            ]);
+            
+            $_SESSION['pks_success'] = "Pengajuan PKS berhasil diperbarui!";
+        } else {
+            // ADD MODE
+            $rekomendasi_keuangan = [];
+            if (isset($_POST['rek_keuangan_nama']) && is_array($_POST['rek_keuangan_nama'])) {
+                foreach ($_POST['rek_keuangan_nama'] as $index => $nama) {
+                    if (!empty($nama)) {
+                        $file_path_rek = null;
+                        if (isset($_FILES['rek_keuangan_file']['error'][$index]) && $_FILES['rek_keuangan_file']['error'][$index] === UPLOAD_ERR_OK) {
+                            $uploadDir = 'uploads/pks/';
+                            if (!is_dir($uploadDir)) {
+                                mkdir($uploadDir, 0777, true);
+                            }
+                            $fileName = uniqid() . '_rek_keu_' . basename($_FILES['rek_keuangan_file']['name'][$index]);
+                            $targetFile = $uploadDir . $fileName;
+                            if (move_uploaded_file($_FILES['rek_keuangan_file']['tmp_name'][$index], $targetFile)) {
+                                    $file_path_rek = $targetFile;
+                            }
+                        }
+                        $rekomendasi_keuangan[] = [
+                            'nama' => $nama,
+                            'file_path' => $file_path_rek
+                        ];
+                    }
+                }
+            }
+            $rekomendasi_keuangan_json = json_encode($rekomendasi_keuangan);
+            
+            $file_path = null;
+            if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
+                $uploadDir = 'uploads/pks/';
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0777, true);
+                }
+                $fileName = uniqid() . '_' . basename($_FILES['file']['name']);
+                $targetFile = $uploadDir . $fileName;
+                if (move_uploaded_file($_FILES['file']['tmp_name'], $targetFile)) {
+                    $file_path = $targetFile;
+                }
+            }
+            
+            $initialStepStatus = [
+                'km' => 'pending',
+                'legal' => 'pending',
+                'sekretariat' => 'pending',
+                'dk' => 'pending',
+                'dsdml' => 'pending',
+                'du' => 'pending'
+            ];
+            $step_status_json = json_encode($initialStepStatus);
+            
+            $stmt = $pdo->prepare("
+                INSERT INTO pengajuan_pks (
+                    tanggal_pengajuan, unit_pengusul, jenis_kerjasama, objek_kerjasama, 
+                    analisa_alasan, calon_mitra, keunggulan_mitra, kekurangan_mitra, 
+                    biaya, potongan_harga, referensi_kerjasama, capaian_mutu, rekomendasi_pengadaan, 
+                    rekomendasi_legal, rekomendasi_keuangan, nomor_dokumen, tanggal_mulai, tanggal_berakhir, 
+                    file_path, step_status
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([
+                $tanggal_pengajuan, $unit_pengusul, $jenis_kerjasama, $objek_kerjasama,
+                $analisa_alasan, $calon_mitra_json, $keunggulan_mitra, $kekurangan_mitra,
+                $biaya, $potongan_harga, $referensi_kerjasama, $capaian_mutu, $rekomendasi_pengadaan,
+                $rekomendasi_legal, $rekomendasi_keuangan_json, $nomor_dokumen, $tanggal_mulai, $tanggal_berakhir,
+                $file_path, $step_status_json
+            ]);
+            
+            notifyByPermission(
+                "Pengajuan PKS Baru",
+                "Ada pengajuan PKS baru untuk kerjasama $jenis_kerjasama dengan objek: $objek_kerjasama dari unit $unit_pengusul.",
+                "legal"
+            );
+            
+            $_SESSION['pks_success'] = "Pengajuan PKS berhasil disimpan!";
         }
-    }
-    $rekomendasi_keuangan_json = json_encode($rekomendasi_keuangan);
-    
-    $file_path = null;
-
-    // Handle file upload
-    if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
-        $uploadDir = 'uploads/pks/';
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0777, true);
-        }
-
-        $fileName = uniqid() . '_' . basename($_FILES['file']['name']);
-        $targetFile = $uploadDir . $fileName;
-
-        if (move_uploaded_file($_FILES['file']['tmp_name'], $targetFile)) {
-            $file_path = $targetFile;
-        }
-    }
-
-    // Insert into database
-    try {
-        // Initialize step status for new PKS
-        $initialStepStatus = [
-            'km' => 'pending',
-            'legal' => 'pending',
-            'sekretariat' => 'pending',
-            'dk' => 'pending',
-            'dsdml' => 'pending',
-            'du' => 'pending'
-        ];
-        $step_status_json = json_encode($initialStepStatus);
-        
-        $stmt = $pdo->prepare("
-            INSERT INTO pengajuan_pks (
-                tanggal_pengajuan, unit_pengusul, jenis_kerjasama, objek_kerjasama, 
-                analisa_alasan, calon_mitra, keunggulan_mitra, kekurangan_mitra, 
-                biaya, potongan_harga, referensi_kerjasama, capaian_mutu, rekomendasi_pengadaan, 
-                rekomendasi_legal, rekomendasi_keuangan, nomor_dokumen, tanggal_mulai, tanggal_berakhir, 
-                file_path, step_status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ");
-        $stmt->execute([
-            $tanggal_pengajuan, $unit_pengusul, $jenis_kerjasama, $objek_kerjasama,
-            $analisa_alasan, $calon_mitra_json, $keunggulan_mitra, $kekurangan_mitra,
-            $biaya, $potongan_harga, $referensi_kerjasama, $capaian_mutu, $rekomendasi_pengadaan,
-            $rekomendasi_legal, $rekomendasi_keuangan_json, $nomor_dokumen, $tanggal_mulai, $tanggal_berakhir,
-            $file_path, $step_status_json
-        ]);
-        
-        // Send notification for new PKS
-        notifyByPermission(
-            "Pengajuan PKS Baru",
-            "Ada pengajuan PKS baru untuk kerjasama $jenis_kerjasama dengan objek: $objek_kerjasama dari unit $unit_pengusul.",
-            "legal"
-        );
-        
-        $_SESSION['pks_success'] = "Pengajuan PKS berhasil disimpan!";
-        
     } catch (PDOException $e) {
-        $_SESSION['pks_error'] = "Gagal menyimpan data: " . $e->getMessage();
+        $_SESSION['pks_error'] = "Gagal memproses data: " . $e->getMessage();
     }
     
-    // Redirect to prevent form resubmission
     header("Location: pks.php");
     exit;
 }
@@ -450,10 +509,14 @@ try {
                                             <td class="px-6 py-4">
                                                 <?php $file_path = $doc['file_path'] ?? ''; ?>
                                                 <?php if (!empty($file_path)): ?>
-                                                    <a href="<?php echo htmlspecialchars($file_path); ?>" target="_blank" class="text-emerald-600 hover:text-emerald-700 font-medium text-sm flex items-center gap-1">
-                                                        📥
-                                                        <span>Download</span>
-                                                    </a>
+                                                    <div class="flex gap-2">
+                                                        <a href="view_pdf.php?file=<?php echo urlencode($file_path); ?>" target="_blank" class="text-blue-600 hover:text-blue-700 font-medium text-xs">
+                                                            Lihat
+                                                        </a>
+                                                        <a href="download_pdf.php?file=<?php echo urlencode($file_path); ?>" target="_blank" class="text-emerald-600 hover:text-emerald-700 font-medium text-xs">
+                                                            Download
+                                                        </a>
+                                                    </div>
                                                 <?php else: ?>
                                                     <span class="text-gray-400 text-sm">-</span>
                                                 <?php endif; ?>
@@ -463,10 +526,14 @@ try {
                                                     foreach ($keuDocs as $keuDoc):
                                                         if (!empty($keuDoc['file_path'])):
                                                 ?>
-                                                            <div class="mt-1.5">
-                                                                <a href="<?php echo htmlspecialchars($keuDoc['file_path']); ?>" target="_blank" class="text-xs text-blue-600 hover:text-blue-700 font-medium inline-flex items-center gap-1">
+                                                            <div class="mt-2 border-t pt-1">
+                                                                <span class="text-[10px] text-gray-500 block truncate" title="<?php echo htmlspecialchars($keuDoc['nama'] ?? 'Dokumen Keuangan'); ?>">
                                                                     📄 <?php echo htmlspecialchars($keuDoc['nama'] ?? 'Dokumen Keuangan'); ?>
-                                                                </a>
+                                                                </span>
+                                                                <div class="flex gap-1.5 mt-0.5">
+                                                                    <a href="view_pdf.php?file=<?php echo urlencode($keuDoc['file_path']); ?>" target="_blank" class="text-[10px] text-blue-600 hover:underline">Lihat</a>
+                                                                    <a href="download_pdf.php?file=<?php echo urlencode($keuDoc['file_path']); ?>" target="_blank" class="text-[10px] text-emerald-600 hover:underline">Unduh</a>
+                                                                </div>
                                                             </div>
                                                 <?php 
                                                         endif;
@@ -474,43 +541,108 @@ try {
                                                 endif; 
                                                 ?>
                                             </td>
-                                            <td class="px-6 py-4">
-                                                <form method="POST" action="pks.php" id="statusForm_<?php echo $doc['id']; ?>" class="inline-block">
-                                                    <input type="hidden" name="update_status" value="1">
-                                                    <input type="hidden" name="pks_id" value="<?php echo $doc['id']; ?>">
+                                            <td class="px-6 py-4 space-y-2">
+                                                <!-- Keuangan Dropdown -->
+                                                <div class="flex items-center justify-between gap-2 text-xs">
+                                                    <span class="font-medium text-gray-600">Keuangan:</span>
                                                     <select 
-                                                        name="status" 
-                                                        onchange="handleStatusChange(<?php echo $doc['id']; ?>, this.value)"
-                                                        class="px-2 py-1 rounded-full text-xs font-semibold border cursor-pointer focus:outline-none 
+                                                        onchange="updatePksStatus(<?php echo $doc['id']; ?>, 'keuangan', this.value)"
+                                                        class="px-2 py-1 rounded-md border text-xs font-semibold focus:outline-none cursor-pointer
                                                             <?php 
-                                                            $currentStatus = $doc['status'] ?? 'Dalam Proses';
-                                                            if ($currentStatus === 'Diterima') echo 'bg-emerald-100 text-emerald-800 border-emerald-200';
-                                                            elseif ($currentStatus === 'Ditolak') echo 'bg-red-100 text-red-800 border-red-200';
-                                                            else echo 'bg-amber-100 text-amber-800 border-amber-200';
+                                                            $stKeu = $doc['status_keuangan'] ?? 'Pending';
+                                                            if ($stKeu === 'Approved') echo 'bg-emerald-100 text-emerald-800 border-emerald-200';
+                                                            elseif ($stKeu === 'Declined') echo 'bg-red-100 text-red-800 border-red-200';
+                                                            elseif ($stKeu === 'Return') echo 'bg-amber-100 text-amber-800 border-amber-200';
+                                                            else echo 'bg-gray-100 text-gray-800 border-gray-200';
                                                             ?>"
                                                     >
-                                                        <option value="Dalam Proses" <?php echo $currentStatus === 'Dalam Proses' ? 'selected' : ''; ?>>Dalam Proses</option>
-                                                        <option value="Diterima" <?php echo $currentStatus === 'Diterima' ? 'selected' : ''; ?>>Diterima</option>
-                                                        <option value="Ditolak" <?php echo $currentStatus === 'Ditolak' ? 'selected' : ''; ?>>Ditolak</option>
+                                                        <option value="Pending" <?php echo $stKeu === 'Pending' ? 'selected' : ''; ?>>Pending</option>
+                                                        <option value="Approved" <?php echo $stKeu === 'Approved' ? 'selected' : ''; ?>>Approved</option>
+                                                        <option value="Declined" <?php echo $stKeu === 'Declined' ? 'selected' : ''; ?>>Declined</option>
+                                                        <option value="Return" <?php echo $stKeu === 'Return' ? 'selected' : ''; ?>>Return</option>
                                                     </select>
-                                                    <input type="hidden" name="reject_reason" id="rejectReason_<?php echo $doc['id']; ?>" value="<?php echo htmlspecialchars($doc['reject_reason'] ?? ''); ?>">
-                                                </form>
-                                                <?php if (($doc['status'] ?? '') === 'Ditolak' && !empty($doc['reject_reason'])): ?>
-                                                    <p class="text-xs text-red-500 mt-1 font-medium max-w-[150px] break-words" title="<?php echo htmlspecialchars($doc['reject_reason']); ?>">
-                                                        Ket: <?php echo htmlspecialchars($doc['reject_reason']); ?>
-                                                    </p>
-                                                <?php endif; ?>
+                                                </div>
+
+                                                <!-- Pengadaan Dropdown -->
+                                                <div class="flex items-center justify-between gap-2 text-xs">
+                                                    <span class="font-medium text-gray-600">Pengadaan:</span>
+                                                    <select 
+                                                        onchange="updatePksStatus(<?php echo $doc['id']; ?>, 'pengadaan', this.value)"
+                                                        class="px-2 py-1 rounded-md border text-xs font-semibold focus:outline-none cursor-pointer
+                                                            <?php 
+                                                            $stPeng = $doc['status_pengadaan'] ?? 'Pending';
+                                                            if ($stPeng === 'Approved') echo 'bg-emerald-100 text-emerald-800 border-emerald-200';
+                                                            elseif ($stPeng === 'Declined') echo 'bg-red-100 text-red-800 border-red-200';
+                                                            elseif ($stPeng === 'Return') echo 'bg-amber-100 text-amber-800 border-amber-200';
+                                                            else echo 'bg-gray-100 text-gray-800 border-gray-200';
+                                                            ?>"
+                                                    >
+                                                        <option value="Pending" <?php echo $stPeng === 'Pending' ? 'selected' : ''; ?>>Pending</option>
+                                                        <option value="Approved" <?php echo $stPeng === 'Approved' ? 'selected' : ''; ?>>Approved</option>
+                                                        <option value="Declined" <?php echo $stPeng === 'Declined' ? 'selected' : ''; ?>>Declined</option>
+                                                        <option value="Return" <?php echo $stPeng === 'Return' ? 'selected' : ''; ?>>Return</option>
+                                                    </select>
+                                                </div>
+
+                                                <!-- Legal Dropdown -->
+                                                <div class="flex items-center justify-between gap-2 text-xs">
+                                                    <span class="font-medium text-gray-600">Legal:</span>
+                                                    <select 
+                                                        onchange="updatePksStatus(<?php echo $doc['id']; ?>, 'legal', this.value)"
+                                                        class="px-2 py-1 rounded-md border text-xs font-semibold focus:outline-none cursor-pointer
+                                                            <?php 
+                                                            $stLeg = $doc['status_legal'] ?? 'Pending';
+                                                            if ($stLeg === 'Approved') echo 'bg-emerald-100 text-emerald-800 border-emerald-200';
+                                                            elseif ($stLeg === 'Declined') echo 'bg-red-100 text-red-800 border-red-200';
+                                                            elseif ($stLeg === 'Return') echo 'bg-amber-100 text-amber-800 border-amber-200';
+                                                            else echo 'bg-gray-100 text-gray-800 border-gray-200';
+                                                            ?>"
+                                                    >
+                                                        <option value="Pending" <?php echo $stLeg === 'Pending' ? 'selected' : ''; ?>>Pending</option>
+                                                        <option value="Approved" <?php echo $stLeg === 'Approved' ? 'selected' : ''; ?>>Approved</option>
+                                                        <option value="Declined" <?php echo $stLeg === 'Declined' ? 'selected' : ''; ?>>Declined</option>
+                                                        <option value="Return" <?php echo $stLeg === 'Return' ? 'selected' : ''; ?>>Return</option>
+                                                    </select>
+                                                </div>
                                             </td>
                                             <td class="px-6 py-4">
-                                                <div class="flex items-center gap-2">
+                                                <div class="flex flex-col gap-1.5">
                                                     <?php $file_path = $doc['file_path'] ?? ''; ?>
                                                     <?php if (!empty($file_path)): ?>
-                                                        <a href="<?php echo htmlspecialchars($file_path); ?>" target="_blank" class="px-3 py-1 text-sm bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition-colors">
+                                                        <a href="view_pdf.php?file=<?php echo urlencode($file_path); ?>" target="_blank" class="px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded hover:bg-blue-100 text-center transition-colors font-medium">
                                                             Lihat
                                                         </a>
+                                                        <a href="download_pdf.php?file=<?php echo urlencode($file_path); ?>" target="_blank" class="px-2 py-1 text-xs bg-emerald-50 text-emerald-700 rounded hover:bg-emerald-100 text-center transition-colors font-medium">
+                                                            Download
+                                                        </a>
                                                     <?php endif; ?>
+                                                    
+                                                    <?php 
+                                                    $isReturn = (
+                                                        ($doc['status_keuangan'] ?? '') === 'Return' || 
+                                                        ($doc['status_pengadaan'] ?? '') === 'Return' || 
+                                                        ($doc['status_legal'] ?? '') === 'Return'
+                                                    );
+                                                    if ($isReturn): 
+                                                    ?>
+                                                        <button 
+                                                            onclick='openEditModal(<?php echo json_encode($doc, JSON_HEX_APOS | JSON_HEX_QUOT); ?>)' 
+                                                            class="px-2 py-1 text-xs bg-amber-50 text-amber-700 rounded hover:bg-amber-100 text-center transition-colors font-medium w-full"
+                                                        >
+                                                            Edit
+                                                        </button>
+                                                    <?php else: ?>
+                                                        <button 
+                                                            disabled 
+                                                            title="Edit hanya bisa jika salah satu status berstatus Return"
+                                                            class="px-2 py-1 text-xs bg-gray-50 text-gray-400 rounded text-center cursor-not-allowed font-medium opacity-60 w-full"
+                                                        >
+                                                            Edit 🔒
+                                                        </button>
+                                                    <?php endif; ?>
+                                                    
                                                     <?php if (isUserLegalOrAdmin()): ?>
-                                                        <a href="pks.php?delete=<?php echo $doc['id']; ?>" onclick="return confirm('Apakah Anda yakin ingin menghapus dokumen ini?');" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
+                                                        <a href="pks.php?delete=<?php echo $doc['id']; ?>" onclick="return confirm('Apakah Anda yakin ingin menghapus dokumen ini?');" class="px-2 py-1 text-xs bg-red-50 text-red-700 rounded hover:bg-red-100 text-center transition-colors font-medium">
                                                             Hapus
                                                         </a>
                                                     <?php endif; ?>
@@ -534,7 +666,8 @@ try {
                 <h2 class="text-xl font-bold text-gray-900">FORMULIR PENGAJUAN KERJASAMA</h2>
                 <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
             </div>
-            <form method="POST" enctype="multipart/form-data" class="p-6 space-y-6">
+            <form method="POST" enctype="multipart/form-data" class="p-6 space-y-6" id="pksForm">
+                <input type="hidden" name="pks_id" id="edit_pks_id" value="">
                 <!-- Bagian 1: Informasi Umum -->
                 <div class="space-y-4">
                     <h3 class="text-lg font-semibold text-gray-800 border-b pb-2">Informasi Umum</h3>
@@ -776,17 +909,138 @@ try {
             }
         }
 
-        function handleStatusChange(pksId, value) {
-            if (value === 'Ditolak') {
-                const reason = prompt('Masukkan alasan penolakan:', document.getElementById('rejectReason_' + pksId).value);
-                if (reason === null) {
-                    // Cancelled, reset select to previous value
-                    location.reload();
-                    return;
-                }
-                document.getElementById('rejectReason_' + pksId).value = reason;
+        function updatePksStatus(pksId, role, status) {
+            document.getElementById('pksStatusFormId').value = pksId;
+            document.getElementById('pksStatusFormRole').value = role;
+            document.getElementById('pksStatusFormStatus').value = status;
+            document.getElementById('pksStatusForm').submit();
+        }
+
+        function handleOpenModal() {
+            document.getElementById('modal-title').innerText = 'FORMULIR PENGAJUAN KERJASAMA';
+            document.getElementById('edit_pks_id').value = '';
+            document.getElementById('pksForm').reset();
+            
+            const note = document.querySelector('.existing-file-note');
+            if (note) note.remove();
+            
+            document.getElementById('mitra-container').innerHTML = `
+                <div class="mitra-item grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Nama Calon Mitra</label>
+                        <input type="text" name="nama_mitra[]" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Narahubung</label>
+                        <input type="text" name="narahubung[]" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('keuangan-container').innerHTML = `
+                <tr class="keuangan-item">
+                    <td class="px-4 py-2">
+                        <input type="text" name="rek_keuangan_nama[]" placeholder="Contoh: Lampiran Keuangan A" class="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
+                        <input type="hidden" name="rek_keuangan_existing_file[]" value="">
+                    </td>
+                    <td class="px-4 py-2">
+                        <input type="file" name="rek_keuangan_file[]" accept=".pdf" class="w-full text-xs">
+                    </td>
+                    <td class="px-4 py-2 text-center">
+                        <button type="button" onclick="removeKeuanganRow(this)" class="text-red-500 hover:text-red-700 font-medium text-xs">Hapus</button>
+                    </td>
+                </tr>
+            `;
+            
+            openModal('modal');
+        }
+
+        function openEditModal(doc) {
+            document.getElementById('modal-title').innerText = 'EDIT PENGAJUAN KERJASAMA';
+            document.getElementById('edit_pks_id').value = doc.id;
+            
+            document.querySelector('input[name="tanggal_pengajuan"]').value = doc.tanggal_pengajuan || '';
+            document.querySelector('input[name="unit_pengusul"]').value = doc.unit_pengusul || '';
+            document.querySelector('select[name="jenis_kerjasama"]').value = doc.jenis_kerjasama || 'Klinis';
+            document.querySelector('input[name="objek_kerjasama"]').value = doc.objek_kerjasama || '';
+            document.querySelector('textarea[name="analisa_alasan"]').value = doc.analisa_alasan || '';
+            document.querySelector('textarea[name="keunggulan_mitra"]').value = doc.keunggulan_mitra || '';
+            document.querySelector('textarea[name="kekurangan_mitra"]').value = doc.kekurangan_mitra || '';
+            document.querySelector('textarea[name="biaya"]').value = doc.biaya || '';
+            document.querySelector('input[name="potongan_harga"]').value = doc.potongan_harga || '';
+            document.querySelector('textarea[name="referensi_kerjasama"]').value = doc.referensi_kerjasama || '';
+            document.querySelector('textarea[name="capaian_mutu"]').value = doc.capaian_mutu || '';
+            document.querySelector('textarea[name="rekomendasi_pengadaan"]').value = doc.rekomendasi_pengadaan || '';
+            document.querySelector('textarea[name="rekomendasi_legal"]').value = doc.rekomendasi_legal || '';
+            
+            const mitraContainer = document.getElementById('mitra-container');
+            mitraContainer.innerHTML = '';
+            let mitras = [];
+            try {
+                mitras = JSON.parse(doc.calon_mitra || '[]');
+            } catch(e) { mitras = []; }
+            
+            if (mitras.length === 0) {
+                mitras = [{nama: '', narahubung: ''}];
             }
-            document.getElementById('statusForm_' + pksId).submit();
+            
+            mitras.forEach((m, idx) => {
+                const item = document.createElement('div');
+                item.className = 'mitra-item grid grid-cols-1 md:grid-cols-2 gap-4' + (idx > 0 ? ' mt-3' : '');
+                item.innerHTML = `
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Nama Calon Mitra</label>
+                        <input type="text" name="nama_mitra[]" value="${m.nama || ''}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Narahubung</label>
+                        <input type="text" name="narahubung[]" value="${m.narahubung || ''}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                `;
+                mitraContainer.appendChild(item);
+            });
+            
+            const keuContainer = document.getElementById('keuangan-container');
+            keuContainer.innerHTML = '';
+            let keuDocs = [];
+            try {
+                keuDocs = JSON.parse(doc.rekomendasi_keuangan || '[]');
+            } catch(e) { keuDocs = []; }
+            
+            if (keuDocs.length === 0) {
+                keuDocs = [{nama: '', file_path: ''}];
+            }
+            
+            keuDocs.forEach((kd) => {
+                const row = document.createElement('tr');
+                row.className = 'keuangan-item';
+                row.innerHTML = `
+                    <td class="px-4 py-2">
+                        <input type="text" name="rek_keuangan_nama[]" value="${kd.nama || ''}" placeholder="Contoh: Lampiran Keuangan A" class="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
+                        ${kd.file_path ? `<div class="mt-1"><a href="view_pdf.php?file=${encodeURIComponent(kd.file_path)}" target="_blank" class="text-xs text-blue-600">📄 Lihat file saat ini</a><input type="hidden" name="rek_keuangan_existing_file[]" value="${kd.file_path}"></div>` : `<input type="hidden" name="rek_keuangan_existing_file[]" value="">`}
+                    </td>
+                    <td class="px-4 py-2">
+                        <input type="file" name="rek_keuangan_file[]" accept=".pdf" class="w-full text-xs">
+                    </td>
+                    <td class="px-4 py-2 text-center">
+                        <button type="button" onclick="removeKeuanganRow(this)" class="text-red-500 hover:text-red-700 font-medium text-xs">Hapus</button>
+                    </td>
+                `;
+                keuContainer.appendChild(row);
+            });
+            
+            const fileInputWrapper = document.querySelector('input[name="file"]').parentNode;
+            const existingNote = fileInputWrapper.querySelector('.existing-file-note');
+            if (existingNote) existingNote.remove();
+            
+            if (doc.file_path) {
+                const note = document.createElement('p');
+                note.className = 'text-xs text-blue-600 mt-1 existing-file-note';
+                note.innerHTML = `<a href="view_pdf.php?file=${encodeURIComponent(doc.file_path)}" target="_blank">📄 Lihat file utama saat ini</a>`;
+                fileInputWrapper.appendChild(note);
+            }
+            
+            openModal('modal');
         }
 
         function toggleFilterDropdown(event) {
@@ -795,7 +1049,6 @@ try {
             dropdown.classList.toggle('hidden');
         }
 
-        // Close dropdown when clicking outside
         document.addEventListener('click', function() {
             const dropdown = document.getElementById('filterDropdown');
             if (dropdown) {
@@ -803,6 +1056,14 @@ try {
             }
         });
     </script>
+
+    <!-- Hidden form for updating PKS role statuses -->
+    <form method="POST" action="pks.php" id="pksStatusForm" style="display:none;">
+        <input type="hidden" name="update_role_status" value="1">
+        <input type="hidden" name="pks_id" id="pksStatusFormId">
+        <input type="hidden" name="role" id="pksStatusFormRole">
+        <input type="hidden" name="status" id="pksStatusFormStatus">
+    </form>
 
     <!-- Import Modal -->
     <div id="importModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">

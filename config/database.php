@@ -99,7 +99,10 @@ try {
                 'status' => "VARCHAR(50) NOT NULL DEFAULT 'Dalam Proses' AFTER step_status",
                 'reject_reason' => "TEXT NULL AFTER status",
                 'rekomendasi_keuangan' => "TEXT NULL AFTER rekomendasi_legal",
-                'potongan_harga' => "VARCHAR(255) NULL AFTER biaya"
+                'potongan_harga' => "VARCHAR(255) NULL AFTER biaya",
+                'status_keuangan' => "VARCHAR(50) NOT NULL DEFAULT 'Pending' AFTER rekomendasi_keuangan",
+                'status_pengadaan' => "VARCHAR(50) NOT NULL DEFAULT 'Pending' AFTER status_keuangan",
+                'status_legal' => "VARCHAR(50) NOT NULL DEFAULT 'Pending' AFTER status_pengadaan"
             ];
             foreach ($checkPksCols as $cName => $cDef) {
                 $colExists = $pdo->query("SHOW COLUMNS FROM pengajuan_pks LIKE '$cName'")->rowCount();
