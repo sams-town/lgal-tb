@@ -133,7 +133,7 @@ if (isset($_GET['delete_user'])) {
     $id = $_GET['delete_user'];
     try {
         // Get user info before deleting
-        $stmt = $pdo->prepare("SELECT name, email FROM users WHERE id = ?");
+        $stmt = $pdo->prepare("SELECT nama, email FROM users WHERE id = ?");
         $stmt->execute([$id]);
         $deletedUser = $stmt->fetch();
         
@@ -142,6 +142,50 @@ if (isset($_GET['delete_user'])) {
         $success = "User berhasil dihapus";
     } catch (PDOException $e) {
         $error = "Gagal menghapus user: " . $e->getMessage();
+    }
+}
+
+// Handle edit user
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_user'])) {
+    $id = $_POST['user_id'];
+    $nama = $_POST['nama'];
+    $email = $_POST['email'];
+    $role_id = $_POST['role_id'];
+    $division_id = !empty($_POST['division_id']) ? (int)$_POST['division_id'] : null;
+    $status = $_POST['status'] === 'Aktif' ? 1 : 0;
+    
+    try {
+        if (!empty($_POST['password'])) {
+            $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+            $stmt = $pdo->prepare("UPDATE users SET nama = ?, email = ?, password = ?, role_id = ?, division_id = ?, is_active = ? WHERE id = ?");
+            $stmt->execute([$nama, $email, $password, $role_id, $division_id, $status, $id]);
+        } else {
+            $stmt = $pdo->prepare("UPDATE users SET nama = ?, email = ?, role_id = ?, division_id = ?, is_active = ? WHERE id = ?");
+            $stmt->execute([$nama, $email, $role_id, $division_id, $status, $id]);
+        }
+        
+        if (!empty($_POST['pin'])) {
+            $pin = password_hash($_POST['pin'], PASSWORD_DEFAULT);
+            $stmt = $pdo->prepare("UPDATE users SET pin = ? WHERE id = ?");
+            $stmt->execute([$pin, $id]);
+        }
+        
+        if (isset($_FILES['tanda_tangan']) && $_FILES['tanda_tangan']['error'] === UPLOAD_ERR_OK) {
+            $uploadDir = 'uploads/tanda_tangan/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
+            $fileName = uniqid() . '_' . preg_replace("/[^a-zA-Z0-9.-]/", "_", basename($_FILES['tanda_tangan']['name']));
+            $targetFile = $uploadDir . $fileName;
+            if (move_uploaded_file($_FILES['tanda_tangan']['tmp_name'], $targetFile)) {
+                $stmt = $pdo->prepare("UPDATE users SET tanda_tangan = ? WHERE id = ?");
+                $stmt->execute([$targetFile, $id]);
+            }
+        }
+        
+        $success = "User berhasil diperbarui";
+    } catch (PDOException $e) {
+        $error = "Gagal memperbarui user: " . $e->getMessage();
     }
 }
 
@@ -597,7 +641,7 @@ function formatBytes($bytes, $precision = 2) {
                                                 </td>
                                                 <td class="px-6 py-4">
                                                     <div class="flex items-center gap-2">
-                                                        <button class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
+                                                        <button onclick='openEditUserModal(<?php echo json_encode($u); ?>)' class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
                                                             Edit
                                                         </button>
                                                         <a href="setting.php?delete_user=<?php echo $u['id']; ?>&tab=user" onclick="return confirm('Apakah Anda yakin ingin menghapus pengguna ini?');" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
@@ -834,6 +878,94 @@ function formatBytes($bytes, $precision = 2) {
         </div>
     </div>
 
+    <!-- Modal Edit User -->
+    <div id="editUserModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+                <h2 class="text-xl font-bold text-gray-900">Edit Pengguna</h2>
+                <button onclick="closeModal('editUserModal')" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            <form method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
+                <input type="hidden" name="user_id" id="edit_user_id">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Nama Lengkap</label>
+                    <input type="text" name="nama" id="edit_user_nama" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <input type="email" name="email" id="edit_user_email" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Password (Kosongkan jika tidak diubah)</label>
+                    <input type="password" name="password" placeholder="••••••••" minlength="6" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                </div>
+                
+                <!-- Input PIN -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">PIN Persetujuan (Kosongkan jika tidak diubah)</label>
+                    <div class="relative">
+                        <input type="password" name="pin" id="edit_user_pin" maxlength="6" pattern="\d{6}" placeholder="Contoh: 123456" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 font-mono tracking-widest">
+                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-xs text-gray-400">
+                            Angka Saja
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input File Tanda Tangan -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Tanda Tangan Digital (Gambar - Upload baru jika diubah)</label>
+                    <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-xl hover:border-emerald-500 transition-colors bg-gray-50 relative group">
+                        <div class="space-y-1 text-center">
+                            <div class="text-4xl text-gray-400 mb-2">✍️</div>
+                            <div class="flex text-sm text-gray-600 justify-center">
+                                <label for="edit_tanda_tangan" class="relative cursor-pointer bg-white rounded-md font-medium text-emerald-600 hover:text-emerald-500 focus-within:outline-none">
+                                    <span>Upload file</span>
+                                    <input id="edit_tanda_tangan" name="tanda_tangan" type="file" accept="image/png, image/jpeg, image/jpg" class="sr-only">
+                                </label>
+                                <p class="pl-1">atau drag and drop</p>
+                            </div>
+                            <p class="text-xs text-gray-500">PNG, JPG up to 2MB (Direkomendasikan PNG Transparan)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Role / Hak Akses</label>
+                    <select name="role_id" id="edit_user_role" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        <option value="">Pilih Role...</option>
+                        <?php foreach ($roles as $role): ?>
+                            <option value="<?php echo htmlspecialchars($role['id']); ?>"><?php echo htmlspecialchars($role['nama_role'] ?? $role['name'] ?? ''); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Departemen / Divisi</label>
+                    <select name="division_id" id="edit_user_division" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        <option value="">Pilih Departemen...</option>
+                        <?php foreach ($divisiList as $div): ?>
+                            <option value="<?php echo htmlspecialchars($div['id']); ?>"><?php echo htmlspecialchars($div['nama_divisi']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                    <select name="status" id="edit_user_status" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        <option value="Aktif">Aktif</option>
+                        <option value="Nonaktif">Nonaktif</option>
+                    </select>
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="closeModal('editUserModal')" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors">
+                        Batal
+                    </button>
+                    <button type="submit" name="edit_user" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors">
+                        Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Modal Edit Permission -->
     <div id="editPermissionModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
         <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
@@ -963,6 +1095,20 @@ function formatBytes($bytes, $precision = 2) {
             document.getElementById('edit_integ_endpoint').value = integ.endpoint_url || '';
             document.getElementById('edit_integ_status').value = integ.status || 'Aktif';
             openModal('editIntegrationModal');
+        }
+
+        function openEditUserModal(user) {
+            document.getElementById('edit_user_id').value = user.id;
+            document.getElementById('edit_user_nama').value = user.nama || user.name || '';
+            document.getElementById('edit_user_email').value = user.email || '';
+            document.getElementById('edit_user_role').value = user.role_id || '';
+            document.getElementById('edit_user_division').value = user.division_id || '';
+            document.getElementById('edit_user_status').value = (user.is_active == 1) ? 'Aktif' : 'Nonaktif';
+            
+            // clear pin password placeholders
+            document.getElementById('edit_user_pin').value = '';
+            
+            openModal('editUserModal');
         }
     </script>
 </body>
