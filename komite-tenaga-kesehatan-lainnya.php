@@ -95,6 +95,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_tenaga_medis']
 
 // Handle delete
 if (isset($_GET['delete'])) {
+    if (!canUserEditOrDelete('komite')) {
+        $_SESSION['error_msg'] = "Anda tidak memiliki akses untuk menghapus data ini!";
+        header("Location: komite-tenaga-kesehatan-lainnya.php");
+        exit;
+    }
     $id = (int)$_GET['delete'];
     try {
         $stmt = $pdo->prepare("SELECT file_str, file_sip, file_pks, file_sk FROM tenaga_medis WHERE id = ? AND tipe_form = 'komite-tenaga-kesehatan-lainnya'");
@@ -381,11 +386,15 @@ if (!function_exists('formatDate')) {
                                                 </div>
                                             </td>
                                             <td class="px-6 py-4">
-                                                <div class="flex items-center gap-2">
-                                                    <button class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">Edit</button>
-                                                    <a href="komite-tenaga-kesehatan-lainnya.php?delete=<?php echo $data['id']; ?>" onclick="return confirm('Apakah Anda yakin ingin menghapus data ini?');" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">Hapus</a>
-                                                </div>
-                                            </td>
+                                                 <div class="flex items-center gap-2">
+                                                     <?php if (canUserEditOrDelete('komite')): ?>
+                                                         <button class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">Edit</button>
+                                                         <a href="komite-tenaga-kesehatan-lainnya.php?delete=<?php echo $data['id']; ?>" onclick="return confirm('Apakah Anda yakin ingin menghapus data ini?');" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">Hapus</a>
+                                                     <?php else: ?>
+                                                         <span class="text-gray-400 text-sm">-</span>
+                                                     <?php endif; ?>
+                                                 </div>
+                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php endif; ?>

@@ -296,4 +296,41 @@ function isUserLegalOrAdmin() {
     
     return false;
 }
+
+/**
+ * Memeriksa apakah user saat ini dapat melakukan tindakan edit/delete pada menu tertentu.
+ * - Super Admin bisa edit/delete di SELURUH menu.
+ * - Staff Legal hanya bisa edit/delete di menu Legal (pks, legal-arsip, regulasi, perizinan).
+ * - User lain selain Super Admin dan Legal tidak bisa melihat/melakukan edit/delete.
+ * @param string $menu Nama menu / modul ('legal', 'sekretariat', 'akreditasi', 'komite', etc.)
+ * @return bool
+ */
+function canUserEditOrDelete($menu) {
+    if (!isset($_SESSION['user'])) {
+        return false;
+    }
+    
+    $user = $_SESSION['user'];
+    $role = $user['nama_role'] ?? $user['role'] ?? '';
+    $nama = $user['nama'] ?? $user['name'] ?? '';
+    $email = $user['email'] ?? '';
+    
+    // Super Admin can edit/delete in ALL menus
+    if ($role === 'Super Admin') {
+        return true;
+    }
+    
+    // Check if user is Legal staff
+    $isLegal = (stripos($role, 'legal') !== false || 
+                stripos($nama, 'legal') !== false || 
+                stripos($email, 'legal') !== false);
+                
+    if ($isLegal) {
+        // Legal staff can ONLY edit/delete in legal menus
+        return ($menu === 'legal');
+    }
+    
+    // Other users cannot edit/delete anywhere
+    return false;
+}
 ?>

@@ -19,6 +19,11 @@ $user = $_SESSION['user'];
 
 // Handle form submission for adding new Perizinan
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_perizinan'])) {
+    if (!canUserEditOrDelete('legal')) {
+        $_SESSION['pks_error'] = "Anda tidak memiliki akses untuk menambah data!";
+        header("Location: perizinan.php");
+        exit;
+    }
     $nama_izin = $_POST['nama_izin'] ?? null;
     $pemilik_izin = $_POST['pemilik_izin'] ?? null;
     $masa_berlaku_mulai = $_POST['masa_berlaku_mulai'] ?? null;
@@ -61,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_perizinan'])) 
 
 // Handle delete
 if (isset($_GET['delete'])) {
-    if (!isUserLegalOrAdmin()) {
+    if (!canUserEditOrDelete('legal')) {
         $_SESSION['pks_error'] = "Anda tidak memiliki akses untuk menghapus data ini!";
         header("Location: perizinan.php");
         exit;
@@ -348,7 +353,7 @@ try {
                                                             Lihat
                                                         </a>
                                                     <?php endif; ?>
-                                                    <?php if (isUserLegalOrAdmin()): ?>
+                                                    <?php if (canUserEditOrDelete('legal')): ?>
                                                         <a href="perizinan.php?delete=<?php echo $doc['id']; ?>" onclick="return confirm('Apakah Anda yakin ingin menghapus dokumen ini?');" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
                                                             Hapus
                                                         </a>

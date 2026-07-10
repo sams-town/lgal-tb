@@ -19,6 +19,11 @@ $user = $_SESSION['user'];
 
 // Handle form submission for adding new Regulasi
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_regulasi'])) {
+    if (!canUserEditOrDelete('legal')) {
+        $_SESSION['pks_error'] = "Anda tidak memiliki akses untuk menambah data!";
+        header("Location: regulasi.php");
+        exit;
+    }
     $judul_regulasi = $_POST['judul_regulasi'] ?? null;
     $nomor_regulasi = $_POST['nomor_regulasi'] ?? null;
     $kategori_regulasi = $_POST['kategori_regulasi'] ?? null;
@@ -60,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_regulasi'])) {
 
 // Handle delete
 if (isset($_GET['delete'])) {
-    if (!isUserLegalOrAdmin()) {
+    if (!canUserEditOrDelete('legal')) {
         $_SESSION['pks_error'] = "Anda tidak memiliki akses untuk menghapus data ini!";
         header("Location: regulasi.php");
         exit;
@@ -356,11 +361,11 @@ try {
                                                             Lihat
                                                         </a>
                                                     <?php endif; ?>
-                                                    <?php if (isUserLegalOrAdmin()): ?>
-                                                        <a href="regulasi.php?delete=<?php echo $doc['id']; ?>" onclick="return confirm('Apakah Anda yakin ingin menghapus dokumen ini?');" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
-                                                            Hapus
-                                                        </a>
-                                                    <?php endif; ?>
+                                                     <?php if (canUserEditOrDelete('legal')): ?>
+                                                         <a href="regulasi.php?delete=<?php echo $doc['id']; ?>" onclick="return confirm('Apakah Anda yakin ingin menghapus dokumen ini?');" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
+                                                             Hapus
+                                                         </a>
+                                                     <?php endif; ?>
                                                 </div>
                                             </td>
                                         </tr>

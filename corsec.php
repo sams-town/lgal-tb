@@ -106,6 +106,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_dokumen'])) {
 
 // Handle delete
 if (isset($_GET['delete'])) {
+    if (!canUserEditOrDelete('corsec')) {
+        $_SESSION['pks_error'] = "Anda tidak memiliki akses untuk menghapus data ini!";
+        header("Location: corsec.php?category=" . urlencode($category ?? ''));
+        exit;
+    }
     $id = $_GET['delete'];
     try {
         // Get file path before deleting
@@ -386,9 +391,11 @@ if (!function_exists('formatDate')) {
                                                     <button class="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
                                                         Detail
                                                     </button>
-                                                    <a href="corsec.php?delete=<?php echo $doc['id']; ?>&category=<?php echo $category; ?>" onclick="return confirm('Apakah Anda yakin ingin menghapus dokumen ini?');" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
-                                                        Hapus
-                                                    </a>
+                                                    <?php if (canUserEditOrDelete('corsec')): ?>
+                                                        <a href="corsec.php?delete=<?php echo $doc['id']; ?>&category=<?php echo $category; ?>" onclick="return confirm('Apakah Anda yakin ingin menghapus dokumen ini?');" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
+                                                            Hapus
+                                                        </a>
+                                                    <?php endif; ?>
                                                 </div>
                                             </td>
                                         </tr>

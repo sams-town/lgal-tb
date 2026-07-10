@@ -106,6 +106,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_pks'])) {
     try {
         if (!empty($pks_id)) {
             // EDIT MODE
+            if (!canUserEditOrDelete('legal')) {
+                $_SESSION['pks_error'] = "Anda tidak memiliki akses untuk mengubah data ini!";
+                header("Location: pks.php");
+                exit;
+            }
             $stmt = $pdo->prepare("
                 UPDATE pengajuan_pks SET 
                     tanggal_pengajuan = ?, unit_pengusul = ?, jenis_kerjasama = ?, objek_kerjasama = ?, 
@@ -141,16 +146,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_pks'])) {
                     tanggal_pengajuan, unit_pengusul, jenis_kerjasama, objek_kerjasama, 
                     analisa_alasan, calon_mitra, keunggulan_mitra, kekurangan_mitra, 
                     biaya, potongan_harga, referensi_kerjasama, capaian_mutu, rekomendasi_pengadaan, 
-                    rekomendasi_legal, rekomendasi_keuangan, nomor_dokumen, tanggal_mulai, tanggal_berakhir, 
-                    file_path, step_status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    rekomendasi_legal, rekomendasi_keuangan, file_path, step_status, created_by
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             $stmt->execute([
                 $tanggal_pengajuan, $unit_pengusul, $jenis_kerjasama, $objek_kerjasama,
                 $analisa_alasan, $calon_mitra_json, $keunggulan_mitra, $kekurangan_mitra,
                 $biaya, $potongan_harga, $referensi_kerjasama, $capaian_mutu, $rekomendasi_pengadaan,
-                $rekomendasi_legal, $rekomendasi_keuangan, $nomor_dokumen, $tanggal_mulai, $tanggal_berakhir,
-                $file_path_json, $step_status_json
+                $rekomendasi_legal, $rekomendasi_keuangan, $file_path_json, $step_status_json, $_SESSION['user']['id']
             ]);
             
             notifyByPermission(
@@ -159,10 +162,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_pks'])) {
                 "legal"
             );
             
-            $_SESSION['pks_success'] = "Pengajuan PKS berhasil disimpan!";
+            $_SESSION['pks_success'] = "Pengajuan PKS berhasil ditambahkan!";
         }
     } catch (PDOException $e) {
-        $_SESSION['pks_error'] = "Gagal memproses data: " . $e->getMessage();
+        $_SESSION['pks_error'] = "Gagal menyimpan data: " . $e->getMessage();
     }
     
     header("Location: pks.php");
@@ -171,7 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_pks'])) {
 
 // Handle delete
 if (isset($_GET['delete'])) {
-    if (!isUserLegalOrAdmin()) {
+    if (!canUserEditOrDelete('legal')) {
         $_SESSION['pks_error'] = "Anda tidak memiliki akses untuk menghapus data ini!";
         header("Location: pks.php");
         exit;
@@ -564,37 +567,35 @@ try {
                                                     endif; 
                                                     ?>
                                                     
-                                                    <?php 
-                                                    $isReturn = (
-                                                        ($doc['status_keuangan'] ?? '') === 'Return' || 
-                                                        ($doc['status_pengadaan'] ?? '') === 'Return' || 
-                                                        ($doc['status_legal'] ?? '') === 'Return'
-                                                    );
-                                                    if ($isReturn): 
-                                                    ?>
-                                                        <button 
-                                                            onclick='openEditModal(<?php echo json_encode($doc, JSON_HEX_APOS | JSON_HEX_QUOT); ?>)' 
-                                                            class="px-2 py-1 text-xs bg-amber-50 text-amber-700 rounded hover:bg-amber-100 text-center transition-colors font-medium w-full"
-                                                        >
-                                                            Edit
-                                                        </button>
-                                                    <?php else: ?>
-                                                        <button 
-                                                            disabled 
-                                                            title="Edit hanya bisa jika salah satu status berstatus Return"
-                                                            class="px-2 py-1 text-xs bg-gray-50 text-gray-400 rounded text-center cursor-not-allowed font-medium opacity-60 w-full"
-                                                        >
-                                                            Edit 🔒
-                                                        </button>
-                                                    <?php endif; ?>
-                                                    
-                                                    <?php if (isUserLegalOrAdmin()): ?>
+                                                    <?php if (canUserEditOrDelete('legal')): ?>
+                                                        <?php 
+                                                        $isReturn = (
+                                                            ($doc['status_keuangan'] ?? '') === 'Return' || 
+                                                            ($doc['status_pengadaan'] ?? '') === 'Return' || 
+                                                            ($doc['status_legal'] ?? '') === 'Return'
+                                                        );
+                                                        if ($isReturn): 
+                                                        ?>
+                                                            <button 
+                                                                onclick='openEditModal(<?php echo json_encode($doc, JSON_HEX_APOS | JSON_HEX_QUOT); ?>)' 
+                                                                class="px-2 py-1 text-xs bg-amber-50 text-amber-700 rounded hover:bg-amber-100 text-center transition-colors font-medium w-full"
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                        <?php else: ?>
+                                                            <button 
+                                                                disabled 
+                                                                title="Edit hanya bisa jika salah satu status berstatus Return"
+                                                                class="px-2 py-1 text-xs bg-gray-50 text-gray-400 rounded text-center cursor-not-allowed font-medium opacity-60 w-full"
+                                                            >
+                                                                Edit 🔒
+                                                            </button>
+                                                        <?php endif; ?>
+                                                        
                                                         <a href="pks.php?delete=<?php echo $doc['id']; ?>" onclick="return confirm('Apakah Anda yakin ingin menghapus dokumen ini?');" class="px-2 py-1 text-xs bg-red-50 text-red-700 rounded hover:bg-red-100 text-center transition-colors font-medium">
                                                             Hapus
                                                         </a>
                                                     <?php endif; ?>
-                                                    
-
                                                 </div>
                                             </td>
                                         </tr>

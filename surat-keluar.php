@@ -55,6 +55,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_surat'])) {
 
 // Handle delete
 if (isset($_GET['delete'])) {
+    if (!canUserEditOrDelete('sekretariat')) {
+        $_SESSION['error_msg'] = "Anda tidak memiliki akses untuk menghapus data ini!";
+        header("Location: surat-keluar.php");
+        exit;
+    }
     $id = (int)$_GET['delete'];
     try {
         $stmt = $pdo->prepare("SELECT file_path FROM manajemen_surat WHERE id = ? AND kategori = 'Surat Keluar'");
@@ -283,9 +288,11 @@ if (!function_exists('formatDate')) {
                                                             Lihat
                                                         </a>
                                                     <?php endif; ?>
-                                                    <a href="surat-keluar.php?delete=<?php echo $doc['id']; ?>" onclick="return confirm('Apakah Anda yakin ingin menghapus surat keluar ini?');" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
-                                                        Hapus
-                                                    </a>
+                                                     <?php if (canUserEditOrDelete('sekretariat')): ?>
+                                                         <a href="surat-keluar.php?delete=<?php echo $doc['id']; ?>" onclick="return confirm('Apakah Anda yakin ingin menghapus surat keluar ini?');" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
+                                                             Hapus
+                                                         </a>
+                                                     <?php endif; ?>
                                                 </div>
                                             </td>
                                         </tr>
