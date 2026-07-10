@@ -120,6 +120,12 @@ try {
             if ($colInfo && strpos(strtolower($colInfo['Type']), 'text') === false) {
                 $pdo->exec("ALTER TABLE pengajuan_pks MODIFY COLUMN file_path TEXT NULL");
             }
+            
+            // Ensure penanggung_jawab column exists on dokumen_regulasi table
+            $colExists = $pdo->query("SHOW COLUMNS FROM dokumen_regulasi LIKE 'penanggung_jawab'")->rowCount();
+            if ($colExists == 0) {
+                $pdo->exec("ALTER TABLE dokumen_regulasi ADD COLUMN penanggung_jawab VARCHAR(255) NULL AFTER tanggal_terbit");
+            }
         } catch (Exception $ex) {
             // Silently continue if table not created yet
         }

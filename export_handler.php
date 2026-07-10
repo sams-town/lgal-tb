@@ -75,9 +75,10 @@ $moduleConfigs = [
             'Judul Regulasi' => 'judul_regulasi',
             'Nomor Regulasi' => 'nomor_regulasi',
             'Kategori Regulasi' => 'kategori_regulasi',
-            'Tanggal Terbit' => 'tanggal_terbit'
+            'Tanggal Terbit' => 'tanggal_terbit',
+            'Penanggung Jawab' => 'penanggung_jawab'
         ],
-        'insertColumns' => ['judul_regulasi', 'nomor_regulasi', 'kategori_regulasi', 'tanggal_terbit', 'file_path'],
+        'insertColumns' => ['judul_regulasi', 'nomor_regulasi', 'kategori_regulasi', 'tanggal_terbit', 'penanggung_jawab', 'file_path'],
         'displayName' => 'Regulasi'
     ],
     'perizinan' => [

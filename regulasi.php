@@ -23,6 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_regulasi'])) {
     $nomor_regulasi = $_POST['nomor_regulasi'] ?? null;
     $kategori_regulasi = $_POST['kategori_regulasi'] ?? null;
     $tanggal_terbit = $_POST['tanggal_terbit'] ?? null;
+    $penanggung_jawab = $_POST['penanggung_jawab'] ?? null;
     
     $file_path = null;
 
@@ -43,10 +44,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_regulasi'])) {
 
     try {
         $stmt = $pdo->prepare("
-            INSERT INTO dokumen_regulasi (judul_regulasi, nomor_regulasi, kategori_regulasi, tanggal_terbit, file_path)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO dokumen_regulasi (judul_regulasi, nomor_regulasi, kategori_regulasi, tanggal_terbit, penanggung_jawab, file_path)
+            VALUES (?, ?, ?, ?, ?, ?)
         ");
-        $stmt->execute([$judul_regulasi, $nomor_regulasi, $kategori_regulasi, $tanggal_terbit, $file_path]);
+        $stmt->execute([$judul_regulasi, $nomor_regulasi, $kategori_regulasi, $tanggal_terbit, $penanggung_jawab, $file_path]);
         
         $_SESSION['pks_success'] = "Dokumen Regulasi berhasil ditambahkan!";
     } catch (PDOException $e) {
@@ -297,6 +298,7 @@ try {
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Nomor Regulasi</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Kategori Regulasi</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Tanggal Terbit</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Penanggung Jawab</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Berkas</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Aksi</th>
                                 </tr>
@@ -304,7 +306,7 @@ try {
                             <tbody class="divide-y divide-gray-100">
                                 <?php if (empty($documents)): ?>
                                     <tr>
-                                        <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                                        <td colspan="8" class="px-6 py-12 text-center text-gray-500">
                                             Belum ada dokumen regulasi yang tersedia
                                         </td>
                                     </tr>
@@ -327,6 +329,9 @@ try {
                                             </td>
                                             <td class="px-6 py-4 text-gray-700">
                                                 <p class="text-sm"><?php echo formatDate($doc['tanggal_terbit'] ?? null); ?></p>
+                                            </td>
+                                            <td class="px-6 py-4 text-gray-700">
+                                                <p class="text-sm"><?php echo htmlspecialchars($doc['penanggung_jawab'] ?? '-'); ?></p>
                                             </td>
                                             <td class="px-6 py-4">
                                                 <?php $file_path = $doc['file_path'] ?? ''; ?>
@@ -393,6 +398,10 @@ try {
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Terbit</label>
                     <input type="date" name="tanggal_terbit" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Penanggung Jawab</label>
+                    <input type="text" name="penanggung_jawab" placeholder="Masukkan nama penanggung jawab" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Upload Berkas (PDF)</label>
