@@ -81,21 +81,21 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
 </style>
 
 <!-- Sidebar -->
-<aside class="w-64 bg-gradient-to-b from-teal-900 to-teal-950 text-white shadow-xl h-screen sticky top-0 overflow-y-auto flex-shrink-0">
+<aside class="w-64 bg-slate-900 text-white shadow-xl h-screen sticky top-0 overflow-y-auto flex-shrink-0">
     <div class="p-5">
-        <div class="flex flex-col items-center gap-2 bg-teal-950/20 p-4 rounded-2xl border border-teal-800/20">
+        <div class="flex flex-col items-center gap-2 bg-slate-800/40 p-4 rounded-2xl border border-slate-700/30">
             <img src="assets/logo.png" alt="Logo RS Taman Harapan Baru" class="w-24 h-auto drop-shadow-md">
             <div class="text-center mt-1">
                 <h1 class="text-sm font-extrabold tracking-wide text-white">RS. Taman Harapan Baru</h1>
-                <p class="text-[10px] text-teal-300 font-semibold tracking-wider uppercase">Legal & Corporate Secretary</p>
+                <p class="text-[10px] text-slate-400 font-semibold tracking-wider uppercase">Legal & Corporate Secretary</p>
             </div>
         </div>
     </div>
     
-    <nav class="p-4 space-y-3">
+    <nav class="p-4 space-y-2">
         <!-- Dashboard -->
         <?php if (hasPermission('dashboard_view')): ?>
-        <a href="dashboard.php" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 <?php echo $current_page === 'dashboard.php' ? 'bg-teal-700 text-white font-semibold shadow-md translate-x-1' : 'text-teal-100 hover:bg-teal-800/40 hover:translate-x-1'; ?>">
+        <a href="dashboard.php" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 <?php echo $current_page === 'dashboard.php' ? 'bg-teal-600 text-white font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white'; ?>">
             <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
             <span>Dashboard</span>
         </a>
@@ -107,24 +107,24 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
             $is_legal_active = in_array($current_page, ['pks.php', 'legal-arsip.php', 'regulasi.php', 'perizinan.php']); 
             ?>
             <div class="space-y-1">
-                <button class="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200 <?php echo $is_legal_active ? 'bg-teal-950/40 text-white font-medium border-l-4 border-teal-400' : 'text-teal-100 hover:bg-teal-800/40'; ?>">
+                <button onclick="toggleAccordion('legal-submenu', this)" class="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200 <?php echo $is_legal_active ? 'bg-slate-800/60 text-white font-medium' : 'text-slate-300 hover:bg-slate-800 hover:text-white'; ?>">
                     <div class="flex items-center gap-3">
                         <i data-lucide="scale" class="w-5 h-5"></i>
                         <span>Legal</span>
                     </div>
-                    <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200 <?php echo $is_legal_active ? 'rotate-180' : ''; ?>"></i>
+                    <i data-lucide="chevron-down" class="w-4 h-4 arrow-icon transition-transform duration-300 <?php echo $is_legal_active ? 'rotate-180' : ''; ?>"></i>
                 </button>
-                <div class="ml-2 pl-2 border-l border-teal-800/40 space-y-1 py-1">
-                    <a href="pks.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'pks.php') ? 'bg-teal-700 text-white font-semibold shadow-sm' : 'text-teal-100 hover:bg-teal-800/40 hover:pl-5'; ?>">
+                <div id="legal-submenu" class="<?php echo $is_legal_active ? '' : 'hidden'; ?> space-y-1 py-1 pl-8">
+                    <a href="pks.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'pks.php') ? 'bg-teal-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white'; ?>">
                         Perjanjian Kerjasama (PKS)
                     </a>
-                    <a href="legal-arsip.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'legal-arsip.php') ? 'bg-teal-700 text-white font-semibold shadow-sm' : 'text-teal-100 hover:bg-teal-800/40 hover:pl-5'; ?>">
+                    <a href="legal-arsip.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'legal-arsip.php') ? 'bg-teal-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white'; ?>">
                         Arsip PKS
                     </a>
-                    <a href="regulasi.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'regulasi.php') ? 'bg-teal-700 text-white font-semibold shadow-sm' : 'text-teal-100 hover:bg-teal-800/40 hover:pl-5'; ?>">
+                    <a href="regulasi.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'regulasi.php') ? 'bg-teal-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white'; ?>">
                         Regulasi
                     </a>
-                    <a href="perizinan.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'perizinan.php') ? 'bg-teal-700 text-white font-semibold shadow-sm' : 'text-teal-100 hover:bg-teal-800/40 hover:pl-5'; ?>">
+                    <a href="perizinan.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'perizinan.php') ? 'bg-teal-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white'; ?>">
                         Perizinan
                     </a>
                 </div>
@@ -137,18 +137,18 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
             $is_sekretariat_active = in_array($current_page, ['surat-masuk.php', 'surat-keluar.php']); 
             ?>
             <div class="space-y-1">
-                <button class="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200 <?php echo $is_sekretariat_active ? 'bg-teal-950/40 text-white font-medium border-l-4 border-teal-400' : 'text-teal-100 hover:bg-teal-800/40'; ?>">
+                <button onclick="toggleAccordion('sekretariat-submenu', this)" class="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200 <?php echo $is_sekretariat_active ? 'bg-slate-800/60 text-white font-medium' : 'text-slate-300 hover:bg-slate-800 hover:text-white'; ?>">
                     <div class="flex items-center gap-3">
                         <i data-lucide="mail" class="w-5 h-5"></i>
                         <span>Sekretariat</span>
                     </div>
-                    <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200 <?php echo $is_sekretariat_active ? 'rotate-180' : ''; ?>"></i>
+                    <i data-lucide="chevron-down" class="w-4 h-4 arrow-icon transition-transform duration-300 <?php echo $is_sekretariat_active ? 'rotate-180' : ''; ?>"></i>
                 </button>
-                <div class="ml-2 pl-2 border-l border-teal-800/40 space-y-1 py-1">
-                    <a href="surat-masuk.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'surat-masuk.php') ? 'bg-teal-700 text-white font-semibold shadow-sm' : 'text-teal-100 hover:bg-teal-800/40 hover:pl-5'; ?>">
+                <div id="sekretariat-submenu" class="<?php echo $is_sekretariat_active ? '' : 'hidden'; ?> space-y-1 py-1 pl-8">
+                    <a href="surat-masuk.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'surat-masuk.php') ? 'bg-teal-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white'; ?>">
                         Surat Masuk
                     </a>
-                    <a href="surat-keluar.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'surat-keluar.php') ? 'bg-teal-700 text-white font-semibold shadow-sm' : 'text-teal-100 hover:bg-teal-800/40 hover:pl-5'; ?>">
+                    <a href="surat-keluar.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'surat-keluar.php') ? 'bg-teal-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white'; ?>">
                         Surat Keluar
                     </a>
                 </div>
@@ -157,7 +157,7 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
 
         <!-- Akreditasi & Mutu -->
         <?php if (hasPermission('akreditasi_view')): ?>
-        <a href="akreditasi.php" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 <?php echo $current_page === 'akreditasi.php' ? 'bg-teal-700 text-white font-semibold shadow-md translate-x-1' : 'text-teal-100 hover:bg-teal-800/40 hover:translate-x-1'; ?>">
+        <a href="akreditasi.php" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 <?php echo $current_page === 'akreditasi.php' ? 'bg-teal-600 text-white font-semibold shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'; ?>">
             <i data-lucide="award" class="w-5 h-5"></i>
             <span>Akreditasi & Mutu</span>
         </a>
@@ -165,7 +165,7 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
 
         <!-- Persetujuan & E-Sign -->
         <?php if (hasPermission('approval_view')): ?>
-        <a href="approval.php" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 <?php echo $current_page === 'approval.php' ? 'bg-teal-700 text-white font-semibold shadow-md translate-x-1' : 'text-teal-100 hover:bg-teal-800/40 hover:translate-x-1'; ?>">
+        <a href="approval.php" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 <?php echo $current_page === 'approval.php' ? 'bg-teal-600 text-white font-semibold shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'; ?>">
             <i data-lucide="pen-tool" class="w-5 h-5"></i>
             <span>Persetujuan & E-Sign</span>
         </a>
@@ -173,7 +173,7 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
 
         <!-- SOP & SDM -->
         <?php if (hasPermission('sop_view')): ?>
-        <a href="sop.php" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 <?php echo $current_page === 'sop.php' ? 'bg-teal-700 text-white font-semibold shadow-md translate-x-1' : 'text-teal-100 hover:bg-teal-800/40 hover:translate-x-1'; ?>">
+        <a href="sop.php" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 <?php echo $current_page === 'sop.php' ? 'bg-teal-600 text-white font-semibold shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'; ?>">
             <i data-lucide="book-open" class="w-5 h-5"></i>
             <span>SOP & SDM</span>
         </a>
@@ -185,21 +185,21 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
             $is_komite_active = in_array($current_page, ['komite-medik.php', 'komite-keperawatan.php', 'komite-tenaga-kesehatan-lainnya.php']); 
             ?>
             <div class="space-y-1">
-                <button class="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200 <?php echo $is_komite_active ? 'bg-teal-950/40 text-white font-medium border-l-4 border-teal-400' : 'text-teal-100 hover:bg-teal-800/40'; ?>">
+                <button onclick="toggleAccordion('komite-submenu', this)" class="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200 <?php echo $is_komite_active ? 'bg-slate-800/60 text-white font-medium' : 'text-slate-300 hover:bg-slate-800 hover:text-white'; ?>">
                     <div class="flex items-center gap-3">
                         <i data-lucide="users" class="w-5 h-5"></i>
                         <span>Komite</span>
                     </div>
-                    <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200 <?php echo $is_komite_active ? 'rotate-180' : ''; ?>"></i>
+                    <i data-lucide="chevron-down" class="w-4 h-4 arrow-icon transition-transform duration-200 <?php echo $is_komite_active ? 'rotate-180' : ''; ?>"></i>
                 </button>
-                <div class="ml-2 pl-2 border-l border-teal-800/40 space-y-1 py-1">
-                    <a href="komite-medik.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'komite-medik.php') ? 'bg-teal-700 text-white font-semibold shadow-sm' : 'text-teal-100 hover:bg-teal-800/40 hover:pl-5'; ?>">
+                <div id="komite-submenu" class="<?php echo $is_komite_active ? '' : 'hidden'; ?> space-y-1 py-1 pl-8">
+                    <a href="komite-medik.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'komite-medik.php') ? 'bg-teal-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white'; ?>">
                         › Komite Medik
                     </a>
-                    <a href="komite-keperawatan.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'komite-keperawatan.php') ? 'bg-teal-700 text-white font-semibold shadow-sm' : 'text-teal-100 hover:bg-teal-800/40 hover:pl-5'; ?>">
+                    <a href="komite-keperawatan.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'komite-keperawatan.php') ? 'bg-teal-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white'; ?>">
                         › Komite Keperawatan
                     </a>
-                    <a href="komite-tenaga-kesehatan-lainnya.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'komite-tenaga-kesehatan-lainnya.php') ? 'bg-teal-700 text-white font-semibold shadow-sm' : 'text-teal-100 hover:bg-teal-800/40 hover:pl-5'; ?>">
+                    <a href="komite-tenaga-kesehatan-lainnya.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'komite-tenaga-kesehatan-lainnya.php') ? 'bg-teal-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white'; ?>">
                         › Komite Kesehatan Lainnya
                     </a>
                 </div>
@@ -208,7 +208,7 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
 
         <!-- Corporate Secretary -->
         <?php if (hasPermission('corsec_view')): ?>
-        <a href="corsec.php" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 <?php echo $current_page === 'corsec.php' ? 'bg-teal-700 text-white font-semibold shadow-md translate-x-1' : 'text-teal-100 hover:bg-teal-800/40 hover:translate-x-1'; ?>">
+        <a href="corsec.php" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 <?php echo $current_page === 'corsec.php' ? 'bg-teal-600 text-white font-semibold shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'; ?>">
             <i data-lucide="building" class="w-5 h-5"></i>
             <span>Corporate Secretary</span>
         </a>
@@ -216,7 +216,7 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
 
         <!-- Audit Trail -->
         <?php if (hasPermission('audit_view')): ?>
-        <a href="audit_trail.php" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 <?php echo $current_page === 'audit_trail.php' ? 'bg-teal-700 text-white font-semibold shadow-md translate-x-1' : 'text-teal-100 hover:bg-teal-800/40 hover:translate-x-1'; ?>">
+        <a href="audit_trail.php" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 <?php echo $current_page === 'audit_trail.php' ? 'bg-teal-600 text-white font-semibold shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'; ?>">
             <i data-lucide="activity" class="w-5 h-5"></i>
             <span>Audit Trail</span>
         </a>
@@ -224,7 +224,7 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
 
         <!-- Pengaturan -->
         <?php if (($_SESSION['user']['nama_role'] ?? $_SESSION['user']['role'] ?? '') === 'Super Admin'): ?>
-        <a href="setting.php" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 <?php echo $current_page === 'setting.php' ? 'bg-teal-700 text-white font-semibold shadow-md translate-x-1' : 'text-teal-100 hover:bg-teal-800/40 hover:translate-x-1'; ?>">
+        <a href="setting.php" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 <?php echo $current_page === 'setting.php' ? 'bg-teal-600 text-white font-semibold shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'; ?>">
             <i data-lucide="settings" class="w-5 h-5"></i>
             <span>Pengaturan</span>
         </a>
@@ -233,6 +233,17 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
 </aside>
 
 <script>
+    window.toggleAccordion = function(submenuId, btn) {
+        const submenu = document.getElementById(submenuId);
+        const arrow = btn.querySelector('.arrow-icon');
+        if (submenu) {
+            submenu.classList.toggle('hidden');
+            if (arrow) {
+                arrow.classList.toggle('rotate-180');
+            }
+        }
+    }
+
     document.addEventListener("DOMContentLoaded", function() {
         // 1. Replace emojis in text nodes dynamically
         const walkTextAndReplaceEmoji = (node) => {
