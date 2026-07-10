@@ -92,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_pengajuan'])) {
         $judulDokumen = $_POST['judul_dokumen'] ?? null;
         $jenisPengajuan = $_POST['jenis_pengajuan'] ?? null;
         $jenisRegulasi = $_POST['jenis_regulasi'] ?? null;
-        $kategoriAkreditasi = $_POST['kategori_akreditasi'] ?? null;
+        $kategoriAkreditasi = ''; // Deleted from UI
         $unitPengusul = $_POST['unit_pengusul'] ?? null;
         $pengusul = $_POST['pengusul'] ?? null;
         $jenisDokumen = $_POST['jenis_dokumen'] ?? null;
@@ -177,7 +177,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_pengajuan'])) 
     $judulDokumen = $_POST['judul_dokumen'] ?? null;
     $jenisPengajuan = $_POST['jenis_pengajuan'] ?? null;
     $jenisRegulasi = $_POST['jenis_regulasi'] ?? null;
-    $kategoriAkreditasi = $_POST['kategori_akreditasi'] ?? null;
+    $kategoriAkreditasi = ''; // Deleted from UI
     $unitPengusul = $_POST['unit_pengusul'] ?? null;
     $pengusul = $_POST['pengusul'] ?? null;
     $jenisDokumen = $_POST['jenis_dokumen'] ?? null;
@@ -545,19 +545,9 @@ try {
                     <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Regulasi <span class="text-red-500">*</span></label>
                     <select name="jenis_regulasi" id="modal_jenis_regulasi" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                         <option value="Peraturan Direktur">Peraturan Direktur</option>
+                        <option value="Keputusan Direktur">Keputusan Direktur</option>
                         <option value="SPO">SPO</option>
                         <option value="Kebijakan Mutu">Kebijakan Mutu</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Kategori Akreditasi <span class="text-red-500">*</span></label>
-                    <select name="kategori_akreditasi" id="modal_kategori_akreditasi" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                        <option value="Tata Kelola Rumah Sakit">Tata Kelola Rumah Sakit</option>
-                        <option value="Pelayanan Medis">Pelayanan Medis</option>
-                        <option value="Keperawatan">Keperawatan</option>
-                        <option value="Manajemen Klinis">Manajemen Klinis</option>
-                        <option value="Manajemen Sarana dan Prasarana">Manajemen Sarana dan Prasarana</option>
                     </select>
                 </div>
 
@@ -717,7 +707,6 @@ try {
         document.getElementById('modal_judul_dokumen').value = doc.judul_dokumen || '';
         document.getElementById('jenis_pengajuan').value = doc.jenis_pengajuan || 'Pengajuan Baru';
         document.getElementById('modal_jenis_regulasi').value = doc.jenis_regulasi || 'Peraturan Direktur';
-        document.getElementById('modal_kategori_akreditasi').value = doc.kategori_akreditasi || 'Tata Kelola Rumah Sakit';
         document.getElementById('modal_unit_pengusul').value = doc.unit_pengusul || '';
         document.getElementById('modal_pengusul').value = doc.pengusul || '';
         document.getElementById('modal_jenis_dokumen').value = doc.jenis_dokumen || '';
@@ -749,7 +738,6 @@ try {
             { label: 'Judul Dokumen', value: doc.judul_dokumen },
             { label: 'Jenis Pengajuan', value: doc.jenis_pengajuan },
             { label: 'Jenis Regulasi', value: doc.jenis_regulasi },
-            { label: 'Kategori Akreditasi', value: doc.kategori_akreditasi },
             { label: 'Unit Pengusul', value: doc.unit_pengusul },
             { label: 'Nama Pengusul', value: doc.pengusul },
             { label: 'Jenis Dokumen', value: doc.jenis_dokumen },
