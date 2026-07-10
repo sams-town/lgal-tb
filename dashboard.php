@@ -111,13 +111,13 @@ try {
         <div class="flex-1 p-8 overflow-y-auto">
             <div class="space-y-8">
                 <!-- Greeting -->
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-150 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="bg-white rounded-2xl border border-gray-200 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">Selamat Datang, <?php echo htmlspecialchars($user['nama'] ?? $user['name'] ?? 'Direktur'); ?></h1>
+                        <h1 class="text-3xl font-extrabold text-[#2d3748] tracking-tight">Selamat Datang, <?php echo htmlspecialchars($user['nama'] ?? $user['name'] ?? 'Direktur'); ?></h1>
                         <p class="text-gray-500 mt-1 text-sm font-medium">Sistem Informasi Legal & Corporate Secretary RS Taman Harapan Baru</p>
                     </div>
                     <div class="flex items-center gap-2 text-sm text-gray-500 bg-gray-50 border border-gray-200 px-4 py-2 rounded-xl self-start md:self-auto font-semibold">
-                        <i data-lucide="calendar" class="w-4 h-4 text-emerald-600"></i>
+                        <i data-lucide="calendar" class="w-4 h-4 text-teal-600"></i>
                         <span><?php echo date('d M Y'); ?></span>
                     </div>
                 </div>
@@ -125,57 +125,81 @@ try {
                 <!-- Stat Cards First Row -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <!-- Total Dokumen Legal -->
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-300 transform">
+                    <div class="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-350 transform">
                         <div class="flex items-start justify-between">
-                            <div>
-                                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Total Dokumen Legal</p>
-                                <h3 class="text-3xl font-extrabold text-gray-900"><?php echo $totalDokumenLegal; ?></h3>
-                                <p class="text-xs text-emerald-600 mt-2 font-bold bg-emerald-50 px-2 py-0.5 rounded-md inline-block">+<?php echo $legalBaru; ?> Bulan Ini</p>
+                            <div class="flex-1">
+                                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Total Dokumen Legal</p>
+                                <h3 class="text-3xl font-extrabold text-[#2d3748] tracking-tight"><?php echo $totalDokumenLegal; ?></h3>
+                                
+                                <!-- Thin Subtle Progress Bar -->
+                                <div class="w-full bg-gray-100 h-1.5 rounded-full mt-3 mb-2.5 overflow-hidden">
+                                    <div class="bg-blue-600 h-full rounded-full" style="width: 75%"></div>
+                                </div>
+
+                                <p class="text-[10px] text-blue-700 font-bold bg-blue-50/70 border border-blue-100 px-2 py-0.5 rounded-md inline-block">+<?php echo $legalBaru; ?> Bulan Ini</p>
                             </div>
-                            <div class="w-12 h-12 bg-gradient-to-br from-emerald-400 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-teal-500/20 text-white">
-                                <i data-lucide="file-text" class="w-6 h-6"></i>
+                            <div class="w-11 h-11 bg-blue-50/70 border border-blue-100 rounded-xl flex items-center justify-center text-white shrink-0 ml-3">
+                                <i data-lucide="file-text" class="w-5.5 h-5.5 stroke-blue-600 fill-blue-50/50"></i>
                             </div>
                         </div>
                     </div>
 
                     <!-- SIP Akan Expired -->
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-300 transform">
+                    <div class="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-350 transform">
                         <div class="flex items-start justify-between">
-                            <div>
-                                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">SIP Akan Expired</p>
-                                <h3 class="text-3xl font-extrabold text-gray-900"><?php echo $sipExpiring; ?></h3>
-                                <p class="text-xs text-amber-600 mt-2 font-bold bg-amber-50 px-2 py-0.5 rounded-md inline-block">Dalam 30 Hari</p>
+                            <div class="flex-1">
+                                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">SIP Akan Expired</p>
+                                <h3 class="text-3xl font-extrabold text-[#2d3748] tracking-tight"><?php echo $sipExpiring; ?></h3>
+                                
+                                <!-- Thin Subtle Progress Bar -->
+                                <div class="w-full bg-gray-100 h-1.5 rounded-full mt-3 mb-2.5 overflow-hidden">
+                                    <div class="bg-amber-500 h-full rounded-full" style="width: 15%"></div>
+                                </div>
+
+                                <p class="text-[10px] text-amber-700 font-bold bg-amber-50/70 border border-amber-100 px-2 py-0.5 rounded-md inline-block">Dalam 30 Hari</p>
                             </div>
-                            <div class="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20 text-white">
-                                <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+                            <div class="w-11 h-11 bg-amber-50/70 border border-amber-100 rounded-xl flex items-center justify-center text-white shrink-0 ml-3">
+                                <i data-lucide="alert-triangle" class="w-5.5 h-5.5 stroke-amber-600 fill-amber-50/50"></i>
                             </div>
                         </div>
                     </div>
 
                     <!-- STR Akan Expired -->
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-300 transform">
+                    <div class="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-350 transform">
                         <div class="flex items-start justify-between">
-                            <div>
-                                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">STR Akan Expired</p>
-                                <h3 class="text-3xl font-extrabold text-gray-900"><?php echo $strExpiring; ?></h3>
-                                <p class="text-xs text-orange-600 mt-2 font-bold bg-orange-50 px-2 py-0.5 rounded-md inline-block">Dalam 60 Hari</p>
+                            <div class="flex-1">
+                                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">STR Akan Expired</p>
+                                <h3 class="text-3xl font-extrabold text-[#2d3748] tracking-tight"><?php echo $strExpiring; ?></h3>
+                                
+                                <!-- Thin Subtle Progress Bar -->
+                                <div class="w-full bg-gray-100 h-1.5 rounded-full mt-3 mb-2.5 overflow-hidden">
+                                    <div class="bg-orange-500 h-full rounded-full" style="width: 20%"></div>
+                                </div>
+
+                                <p class="text-[10px] text-orange-700 font-bold bg-orange-50/70 border border-orange-100 px-2 py-0.5 rounded-md inline-block">Dalam 60 Hari</p>
                             </div>
-                            <div class="w-12 h-12 bg-gradient-to-br from-orange-400 to-red-500 rounded-xl flex items-center justify-center shadow-lg shadow-red-500/20 text-white">
-                                <i data-lucide="user-check" class="w-6 h-6"></i>
+                            <div class="w-11 h-11 bg-orange-50/70 border border-orange-100 rounded-xl flex items-center justify-center text-white shrink-0 ml-3">
+                                <i data-lucide="user-check" class="w-5.5 h-5.5 stroke-orange-600 fill-orange-50/50"></i>
                             </div>
                         </div>
                     </div>
 
                     <!-- Progress Akreditasi -->
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-300 transform">
+                    <div class="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-350 transform">
                         <div class="flex items-start justify-between">
-                            <div>
-                                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Progress Akreditasi</p>
-                                <h3 class="text-3xl font-extrabold text-gray-900"><?php echo $progressAkreditasi; ?>%</h3>
-                                <p class="text-xs text-blue-600 mt-2 font-bold bg-blue-50 px-2 py-0.5 rounded-md inline-block"><?php echo $terpenuhi_akreditasi; ?> / <?php echo $total_akreditasi; ?> Dokumen</p>
+                            <div class="flex-1">
+                                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Progress Akreditasi</p>
+                                <h3 class="text-3xl font-extrabold text-[#2d3748] tracking-tight"><?php echo $progressAkreditasi; ?>%</h3>
+                                
+                                <!-- Thin Subtle Progress Bar -->
+                                <div class="w-full bg-gray-100 h-1.5 rounded-full mt-3 mb-2.5 overflow-hidden">
+                                    <div class="bg-emerald-600 h-full rounded-full" style="width: <?php echo max(5, $progressAkreditasi); ?>%"></div>
+                                </div>
+
+                                <p class="text-[10px] text-emerald-700 font-bold bg-emerald-50/70 border border-emerald-100 px-2 py-0.5 rounded-md inline-block"><?php echo $terpenuhi_akreditasi; ?> / <?php echo $total_akreditasi; ?> Dokumen</p>
                             </div>
-                            <div class="w-12 h-12 bg-gradient-to-br from-blue-400 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20 text-white">
-                                <i data-lucide="trending-up" class="w-6 h-6"></i>
+                            <div class="w-11 h-11 bg-emerald-50/70 border border-emerald-100 rounded-xl flex items-center justify-center text-white shrink-0 ml-3">
+                                <i data-lucide="trending-up" class="w-5.5 h-5.5 stroke-emerald-600 fill-emerald-50/50"></i>
                             </div>
                         </div>
                     </div>
@@ -184,57 +208,81 @@ try {
                 <!-- Second Row -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <!-- Total Surat Masuk -->
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-300 transform">
+                    <div class="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-350 transform">
                         <div class="flex items-start justify-between">
-                            <div>
-                                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Total Surat Masuk</p>
-                                <h3 class="text-3xl font-extrabold text-gray-900"><?php echo $totalSuratMasuk; ?></h3>
-                                <p class="text-xs text-teal-600 mt-2 font-bold bg-teal-50 px-2 py-0.5 rounded-md inline-block">+<?php echo $suratMasukBaru; ?> Bulan Ini</p>
+                            <div class="flex-1">
+                                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Total Surat Masuk</p>
+                                <h3 class="text-3xl font-extrabold text-[#2d3748] tracking-tight"><?php echo $totalSuratMasuk; ?></h3>
+                                
+                                <!-- Thin Subtle Progress Bar -->
+                                <div class="w-full bg-gray-100 h-1.5 rounded-full mt-3 mb-2.5 overflow-hidden">
+                                    <div class="bg-sky-500 h-full rounded-full" style="width: 50%"></div>
+                                </div>
+
+                                <p class="text-[10px] text-sky-700 font-bold bg-sky-50/70 border border-sky-100 px-2 py-0.5 rounded-md inline-block">+<?php echo $suratMasukBaru; ?> Bulan Ini</p>
                             </div>
-                            <div class="w-12 h-12 bg-gradient-to-br from-teal-400 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white">
-                                <i data-lucide="mail" class="w-6 h-6"></i>
+                            <div class="w-11 h-11 bg-sky-50/70 border border-sky-100 rounded-xl flex items-center justify-center text-white shrink-0 ml-3">
+                                <i data-lucide="mail" class="w-5.5 h-5.5 stroke-sky-600 fill-sky-50/50"></i>
                             </div>
                         </div>
                     </div>
 
                     <!-- Total Surat Keluar -->
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-300 transform">
+                    <div class="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-350 transform">
                         <div class="flex items-start justify-between">
-                            <div>
-                                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Total Surat Keluar</p>
-                                <h3 class="text-3xl font-extrabold text-gray-900"><?php echo $totalSuratKeluar; ?></h3>
-                                <p class="text-xs text-sky-600 mt-2 font-bold bg-sky-50 px-2 py-0.5 rounded-md inline-block">+<?php echo $suratKeluarBaru; ?> Bulan Ini</p>
+                            <div class="flex-1">
+                                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Total Surat Keluar</p>
+                                <h3 class="text-3xl font-extrabold text-[#2d3748] tracking-tight"><?php echo $totalSuratKeluar; ?></h3>
+                                
+                                <!-- Thin Subtle Progress Bar -->
+                                <div class="w-full bg-gray-100 h-1.5 rounded-full mt-3 mb-2.5 overflow-hidden">
+                                    <div class="bg-indigo-650 h-full rounded-full" style="width: 40%"></div>
+                                </div>
+
+                                <p class="text-[10px] text-indigo-700 font-bold bg-indigo-50/70 border border-indigo-100 px-2 py-0.5 rounded-md inline-block">+<?php echo $suratKeluarBaru; ?> Bulan Ini</p>
                             </div>
-                            <div class="w-12 h-12 bg-gradient-to-br from-sky-400 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20 text-white">
-                                <i data-lucide="send" class="w-6 h-6"></i>
+                            <div class="w-11 h-11 bg-indigo-50/70 border border-indigo-100 rounded-xl flex items-center justify-center text-white shrink-0 ml-3">
+                                <i data-lucide="send" class="w-5.5 h-5.5 stroke-indigo-600 fill-indigo-50/50"></i>
                             </div>
                         </div>
                     </div>
 
                     <!-- KPI Direksi -->
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-300 transform">
+                    <div class="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-350 transform">
                         <div class="flex items-start justify-between">
-                            <div>
-                                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">KPI Direksi</p>
-                                <h3 class="text-3xl font-extrabold text-gray-900"><?php echo $kpiDireksi; ?>%</h3>
-                                <p class="text-xs text-purple-600 mt-2 font-bold bg-purple-50 px-2 py-0.5 rounded-md inline-block">Tercapai</p>
+                            <div class="flex-1">
+                                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">KPI Direksi</p>
+                                <h3 class="text-3xl font-extrabold text-[#2d3748] tracking-tight"><?php echo $kpiDireksi; ?>%</h3>
+                                
+                                <!-- Thin Subtle Progress Bar -->
+                                <div class="w-full bg-gray-100 h-1.5 rounded-full mt-3 mb-2.5 overflow-hidden">
+                                    <div class="bg-purple-650 h-full rounded-full" style="width: <?php echo max(5, $kpiDireksi); ?>%"></div>
+                                </div>
+
+                                <p class="text-[10px] text-purple-700 font-bold bg-purple-50/70 border border-purple-100 px-2 py-0.5 rounded-md inline-block">Tercapai</p>
                             </div>
-                            <div class="w-12 h-12 bg-gradient-to-br from-purple-400 to-fuchsia-600 rounded-xl flex items-center justify-center shadow-lg shadow-fuchsia-500/20 text-white">
-                                <i data-lucide="target" class="w-6 h-6"></i>
+                            <div class="w-11 h-11 bg-purple-50/70 border border-purple-100 rounded-xl flex items-center justify-center text-white shrink-0 ml-3">
+                                <i data-lucide="target" class="w-5.5 h-5.5 stroke-purple-600 fill-purple-50/50"></i>
                             </div>
                         </div>
                     </div>
 
                     <!-- Monitoring Risiko -->
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-300 transform">
+                    <div class="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-350 transform">
                         <div class="flex items-start justify-between">
-                            <div>
-                                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Monitoring Risiko</p>
-                                <h3 class="text-3xl font-extrabold text-gray-900"><?php echo $monitoringRisiko; ?></h3>
-                                <p class="text-xs text-rose-600 mt-2 font-bold bg-rose-50 px-2 py-0.5 rounded-md inline-block">Risiko Terdaftar</p>
+                            <div class="flex-1">
+                                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Monitoring Risiko</p>
+                                <h3 class="text-3xl font-extrabold text-[#2d3748] tracking-tight"><?php echo $monitoringRisiko; ?></h3>
+                                
+                                <!-- Thin Subtle Progress Bar -->
+                                <div class="w-full bg-gray-100 h-1.5 rounded-full mt-3 mb-2.5 overflow-hidden">
+                                    <div class="bg-rose-500 h-full rounded-full" style="width: 10%"></div>
+                                </div>
+
+                                <p class="text-[10px] text-rose-700 font-bold bg-rose-50/70 border border-rose-100 px-2 py-0.5 rounded-md inline-block font-semibold">Risiko Terdaftar</p>
                             </div>
-                            <div class="w-12 h-12 bg-gradient-to-br from-rose-400 to-red-600 rounded-xl flex items-center justify-center shadow-lg shadow-red-500/20 text-white">
-                                <i data-lucide="shield-alert" class="w-6 h-6"></i>
+                            <div class="w-11 h-11 bg-rose-50/70 border border-rose-100 rounded-xl flex items-center justify-center text-white shrink-0 ml-3">
+                                <i data-lucide="shield-alert" class="w-5.5 h-5.5 stroke-rose-600 fill-rose-50/50"></i>
                             </div>
                         </div>
                     </div>
