@@ -13,13 +13,73 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@latest"></script>
 <style>
+    /* Theme global overrides */
     body {
         font-family: 'Plus Jakarta Sans', sans-serif !important;
+        background-color: #f8fafc !important;
+    }
+    
+    /* Modernizing buttons */
+    a, button {
+        border-radius: 12px !important;
+    }
+    
+    /* Form inputs styling */
+    input[type="text"], input[type="email"], input[type="password"], input[type="search"], select, textarea {
+        border-radius: 12px !important;
+        border: 1px solid #e2e8f0 !important;
+        padding: 8px 12px !important;
+        font-size: 14px !important;
+        transition: all 0.2s ease-in-out !important;
+        outline: none !important;
+    }
+    input:focus, select:focus, textarea:focus {
+        border-color: #059669 !important;
+        box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15) !important;
+    }
+    
+    /* Table modern styling */
+    table {
+        border-collapse: separate !important;
+        border-spacing: 0 !important;
+        width: 100% !important;
+    }
+    thead th {
+        background-color: #f8fafc !important;
+        color: #475569 !important;
+        font-weight: 700 !important;
+        font-size: 11px !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.05em !important;
+        border-bottom: 2px solid #f1f5f9 !important;
+        padding: 14px 24px !important;
+    }
+    tbody td {
+        padding: 16px 24px !important;
+        border-bottom: 1px solid #f1f5f9 !important;
+        color: #334155 !important;
+        font-size: 13.5px !important;
+    }
+    tbody tr:hover {
+        background-color: #f8fafc !important;
+    }
+    
+    /* Cards styling */
+    .card, [class*="bg-white"][class*="rounded-2xl"] {
+        border: 1px solid #f1f5f9 !important;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.03), 0 1px 2px -1px rgba(0, 0, 0, 0.03) !important;
+    }
+    
+    /* Modal styling */
+    [class*="bg-white"][class*="rounded-2xl"][class*="max-w-"] {
+        border: 1px solid #f1f5f9 !important;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05) !important;
+        border-radius: 20px !important;
     }
 </style>
 
 <!-- Sidebar -->
-<aside class="w-64 bg-gradient-to-b from-emerald-850 to-emerald-950 text-white shadow-xl h-screen sticky top-0 overflow-y-auto flex-shrink-0">
+<aside class="w-64 bg-gradient-to-b from-emerald-900 to-emerald-950 text-white shadow-xl h-screen sticky top-0 overflow-y-auto flex-shrink-0">
     <div class="p-6">
         <div class="flex flex-col items-center gap-3">
             <img src="assets/logo.png" alt="Logo RS Taman Harapan Baru" class="w-36 h-auto drop-shadow-md">
@@ -172,6 +232,112 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+        // 1. Replace emojis in text nodes dynamically
+        const walkTextAndReplaceEmoji = (node) => {
+            if (node.nodeType === Node.TEXT_NODE) {
+                let val = node.nodeValue;
+                
+                if (val.includes('📊')) {
+                    const icon = document.createElement('i');
+                    icon.setAttribute('data-lucide', 'download');
+                    icon.className = 'w-4 h-4 inline-block mr-1';
+                    node.parentNode.insertBefore(icon, node);
+                    node.nodeValue = val.replace('📊', '');
+                }
+                if (val.includes('📤')) {
+                    const icon = document.createElement('i');
+                    icon.setAttribute('data-lucide', 'upload');
+                    icon.className = 'w-4 h-4 inline-block mr-1';
+                    node.parentNode.insertBefore(icon, node);
+                    node.nodeValue = val.replace('📤', '');
+                }
+                if (val.includes('📄')) {
+                    const icon = document.createElement('i');
+                    icon.setAttribute('data-lucide', 'file-text');
+                    icon.className = 'w-4 h-4 inline-block mr-1';
+                    node.parentNode.insertBefore(icon, node);
+                    node.nodeValue = val.replace('📄', '');
+                }
+                if (val.includes('📥')) {
+                    const icon = document.createElement('i');
+                    icon.setAttribute('data-lucide', 'download-cloud');
+                    icon.className = 'w-4 h-4 inline-block mr-1';
+                    node.parentNode.insertBefore(icon, node);
+                    node.nodeValue = val.replace('📥', '');
+                }
+                if (val.includes('⚙️')) {
+                    const icon = document.createElement('i');
+                    icon.setAttribute('data-lucide', 'settings');
+                    icon.className = 'w-4 h-4 inline-block mr-1';
+                    node.parentNode.insertBefore(icon, node);
+                    node.nodeValue = val.replace('⚙️', '');
+                }
+                if (val.includes('➕')) {
+                    const icon = document.createElement('i');
+                    icon.setAttribute('data-lucide', 'plus');
+                    icon.className = 'w-4 h-4 inline-block mr-1';
+                    node.parentNode.insertBefore(icon, node);
+                    node.nodeValue = val.replace('➕', '');
+                }
+            } else {
+                for (let child of Array.from(node.childNodes)) {
+                    walkTextAndReplaceEmoji(child);
+                }
+            }
+        };
+        walkTextAndReplaceEmoji(document.body);
+
+        // 2. Add icons to common action buttons (Edit, Hapus, Lihat)
+        document.querySelectorAll('a, button').forEach(el => {
+            let text = el.innerText.trim().toLowerCase();
+            
+            if (text === 'edit') {
+                el.innerHTML = '<i data-lucide="edit-3" class="w-3.5 h-3.5 inline mr-1"></i>Edit';
+                el.className = el.className.replace(/bg-blue-100|text-blue-700/g, '') + ' bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 transition-colors px-2.5 py-1 text-xs font-semibold rounded-lg flex items-center gap-1';
+            } else if (text === 'hapus') {
+                el.innerHTML = '<i data-lucide="trash-2" class="w-3.5 h-3.5 inline mr-1"></i>Hapus';
+                el.className = el.className.replace(/bg-red-100|text-red-700/g, '') + ' bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors px-2.5 py-1 text-xs font-semibold rounded-lg flex items-center gap-1';
+            } else if (text === 'lihat') {
+                el.innerHTML = '<i data-lucide="eye" class="w-3.5 h-3.5 inline mr-1"></i>Lihat';
+                el.className = el.className.replace(/bg-gray-150|bg-emerald-100|text-emerald-700/g, '') + ' bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 transition-colors px-2.5 py-1 text-xs font-semibold rounded-lg flex items-center gap-1';
+            } else if (text.includes('download template')) {
+                el.innerHTML = '<i data-lucide="download" class="w-4 h-4 inline mr-1"></i>Download Template';
+            } else if (text.includes('formulir pengajuan')) {
+                el.innerHTML = '<i data-lucide="file-plus" class="w-4 h-4 inline mr-1"></i>FORMULIR PENGAJUAN';
+            }
+        });
+
+        // 3. Modernize stat card emoji icons
+        document.querySelectorAll('[class*="w-16"][class*="h-16"]').forEach(el => {
+            let text = el.innerText.trim();
+            if (text === '📄') {
+                el.innerHTML = '<i data-lucide="file-text" class="w-8 h-8 text-white"></i>';
+                el.className = el.className.replace('text-3xl', '') + ' bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md';
+            } else if (text === '⚠️') {
+                el.innerHTML = '<i data-lucide="alert-triangle" class="w-8 h-8 text-white"></i>';
+                el.className = el.className.replace('text-3xl', '') + ' bg-gradient-to-br from-amber-500 to-orange-600 shadow-md';
+            } else if (text === '👨‍⚕️') {
+                el.innerHTML = '<i data-lucide="user-check" class="w-8 h-8 text-white"></i>';
+                el.className = el.className.replace('text-3xl', '') + ' bg-gradient-to-br from-teal-500 to-emerald-600 shadow-md';
+            } else if (text === '📈') {
+                el.innerHTML = '<i data-lucide="trending-up" class="w-8 h-8 text-white"></i>';
+                el.className = el.className.replace('text-3xl', '') + ' bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md';
+            } else if (text === '✉️') {
+                el.innerHTML = '<i data-lucide="mail" class="w-8 h-8 text-white"></i>';
+                el.className = el.className.replace('text-3xl', '') + ' bg-gradient-to-br from-teal-500 to-emerald-600 shadow-md';
+            } else if (text === '📤') {
+                el.innerHTML = '<i data-lucide="send" class="w-8 h-8 text-white"></i>';
+                el.className = el.className.replace('text-3xl', '') + ' bg-gradient-to-br from-sky-500 to-blue-600 shadow-md';
+            } else if (text === '🎯') {
+                el.innerHTML = '<i data-lucide="target" class="w-8 h-8 text-white"></i>';
+                el.className = el.className.replace('text-3xl', '') + ' bg-gradient-to-br from-purple-500 to-fuchsia-600 shadow-md';
+            } else if (text === '🛡️') {
+                el.innerHTML = '<i data-lucide="shield-alert" class="w-8 h-8 text-white"></i>';
+                el.className = el.className.replace('text-3xl', '') + ' bg-gradient-to-br from-red-500 to-rose-600 shadow-md';
+            }
+        });
+
+        // Initialize Lucide Icons
         lucide.createIcons();
     });
 </script>
