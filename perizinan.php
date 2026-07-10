@@ -319,7 +319,7 @@ try {
                                             <td class="px-6 py-4">
                                                 <?php $file_path = $doc['file_path'] ?? ''; ?>
                                                 <?php if (!empty($file_path)): ?>
-                                                    <a href="<?php echo htmlspecialchars($file_path); ?>" target="_blank" class="text-emerald-600 hover:text-emerald-700 font-medium text-sm flex items-center gap-1">
+                                                    <a href="download_pdf.php?file=<?php echo urlencode($file_path); ?>" target="_blank" class="text-emerald-600 hover:text-emerald-700 font-medium text-sm flex items-center gap-1">
                                                         📥
                                                         <span>Download</span>
                                                     </a>
@@ -331,7 +331,7 @@ try {
                                                 <div class="flex items-center gap-2">
                                                     <?php $file_path = $doc['file_path'] ?? ''; ?>
                                                     <?php if (!empty($file_path)): ?>
-                                                        <a href="<?php echo htmlspecialchars($file_path); ?>" target="_blank" class="px-3 py-1 text-sm bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition-colors">
+                                                        <a href="view_pdf.php?file=<?php echo urlencode($file_path); ?>" target="_blank" class="px-3 py-1 text-sm bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition-colors">
                                                             Lihat
                                                         </a>
                                                     <?php endif; ?>

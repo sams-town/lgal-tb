@@ -465,7 +465,7 @@ try {
                                             <td class="px-6 py-4">
                                                 <?php $file_path = $doc['file_path'] ?? ''; ?>
                                                 <?php if (!empty($file_path)): ?>
-                                                    <a href="<?php echo htmlspecialchars($file_path); ?>" target="_blank" class="text-emerald-600 hover:text-emerald-700 font-medium text-sm flex items-center gap-1">
+                                                    <a href="view_pdf.php?file=<?php echo urlencode($file_path); ?>" target="_blank" class="text-emerald-600 hover:text-emerald-700 font-medium text-sm flex items-center gap-1">
                                                         📄 Lihat
                                                     </a>
                                                 <?php else: ?>
@@ -763,7 +763,7 @@ try {
         if (doc.file_path) {
             html += `<div class="md:col-span-2 p-3 bg-gray-50 rounded-xl">
                 <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Berkas</p>
-                <a href="${doc.file_path}" target="_blank" class="text-emerald-600 hover:text-emerald-700 font-medium text-sm">📄 Lihat / Download Berkas</a>
+                <a href="view_pdf.php?file=${encodeURIComponent(doc.file_path)}" target="_blank" class="text-emerald-600 hover:text-emerald-700 font-medium text-sm">📄 Lihat / Download Berkas</a>
             </div>`;
         }
 
