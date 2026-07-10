@@ -9,6 +9,11 @@ if (!isset($_SESSION['user'])) {
     exit;
 }
 
+if (!hasPermission('komite_view')) {
+    header("Location: dashboard.php");
+    exit;
+}
+
 $user = $_SESSION['user'];
 $page = 'komite-medik';
 

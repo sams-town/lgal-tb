@@ -80,6 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_user'])) {
     $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
     $pin = !empty($_POST['pin']) ? password_hash($_POST['pin'], PASSWORD_DEFAULT) : null;
     $role_id = $_POST['role_id'];
+    $division_id = !empty($_POST['division_id']) ? (int)$_POST['division_id'] : null;
     $status = $_POST['status'] === 'Aktif' ? 1 : 0;
 
     $tandaTanganPath = null;
@@ -103,8 +104,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_user'])) {
     }
 
     try {
-        $stmt = $pdo->prepare("INSERT INTO users (nama, email, password, pin, tanda_tangan, role_id, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        $stmt->execute([$nama, $email, $password, $pin, $tandaTanganPath, $role_id, $status]);
+        $stmt = $pdo->prepare("INSERT INTO users (nama, email, password, pin, tanda_tangan, role_id, division_id, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$nama, $email, $password, $pin, $tandaTanganPath, $role_id, $division_id, $status]);
         $newUserId = $pdo->lastInsertId();
         
         // Send notification to the new user
@@ -144,14 +145,28 @@ if (isset($_GET['delete_user'])) {
     }
 }
 
-// Handle add divisi (role)
+// Handle add divisi (role & division)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_divisi'])) {
     $namaDivisi = trim($_POST['nama_divisi']);
+    $permissions = isset($_POST['permissions']) ? $_POST['permissions'] : [];
+    $permissionsJson = json_encode($permissions);
     try {
-        $stmt = $pdo->prepare("INSERT INTO roles (nama_role, permissions) VALUES (?, '[]')");
+        $pdo->beginTransaction();
+        
+        // Insert into roles
+        $stmt = $pdo->prepare("INSERT INTO roles (nama_role, permissions) VALUES (?, ?)");
+        $stmt->execute([$namaDivisi, $permissionsJson]);
+        
+        // Insert into divisi
+        $stmt = $pdo->prepare("INSERT INTO divisi (nama_divisi) VALUES (?)");
         $stmt->execute([$namaDivisi]);
-        $success = "Divisi berhasil ditambahkan.";
+        
+        $pdo->commit();
+        $success = "Divisi & Hak Akses berhasil ditambahkan.";
     } catch (PDOException $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
         if ($e->getCode() == 23000) { // Duplicate entry
             $error = "Gagal menambahkan: Divisi '$namaDivisi' sudah ada.";
         } else {
@@ -206,21 +221,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_integration'])
     }
 }
 
-// Handle add divisi
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_divisi'])) {
-    $namaDivisi = trim($_POST['nama_divisi']);
-    try {
-        $stmt = $pdo->prepare("INSERT INTO divisi (nama_divisi) VALUES (?)");
-        $stmt->execute([$namaDivisi]);
-        $success = "Divisi berhasil ditambahkan.";
-    } catch (PDOException $e) {
-        if ($e->getCode() == 23000) { // Duplicate entry
-            $error = "Gagal menambahkan: Divisi '$namaDivisi' sudah ada.";
-        } else {
-            $error = "Gagal menambahkan divisi: " . $e->getMessage();
-        }
-    }
-}
+
 
 // Handle edit divisi
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_divisi_submit'])) {
@@ -325,17 +326,114 @@ $quota = 2 * 1024 * 1024 * 1024; // 2 GB quota
 $diskUsedPercent = min(100, max(0, round(($uploadsSize / $quota) * 100)));
 
 $permissionList = [
-    'dashboard' => 'Dashboard',
-    'legal' => 'Legal',
-    'sekretariat' => 'Sekretariat',
-    'akreditasi' => 'Akreditasi & Mutu',
-    'approval' => 'Persetujuan & E-Sign',
-    'sop' => 'SOP & SDM',
-    'tenaga-medis' => 'Komite',
-    'corporate-secretary' => 'Corporate Secretary',
-    'audit-trail' => 'Audit Trail',
-    'setting' => 'Pengaturan'
+    'dashboard_view' => 'Dashboard: View',
+    'legal_view' => 'Legal: View',
+    'legal_add' => 'Legal: Add',
+    'legal_edit' => 'Legal: Edit',
+    'legal_delete' => 'Legal: Delete',
+    'sekretariat_view' => 'Sekretariat: View',
+    'sekretariat_add' => 'Sekretariat: Add',
+    'sekretariat_edit' => 'Sekretariat: Edit',
+    'sekretariat_delete' => 'Sekretariat: Delete',
+    'akreditasi_view' => 'Akreditasi: View',
+    'akreditasi_add' => 'Akreditasi: Add',
+    'akreditasi_edit' => 'Akreditasi: Edit',
+    'akreditasi_delete' => 'Akreditasi: Delete',
+    'approval_view' => 'Persetujuan: View',
+    'approval_add' => 'Persetujuan: Add',
+    'approval_edit' => 'Persetujuan: Edit',
+    'approval_delete' => 'Persetujuan: Delete',
+    'sop_view' => 'SOP: View',
+    'sop_add' => 'SOP: Add',
+    'sop_edit' => 'SOP: Edit',
+    'sop_delete' => 'SOP: Delete',
+    'komite_view' => 'Komite: View',
+    'komite_add' => 'Komite: Add',
+    'komite_edit' => 'Komite: Edit',
+    'komite_delete' => 'Komite: Delete',
+    'corsec_view' => 'Corsec: View',
+    'corsec_add' => 'Corsec: Add',
+    'corsec_edit' => 'Corsec: Edit',
+    'corsec_delete' => 'Corsec: Delete',
+    'audit_view' => 'Audit Trail: View',
+    'setting_view' => 'Pengaturan: View',
+    'setting_edit' => 'Pengaturan: Edit'
 ];
+
+$permissionGroups = [
+    'Dashboard' => [
+        'dashboard_view' => 'Melihat Dashboard'
+    ],
+    'Legal (PKS, Arsip, Regulasi, Perizinan)' => [
+        'legal_view' => 'Melihat Menu',
+        'legal_add' => 'Tambah Data',
+        'legal_edit' => 'Edit Data',
+        'legal_delete' => 'Hapus Data'
+    ],
+    'Sekretariat (Surat Masuk & Keluar)' => [
+        'sekretariat_view' => 'Melihat Menu',
+        'sekretariat_add' => 'Tambah Data',
+        'sekretariat_edit' => 'Edit Data',
+        'sekretariat_delete' => 'Hapus Data'
+    ],
+    'Akreditasi & Mutu' => [
+        'akreditasi_view' => 'Melihat Menu',
+        'akreditasi_add' => 'Tambah Data',
+        'akreditasi_edit' => 'Edit Data',
+        'akreditasi_delete' => 'Hapus Data'
+    ],
+    'Persetujuan & E-Sign' => [
+        'approval_view' => 'Melihat Menu',
+        'approval_add' => 'Tambah Data',
+        'approval_edit' => 'Edit Data',
+        'approval_delete' => 'Hapus Data'
+    ],
+    'SOP & SDM' => [
+        'sop_view' => 'Melihat Menu',
+        'sop_add' => 'Tambah Data',
+        'sop_edit' => 'Edit Data',
+        'sop_delete' => 'Hapus Data'
+    ],
+    'Komite / Tenaga Medis' => [
+        'komite_view' => 'Melihat Menu',
+        'komite_add' => 'Tambah Data',
+        'komite_edit' => 'Edit Data',
+        'komite_delete' => 'Hapus Data'
+    ],
+    'Corporate Secretary' => [
+        'corsec_view' => 'Melihat Menu',
+        'corsec_add' => 'Tambah Data',
+        'corsec_edit' => 'Edit Data',
+        'corsec_delete' => 'Hapus Data'
+    ],
+    'Audit Trail' => [
+        'audit_view' => 'Melihat Audit Trail'
+    ],
+    'Pengaturan' => [
+        'setting_view' => 'Melihat Menu',
+        'setting_edit' => 'Mengubah Pengaturan'
+    ]
+];
+
+function renderPermissionsChecklist() {
+    global $permissionGroups;
+    $html = '<div class="space-y-4 max-h-[45vh] overflow-y-auto pr-2">';
+    foreach ($permissionGroups as $groupName => $perms) {
+        $html .= '<div class="border border-gray-200 rounded-xl p-4 bg-gray-50/50">';
+        $html .= '  <h4 class="font-bold text-gray-800 text-xs mb-3 border-b border-gray-200 pb-1 flex items-center gap-2">' . htmlspecialchars($groupName) . '</h4>';
+        $html .= '  <div class="grid grid-cols-2 gap-3">';
+        foreach ($perms as $key => $label) {
+            $html .= '    <label class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer hover:text-emerald-600 transition-colors">';
+            $html .= '      <input type="checkbox" name="permissions[]" value="' . htmlspecialchars($key) . '" class="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500">';
+            $html .= '      <span>' . htmlspecialchars($label) . '</span>';
+            $html .= '    </label>';
+        }
+        $html .= '  </div>';
+        $html .= '</div>';
+    }
+    $html .= '</div>';
+    return $html;
+}
 
 // Helper for status badge
 function getStatusBadgeClass($status) {
@@ -700,11 +798,20 @@ function formatBytes($bytes, $precision = 2) {
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Divisi</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Role / Hak Akses</label>
                     <select name="role_id" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                        <option value="">Pilih Divisi...</option>
+                        <option value="">Pilih Role...</option>
                         <?php foreach ($roles as $role): ?>
                             <option value="<?php echo htmlspecialchars($role['id']); ?>"><?php echo htmlspecialchars($role['nama_role'] ?? $role['name'] ?? ''); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Departemen / Divisi</label>
+                    <select name="division_id" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        <option value="">Pilih Departemen...</option>
+                        <?php foreach ($divisiList as $div): ?>
+                            <option value="<?php echo htmlspecialchars($div['id']); ?>"><?php echo htmlspecialchars($div['nama_divisi']); ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
@@ -738,14 +845,7 @@ function formatBytes($bytes, $precision = 2) {
                 <input type="hidden" name="role_id" id="edit_role_id">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-4">Pilih Hak Akses</label>
-                    <div class="grid grid-cols-2 gap-4">
-                        <?php foreach ($permissionList as $permKey => $permName): ?>
-                            <label class="flex items-center gap-3 p-3 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50">
-                                <input type="checkbox" name="permissions[]" value="<?php echo htmlspecialchars($permKey); ?>" class="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500">
-                                <span class="text-sm font-medium text-gray-700"><?php echo htmlspecialchars($permName); ?></span>
-                            </label>
-                        <?php endforeach; ?>
-                    </div>
+                    <?php echo renderPermissionsChecklist(); ?>
                 </div>
                 <div class="flex gap-3 pt-4">
                     <button type="button" onclick="closeModal('editPermissionModal')" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors">
@@ -801,15 +901,19 @@ function formatBytes($bytes, $precision = 2) {
 
     <!-- Modal Tambah Divisi -->
     <div id="tambahDivisiModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div class="p-6 border-b border-gray-100 flex items-center justify-between">
-                <h2 class="text-xl font-bold text-gray-900">Tambah Divisi Baru</h2>
+                <h2 class="text-xl font-bold text-gray-900">Tambah Divisi & Hak Akses Baru</h2>
                 <button onclick="closeModal('tambahDivisiModal')" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
             </div>
             <form method="POST" class="p-6 space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Nama Divisi</label>
                     <input type="text" name="nama_divisi" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Hak Akses</label>
+                    <?php echo renderPermissionsChecklist(); ?>
                 </div>
                 <div class="flex gap-3 pt-4">
                     <button type="button" onclick="closeModal('tambahDivisiModal')" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors">

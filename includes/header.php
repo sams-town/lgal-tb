@@ -47,8 +47,24 @@ $notifications = getNotificationsForCurrentUser(10);
             'pengajuan.php'
         ];
         if (in_array($current_page, $add_button_pages)): 
-            $is_legal_page = in_array($current_page, ['pks.php', 'regulasi.php', 'perizinan.php', 'legal-arsip.php']);
-            if (!$is_legal_page || isUserLegalOrAdmin()):
+            $can_add = false;
+            $is_legal_page = in_array($current_page, ['pks.php', 'legal-arsip.php', 'regulasi.php', 'perizinan.php']);
+            
+            if ($is_legal_page || $current_page === 'pengajuan.php') {
+                $can_add = hasPermission('legal_add');
+            } elseif ($current_page === 'surat-masuk.php' || $current_page === 'surat-keluar.php') {
+                $can_add = hasPermission('sekretariat_add');
+            } elseif (in_array($current_page, ['komite-medik.php', 'komite-keperawatan.php', 'komite-nakes.php', 'komite-tenaga-kesehatan-lainnya.php', 'sip-dokter.php', 'str-nakes.php', 'tambah-tenaga-medis.php'])) {
+                $can_add = hasPermission('komite_add');
+            } elseif ($current_page === 'corsec.php') {
+                $can_add = hasPermission('corsec_add');
+            } elseif ($current_page === 'akreditasi.php') {
+                $can_add = hasPermission('akreditasi_add');
+            } elseif ($current_page === 'sop.php') {
+                $can_add = hasPermission('sop_add');
+            }
+            
+            if ($can_add):
         ?>
             <button id="openModalBtn" onclick="handleOpenModal()" class="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium transition-colors shadow-sm hover:shadow-md">
                 <?php if ($current_page === 'pks.php'): ?>

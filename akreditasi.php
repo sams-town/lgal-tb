@@ -2,8 +2,15 @@
 session_start();
 require_once 'config/database.php';
 
+require_once 'includes/functions.php';
+
 if (!isset($_SESSION['user'])) {
     header('Location: index.php');
+    exit;
+}
+
+if (!hasPermission('akreditasi_view')) {
+    header("Location: dashboard.php");
     exit;
 }
 

@@ -2,9 +2,16 @@
 session_start();
 require_once 'config/database.php';
 
+require_once 'includes/functions.php';
+
 // Check if user is logged in
 if (!isset($_SESSION['user'])) {
     header('Location: index.php');
+    exit;
+}
+
+if (!hasPermission('approval_view')) {
+    header("Location: dashboard.php");
     exit;
 }
 

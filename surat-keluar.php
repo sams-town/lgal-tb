@@ -9,6 +9,11 @@ if (!isset($_SESSION['user'])) {
     exit;
 }
 
+if (!hasPermission('sekretariat_view')) {
+    header("Location: dashboard.php");
+    exit;
+}
+
 $user = $_SESSION['user'];
 
 // Handle form submission for adding new Surat Keluar

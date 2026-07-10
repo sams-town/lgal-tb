@@ -9,6 +9,11 @@ if (!isset($_SESSION['user'])) {
     exit;
 }
 
+if (!hasPermission('corsec_view')) {
+    header("Location: dashboard.php");
+    exit;
+}
+
 $user = $_SESSION['user'];
 $success = null;
 $error = null;

@@ -17,14 +17,15 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 
 session_start();
 require_once 'config/database.php';
+require_once 'includes/functions.php';
 
-// Check if user is logged in and is Super Admin
+// Check if user is logged in
 if (!isset($_SESSION['user'])) {
     header('Location: index.php');
     exit;
 }
 
-if ($_SESSION['user']['role'] !== 'Super Admin') {
+if (!hasPermission('audit_view')) {
     header('Location: dashboard.php');
     exit;
 }

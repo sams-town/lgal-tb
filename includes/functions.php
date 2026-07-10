@@ -269,39 +269,58 @@ if (!function_exists('formatDate')) {
 }
 
 /**
- * Memvalidasi apakah user yang sedang login memiliki hak akses Legal atau merupakan Super Admin.
+ * Memeriksa apakah user yang sedang login memiliki hak akses tertentu.
+ * @param string $permissionKey
  * @return bool
  */
-function isUserLegalOrAdmin() {
+function hasPermission($permissionKey) {
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
     if (!isset($_SESSION['user'])) {
         return false;
     }
     
-    $user = $_SESSION['user'];
-    $role = $user['nama_role'] ?? $user['role'] ?? '';
-    $nama = $user['nama'] ?? $user['name'] ?? '';
-    $email = $user['email'] ?? '';
+    $role = $_SESSION['user']['nama_role'] ?? $_SESSION['user']['role'] ?? '';
     
-    // Super Admin check
+    // Super Admin has all permissions automatically
     if ($role === 'Super Admin') {
         return true;
     }
     
-    // Legal check: role contains "legal", or name contains "legal", or email contains "legal"
-    if (stripos($role, 'legal') !== false || 
-        stripos($nama, 'legal') !== false || 
-        stripos($email, 'legal') !== false) {
-        return true;
+    // Load permissions from database if not set in session
+    if (!isset($_SESSION['user']['permissions'])) {
+        global $pdo;
+        if (isset($_SESSION['user']['role_id'])) {
+            try {
+                $stmt = $pdo->prepare("SELECT permissions FROM roles WHERE id = ?");
+                $stmt->execute([$_SESSION['user']['role_id']]);
+                $permsJson = $stmt->fetchColumn();
+                $_SESSION['user']['permissions'] = json_decode($permsJson, true) ?: [];
+            } catch (Exception $e) {
+                $_SESSION['user']['permissions'] = [];
+            }
+        } else {
+            $_SESSION['user']['permissions'] = [];
+        }
     }
     
-    return false;
+    return in_array($permissionKey, $_SESSION['user']['permissions']);
+}
+
+/**
+ * Memvalidasi apakah user yang sedang login memiliki hak akses Legal atau merupakan Super Admin.
+ * @return bool
+ */
+function isUserLegalOrAdmin() {
+    return hasPermission('legal_view');
 }
 
 /**
  * Memeriksa apakah user saat ini dapat melakukan tindakan edit/delete pada menu tertentu.
  * - Super Admin bisa edit/delete di SELURUH menu.
- * - Staff Legal hanya bisa edit/delete di menu Legal (pks, legal-arsip, regulasi, perizinan).
- * - User lain selain Super Admin dan Legal tidak bisa melihat/melakukan edit/delete.
+ * - Untuk menu lainnya, diperiksa berdasarkan hak akses dinamis.
  * @param string $menu Nama menu / modul ('legal', 'sekretariat', 'akreditasi', 'komite', etc.)
  * @return bool
  */
@@ -310,27 +329,16 @@ function canUserEditOrDelete($menu) {
         return false;
     }
     
-    $user = $_SESSION['user'];
-    $role = $user['nama_role'] ?? $user['role'] ?? '';
-    $nama = $user['nama'] ?? $user['name'] ?? '';
-    $email = $user['email'] ?? '';
-    
-    // Super Admin can edit/delete in ALL menus
+    $role = $_SESSION['user']['nama_role'] ?? $_SESSION['user']['role'] ?? '';
     if ($role === 'Super Admin') {
         return true;
     }
     
-    // Check if user is Legal staff
-    $isLegal = (stripos($role, 'legal') !== false || 
-                stripos($nama, 'legal') !== false || 
-                stripos($email, 'legal') !== false);
-                
-    if ($isLegal) {
-        // Legal staff can ONLY edit/delete in legal menus
-        return ($menu === 'legal');
+    // Check specific dynamic permissions for edit or delete in that module
+    if ($menu === 'legal') {
+        return hasPermission('legal_edit') || hasPermission('legal_delete');
     }
     
-    // Other users cannot edit/delete anywhere
-    return false;
+    return hasPermission($menu . '_edit') || hasPermission($menu . '_delete');
 }
 ?>
