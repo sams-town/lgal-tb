@@ -364,29 +364,42 @@ try {
                                 <h2 class="text-lg font-bold text-gray-900">Daftar Pengajuan PKS</h2>
                                 <p class="text-xs text-gray-500 mt-1">Total: <?php echo count($documents); ?> dokumen ditemukan</p>
                             </div>
-                            <form method="GET" class="flex items-center gap-2">
-                                <?php if (!empty($status_filter)): ?>
-                                    <input type="hidden" name="status_filter" value="<?php echo htmlspecialchars($status_filter); ?>">
-                                <?php endif; ?>
+                            <div class="flex items-center gap-2">
+                                <!-- Input Pencarian -->
                                 <div class="relative w-64">
-                                    <select 
-                                        name="jenis_kerjasama" 
-                                        onchange="this.form.submit()"
-                                        class="w-full pl-10 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:border-emerald-500 transition-all appearance-none cursor-pointer"
+                                    <input 
+                                        type="text" 
+                                        id="search-input" 
+                                        placeholder="Cari PKS..." 
+                                        onkeyup="filterTable()"
+                                        class="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:border-emerald-500 transition-all"
                                     >
-                                        <option value="">-- Semua Jenis Kerjasama --</option>
-                                        <option value="Klinis" <?php echo $filter_jenis === 'Klinis' ? 'selected' : ''; ?>>Klinis</option>
-                                        <option value="Non Klinis" <?php echo $filter_jenis === 'Non Klinis' ? 'selected' : ''; ?>>Non Klinis</option>
-                                    </select>
-                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">📁</span>
-                                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">▼</span>
+                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">🔍</span>
                                 </div>
-                                <?php if (!empty($filter_jenis) || !empty($status_filter)): ?>
-                                    <a href="pks.php" class="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition-colors">
-                                        Reset
-                                    </a>
-                                <?php endif; ?>
-                            </form>
+                                <form method="GET" class="flex items-center gap-2">
+                                    <?php if (!empty($status_filter)): ?>
+                                        <input type="hidden" name="status_filter" value="<?php echo htmlspecialchars($status_filter); ?>">
+                                    <?php endif; ?>
+                                    <div class="relative w-64">
+                                        <select 
+                                            name="jenis_kerjasama" 
+                                            onchange="this.form.submit()"
+                                            class="w-full pl-10 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:border-emerald-500 transition-all appearance-none cursor-pointer"
+                                        >
+                                            <option value="">-- Semua Jenis Kerjasama --</option>
+                                            <option value="Klinis" <?php echo $filter_jenis === 'Klinis' ? 'selected' : ''; ?>>Klinis</option>
+                                            <option value="Non Klinis" <?php echo $filter_jenis === 'Non Klinis' ? 'selected' : ''; ?>>Non Klinis</option>
+                                        </select>
+                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">📁</span>
+                                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">▼</span>
+                                    </div>
+                                    <?php if (!empty($filter_jenis) || !empty($status_filter)): ?>
+                                        <a href="pks.php" class="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition-colors">
+                                            Reset
+                                        </a>
+                                    <?php endif; ?>
+                                </form>
+                            </div>
                         </div>
                     </div>
                     <div class="overflow-x-auto">
@@ -945,6 +958,36 @@ try {
                 dropdown.classList.add('hidden');
             }
         });
+
+        function filterTable() {
+            const input = document.getElementById('search-input');
+            const filter = input.value.toLowerCase();
+            const tbody = document.querySelector('table tbody');
+            const rows = tbody.getElementsByTagName('tr');
+            
+            for (let i = 0; i < rows.length; i++) {
+                if (rows[i].cells.length === 1 && rows[i].cells[0].colSpan > 1) {
+                    continue;
+                }
+                let match = false;
+                const cells = rows[i].getElementsByTagName('td');
+                for (let j = 0; j < cells.length; j++) {
+                    // Check if cell contains select dropdown (like status dropdowns in PKS), get their selected option value instead
+                    const selectEl = cells[j].querySelector('select');
+                    let cellText = '';
+                    if (selectEl) {
+                        cellText = selectEl.options[selectEl.selectedIndex].text;
+                    } else {
+                        cellText = cells[j].textContent || cells[j].innerText;
+                    }
+                    if (cellText.toLowerCase().indexOf(filter) > -1) {
+                        match = true;
+                        break;
+                    }
+                }
+                rows[i].style.display = match ? '' : 'none';
+            }
+        }
     </script>
 
     <!-- Hidden form for updating PKS role statuses -->

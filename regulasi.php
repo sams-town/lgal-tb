@@ -265,28 +265,41 @@ try {
                                 <h2 class="text-lg font-bold text-gray-900">Daftar Dokumen Regulasi</h2>
                                 <p class="text-xs text-gray-500 mt-1">Total: <?php echo count($documents); ?> dokumen ditemukan</p>
                             </div>
-                            <form method="GET" class="flex items-center gap-2">
+                            <div class="flex items-center gap-2">
+                                <!-- Input Pencarian -->
                                 <div class="relative w-64">
-                                    <select 
-                                        name="kategori_filter" 
-                                        onchange="this.form.submit()"
-                                        class="w-full pl-10 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:border-emerald-500 transition-all appearance-none cursor-pointer"
+                                    <input 
+                                        type="text" 
+                                        id="search-input" 
+                                        placeholder="Cari regulasi..." 
+                                        onkeyup="filterTable()"
+                                        class="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:border-emerald-500 transition-all"
                                     >
-                                        <option value="">-- Semua Regulasi --</option>
-                                        <option value="SPO" <?php echo $kategori_filter === 'SPO' ? 'selected' : ''; ?>>SPO</option>
-                                        <option value="Peraturan Direktur" <?php echo $kategori_filter === 'Peraturan Direktur' ? 'selected' : ''; ?>>Peraturan Direktur</option>
-                                        <option value="Keputusan Direktur" <?php echo $kategori_filter === 'Keputusan Direktur' ? 'selected' : ''; ?>>Keputusan Direktur</option>
-                                        <option value="Kebijakan Mutu" <?php echo $kategori_filter === 'Kebijakan Mutu' ? 'selected' : ''; ?>>Kebijakan Mutu</option>
-                                    </select>
-                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">📁</span>
-                                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">▼</span>
+                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">🔍</span>
                                 </div>
-                                <?php if (!empty($kategori_filter)): ?>
-                                    <a href="regulasi.php" class="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition-colors">
-                                        Reset
-                                    </a>
-                                <?php endif; ?>
-                            </form>
+                                <form method="GET" class="flex items-center gap-2">
+                                    <div class="relative w-64">
+                                        <select 
+                                            name="kategori_filter" 
+                                            onchange="this.form.submit()"
+                                            class="w-full pl-10 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:border-emerald-500 transition-all appearance-none cursor-pointer"
+                                        >
+                                            <option value="">-- Semua Regulasi --</option>
+                                            <option value="SPO" <?php echo $kategori_filter === 'SPO' ? 'selected' : ''; ?>>SPO</option>
+                                            <option value="Peraturan Direktur" <?php echo $kategori_filter === 'Peraturan Direktur' ? 'selected' : ''; ?>>Peraturan Direktur</option>
+                                            <option value="Keputusan Direktur" <?php echo $kategori_filter === 'Keputusan Direktur' ? 'selected' : ''; ?>>Keputusan Direktur</option>
+                                            <option value="Kebijakan Mutu" <?php echo $kategori_filter === 'Kebijakan Mutu' ? 'selected' : ''; ?>>Kebijakan Mutu</option>
+                                        </select>
+                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">📁</span>
+                                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">▼</span>
+                                    </div>
+                                    <?php if (!empty($kategori_filter)): ?>
+                                        <a href="regulasi.php" class="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition-colors">
+                                            Reset
+                                        </a>
+                                    <?php endif; ?>
+                                </form>
+                            </div>
                         </div>
                     </div>
                     <div class="overflow-x-auto">
@@ -474,6 +487,29 @@ try {
                 dropdown.classList.add('hidden');
             }
         });
+
+        function filterTable() {
+            const input = document.getElementById('search-input');
+            const filter = input.value.toLowerCase();
+            const tbody = document.querySelector('table tbody');
+            const rows = tbody.getElementsByTagName('tr');
+            
+            for (let i = 0; i < rows.length; i++) {
+                if (rows[i].cells.length === 1 && rows[i].cells[0].colSpan > 1) {
+                    continue;
+                }
+                let match = false;
+                const cells = rows[i].getElementsByTagName('td');
+                for (let j = 0; j < cells.length; j++) {
+                    const cellText = cells[j].textContent || cells[j].innerText;
+                    if (cellText.toLowerCase().indexOf(filter) > -1) {
+                        match = true;
+                        break;
+                    }
+                }
+                rows[i].style.display = match ? '' : 'none';
+            }
+        }
     </script>
 </body>
 </html>
