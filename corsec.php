@@ -66,46 +66,101 @@ if (isset($isLocal) && $isLocal) {
 
 // Handle form submission for adding new document
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_dokumen'])) {
-    $judul = $_POST['judul'];
-    $nomor_dokumen = $_POST['nomor_dokumen'];
-    $kategori = $_POST['kategori'];
-    $tanggal_terbit = $_POST['tanggal_terbit'];
-    $file_path = null;
+    if (!canUserEditOrDelete('corsec')) {
+        $error = "Anda tidak memiliki akses untuk menambah data!";
+    } else {
+        $judul = $_POST['judul'];
+        $nomor_dokumen = $_POST['nomor_dokumen'];
+        $kategori = $_POST['kategori'];
+        $tanggal_terbit = $_POST['tanggal_terbit'];
+        $file_path = null;
 
-    // Handle file upload
-    if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
-        $uploadDir = 'uploads/corsec/';
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0777, true);
+        // Handle file upload
+        if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
+            $uploadDir = 'uploads/corsec/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
+
+            $fileName = uniqid() . '_' . basename($_FILES['file']['name']);
+            $targetFile = $uploadDir . $fileName;
+
+            if (move_uploaded_file($_FILES['file']['tmp_name'], $targetFile)) {
+                $file_path = $targetFile;
+            }
         }
 
-        $fileName = uniqid() . '_' . basename($_FILES['file']['name']);
-        $targetFile = $uploadDir . $fileName;
-
-        if (move_uploaded_file($_FILES['file']['tmp_name'], $targetFile)) {
-            $file_path = $targetFile;
+        // Insert into database
+        try {
+            $stmt = $pdo->prepare("
+                INSERT INTO dokumen_corsec (judul, nomor_dokumen, kategori, tanggal_terbit, file_path)
+                VALUES (?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([$judul, $nomor_dokumen, $kategori, $tanggal_terbit, $file_path]);
+            
+            // Send notification
+            createNotification(
+                "Dokumen eksekutif baru",
+                "Dokumen eksekutif baru $nomor_dokumen telah berhasil ditambahkan oleh Corsec",
+                null,
+                $_SESSION['user']['id'] ?? null
+            );
+            
+            $success = "Dokumen berhasil ditambahkan!";
+        } catch (PDOException $e) {
+            $error = "Gagal menyimpan data: " . $e->getMessage();
         }
     }
+}
 
-    // Insert into database
-    try {
-        $stmt = $pdo->prepare("
-            INSERT INTO dokumen_corsec (judul, nomor_dokumen, kategori, tanggal_terbit, file_path)
-            VALUES (?, ?, ?, ?, ?)
-        ");
-        $stmt->execute([$judul, $nomor_dokumen, $kategori, $tanggal_terbit, $file_path]);
-        
-        // Send notification
-        createNotification(
-            "Dokumen eksekutif baru",
-            "Dokumen eksekutif baru $nomor_dokumen telah berhasil ditambahkan oleh Corsec",
-            null,
-            $_SESSION['user']['id'] ?? null
-        );
-        
-        $success = "Dokumen berhasil ditambahkan!";
-    } catch (PDOException $e) {
-        $error = "Gagal menyimpan data: " . $e->getMessage();
+// Handle form submission for editing document
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_dokumen'])) {
+    if (!canUserEditOrDelete('corsec')) {
+        $error = "Anda tidak memiliki akses untuk mengedit data!";
+    } else {
+        $edit_id = (int)$_POST['edit_id'];
+        $judul = $_POST['judul'];
+        $nomor_dokumen = $_POST['nomor_dokumen'];
+        $kategori = $_POST['kategori'];
+        $tanggal_terbit = $_POST['tanggal_terbit'];
+
+        // Get current file path
+        $stmt = $pdo->prepare("SELECT file_path FROM dokumen_corsec WHERE id = ?");
+        $stmt->execute([$edit_id]);
+        $current_doc = $stmt->fetch();
+        $file_path = $current_doc['file_path'] ?? null;
+
+        // Handle file upload if new file is provided
+        if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
+            $uploadDir = 'uploads/corsec/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
+
+            $fileName = uniqid() . '_' . basename($_FILES['file']['name']);
+            $targetFile = $uploadDir . $fileName;
+
+            if (move_uploaded_file($_FILES['file']['tmp_name'], $targetFile)) {
+                // Delete old file if exists
+                if ($file_path && file_exists($file_path)) {
+                    unlink($file_path);
+                }
+                $file_path = $targetFile;
+            }
+        }
+
+        try {
+            $stmt = $pdo->prepare("
+                UPDATE dokumen_corsec 
+                SET judul = ?, nomor_dokumen = ?, kategori = ?, tanggal_terbit = ?, file_path = ?
+                WHERE id = ?
+            ");
+            $stmt->execute([$judul, $nomor_dokumen, $kategori, $tanggal_terbit, $file_path, $edit_id]);
+            
+            $success = "Dokumen berhasil diperbarui!";
+        } catch (PDOException $e) {
+            $error = "Gagal memperbarui data: " . $e->getMessage();
+        }
     }
 }
 
@@ -235,6 +290,12 @@ if (!function_exists('formatDate')) {
                         <h1 class="text-3xl font-bold text-gray-900">Corporate Secretary</h1>
                         <p class="text-gray-600 mt-2">Manajemen Dokumen & Agenda Eksekutif Direksi</p>
                     </div>
+                    <?php if (canUserEditOrDelete('corsec')): ?>
+                        <button onclick="openModal()" class="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl font-medium hover:bg-emerald-700 transition-colors shadow-sm">
+                            ➕
+                            <span>Tambah Dokumen</span>
+                        </button>
+                    <?php endif; ?>
                 </div>
 
                 <!-- Success/Error Messages -->
@@ -393,10 +454,15 @@ if (!function_exists('formatDate')) {
                                             </td>
                                             <td class="px-6 py-4">
                                                 <div class="flex items-center gap-2">
-                                                    <button class="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                                                        Detail
-                                                    </button>
+                                                    <?php if ($doc['file_path']): ?>
+                                                        <a href="<?php echo htmlspecialchars($doc['file_path']); ?>" target="_blank" class="px-3 py-1 text-sm bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition-colors">
+                                                            Lihat
+                                                        </a>
+                                                    <?php endif; ?>
                                                     <?php if (canUserEditOrDelete('corsec')): ?>
+                                                        <button onclick="openEditModal(<?php echo htmlspecialchars(json_encode($doc), ENT_QUOTES); ?>)" class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
+                                                            Edit
+                                                        </button>
                                                         <a href="corsec.php?delete=<?php echo $doc['id']; ?>&category=<?php echo $category; ?>" onclick="return confirm('Apakah Anda yakin ingin menghapus dokumen ini?');" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
                                                             Hapus
                                                         </a>
@@ -414,25 +480,26 @@ if (!function_exists('formatDate')) {
         </div>
     </main>
 
-    <!-- Modal Tambah Dokumen -->
+    <!-- Modal Tambah/Edit Dokumen -->
     <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
         <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div class="p-6 border-b border-gray-100 flex items-center justify-between">
-                <h2 class="text-xl font-bold text-gray-900">Tambah Dokumen Eksekutif</h2>
+                <h2 id="modal-title" class="text-xl font-bold text-gray-900">Tambah Dokumen Eksekutif</h2>
                 <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
             </div>
             <form method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
+                <input type="hidden" name="edit_id" id="edit_id" value="">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Judul Dokumen / Rapat</label>
-                    <input type="text" name="judul" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <input type="text" name="judul" id="judul" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Nomor Dokumen</label>
-                    <input type="text" name="nomor_dokumen" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <input type="text" name="nomor_dokumen" id="nomor_dokumen" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Kategori Corsec</label>
-                    <select name="kategori" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <select name="kategori" id="kategori" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                         <option value="GCG">GCG</option>
                         <option value="Board Meeting">Board Meeting</option>
                         <option value="KPI Direksi">KPI Direksi</option>
@@ -441,17 +508,18 @@ if (!function_exists('formatDate')) {
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Terbit / Pelaksanaan</label>
-                    <input type="date" name="tanggal_terbit" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <input type="date" name="tanggal_terbit" id="tanggal_terbit" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Upload Berkas Softcopy (PDF)</label>
-                    <input type="file" name="file" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-xl">
+                    <input type="file" name="file" id="file" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-xl">
+                    <p class="text-xs text-gray-500 mt-1">Biarkan kosong jika tidak ingin mengubah berkas</p>
                 </div>
                 <div class="flex gap-3 pt-4">
                     <button type="button" onclick="closeModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors">
                         Batal
                     </button>
-                    <button type="submit" name="tambah_dokumen" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors">
+                    <button type="submit" name="tambah_dokumen" id="submitBtn" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors">
                         Simpan
                     </button>
                 </div>
@@ -484,12 +552,67 @@ if (!function_exists('formatDate')) {
     </div>
 
     <script>
+        // Override window.openModal to reset form when adding new
+        const originalOpenModal = window.openModal;
+        window.openModal = function(modalId) {
+            if (modalId === 'modal' || !modalId) {
+                resetForm();
+                document.getElementById('submitBtn').name = 'tambah_dokumen';
+                document.getElementById('submitBtn').textContent = 'Simpan';
+                document.getElementById('modal-title').textContent = 'Tambah Dokumen Eksekutif';
+            }
+            if (originalOpenModal) {
+                originalOpenModal(modalId);
+            } else {
+                // Fallback to our own implementation if original doesn't exist
+                const element = document.getElementById(modalId || 'modal');
+                if (element) {
+                    element.classList.remove('hidden');
+                    element.classList.add('flex');
+                }
+            }
+        };
+
+        function resetForm() {
+            document.getElementById('edit_id').value = '';
+            document.getElementById('judul').value = '';
+            document.getElementById('nomor_dokumen').value = '';
+            document.getElementById('kategori').value = 'GCG';
+            document.getElementById('tanggal_terbit').value = '';
+            document.getElementById('file').value = '';
+        }
+
+        function openEditModal(doc) {
+            document.getElementById('edit_id').value = doc.id;
+            document.getElementById('judul').value = doc.judul || '';
+            document.getElementById('nomor_dokumen').value = doc.nomor_dokumen || '';
+            document.getElementById('kategori').value = doc.kategori || 'GCG';
+            document.getElementById('tanggal_terbit').value = doc.tanggal_terbit || '';
+            document.getElementById('file').value = '';
+            
+            document.getElementById('submitBtn').name = 'edit_dokumen';
+            document.getElementById('submitBtn').textContent = 'Simpan Perubahan';
+            document.getElementById('modal-title').textContent = 'Edit Dokumen Eksekutif';
+            
+            const modal = document.getElementById('modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
         function openImportModal() {
             openModal('importModal');
         }
 
         function closeImportModal() {
             closeModal('importModal');
+        }
+        
+        function closeModal(modalId = 'modal') {
+            const element = document.getElementById(modalId);
+            if (element) {
+                element.classList.add('hidden');
+                element.classList.remove('flex');
+            }
         }
     </script>
 </body>

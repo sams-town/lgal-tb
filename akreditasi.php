@@ -38,89 +38,154 @@ $STARKES_BAB = [
 // Handle form submission for adding documents
 $message = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_document'])) {
-    $bab = trim($_POST['bab']);
-    $nama_dokumen = trim($_POST['nama_dokumen']);
-    $kode_ep = trim($_POST['kode_ep']);
-    $tanggal_review = date('Y-m-d'); // Set to today if not provided
-    $target_capaian = (int)$_POST['target_capaian'];
+    if (!canUserEditOrDelete('akreditasi')) {
+        $message = 'Anda tidak memiliki akses untuk menambah dokumen!';
+    } else {
+        $bab = trim($_POST['bab']);
+        $nama_dokumen = trim($_POST['nama_dokumen']);
+        $kode_ep = trim($_POST['kode_ep']);
+        $tanggal_review = date('Y-m-d'); // Set to today if not provided
+        $target_capaian = (int)$_POST['target_capaian'];
 
-    // Handle file upload
-    $file_path = null;
-    if (isset($_FILES['berkas']) && $_FILES['berkas']['error'] === UPLOAD_ERR_OK) {
-        $upload_dir = 'uploads/akreditasi/';
-        if (!is_dir($upload_dir)) {
-            mkdir($upload_dir, 0777, true);
-        }
-        $ext = strtolower(pathinfo($_FILES['berkas']['name'], PATHINFO_EXTENSION));
-        $allowed_exts = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'];
-        if (in_array($ext, $allowed_exts)) {
-            $unique_name = uniqid('akreditasi_', true) . '.' . $ext;
-            if (move_uploaded_file($_FILES['berkas']['tmp_name'], $upload_dir . $unique_name)) {
-                $file_path = $unique_name;
+        // Handle file upload
+        $file_path = null;
+        if (isset($_FILES['berkas']) && $_FILES['berkas']['error'] === UPLOAD_ERR_OK) {
+            $upload_dir = 'uploads/akreditasi/';
+            if (!is_dir($upload_dir)) {
+                mkdir($upload_dir, 0777, true);
+            }
+            $ext = strtolower(pathinfo($_FILES['berkas']['name'], PATHINFO_EXTENSION));
+            $allowed_exts = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'];
+            if (in_array($ext, $allowed_exts)) {
+                $unique_name = uniqid('akreditasi_', true) . '.' . $ext;
+                if (move_uploaded_file($_FILES['berkas']['tmp_name'], $upload_dir . $unique_name)) {
+                    $file_path = $unique_name;
+                }
             }
         }
-    }
 
-    if (isset($isLocal) && $isLocal) {
+        if (isset($isLocal) && $isLocal) {
+            try {
+                // Create table if not exists
+                $pdo->exec("
+                    CREATE TABLE IF NOT EXISTS `dokumen_akreditasi` (
+                        `id` int(11) NOT NULL AUTO_INCREMENT,
+                        `bab` varchar(2) NOT NULL,
+                        `nama_dokumen` varchar(255) NOT NULL,
+                        `kode_ep` varchar(50) NOT NULL,
+                        `tanggal_review` date NOT NULL,
+                        `target_capaian` int(3) NOT NULL,
+                        `status_pemenuhan` enum('Belum Lengkap','Dalam Review','Sudah Terpenuhi') NOT NULL DEFAULT 'Belum Lengkap',
+                        `file_path` varchar(255) DEFAULT NULL,
+                        `file_status` enum('Tidak Ada','Ada') NOT NULL DEFAULT 'Tidak Ada',
+                        `created_by` int(11) DEFAULT NULL,
+                        `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        PRIMARY KEY (`id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+                ");
+            } catch (PDOException $e) {
+                // Ignore
+            }
+        }
+
         try {
-            // Create table if not exists
-            $pdo->exec("
-                CREATE TABLE IF NOT EXISTS `dokumen_akreditasi` (
-                    `id` int(11) NOT NULL AUTO_INCREMENT,
-                    `bab` varchar(2) NOT NULL,
-                    `nama_dokumen` varchar(255) NOT NULL,
-                    `kode_ep` varchar(50) NOT NULL,
-                    `tanggal_review` date NOT NULL,
-                    `target_capaian` int(3) NOT NULL,
-                    `status_pemenuhan` enum('Belum Lengkap','Dalam Review','Sudah Terpenuhi') NOT NULL DEFAULT 'Belum Lengkap',
-                    `file_path` varchar(255) DEFAULT NULL,
-                    `file_status` enum('Tidak Ada','Ada') NOT NULL DEFAULT 'Tidak Ada',
-                    `created_by` int(11) DEFAULT NULL,
-                    `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    PRIMARY KEY (`id`)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            // Insert document
+            $stmt = $pdo->prepare("
+                INSERT INTO dokumen_akreditasi 
+                (bab, nama_dokumen, kode_ep, tanggal_review, target_capaian, status_pemenuhan, file_path, file_status)
+                VALUES (?, ?, ?, ?, ?, 'Belum Lengkap', ?, ?)
             ");
+            $file_status = $file_path ? 'Ada' : 'Tidak Ada';
+            $stmt->execute([$bab, $nama_dokumen, $kode_ep, $tanggal_review, $target_capaian, $file_path, $file_status]);
+            $message = 'Dokumen berhasil ditambahkan!';
         } catch (PDOException $e) {
-            // Ignore
+            $message = 'Gagal menambah dokumen: ' . $e->getMessage();
         }
     }
+}
 
-    try {
-        // Insert document
-        $stmt = $pdo->prepare("
-            INSERT INTO dokumen_akreditasi 
-            (bab, nama_dokumen, kode_ep, tanggal_review, target_capaian, status_pemenuhan, file_path, file_status)
-            VALUES (?, ?, ?, ?, ?, 'Belum Lengkap', ?, ?)
-        ");
-        $file_status = $file_path ? 'Ada' : 'Tidak Ada';
-        $stmt->execute([$bab, $nama_dokumen, $kode_ep, $tanggal_review, $target_capaian, $file_path, $file_status]);
-        $message = 'Dokumen berhasil ditambahkan!';
-    } catch (PDOException $e) {
-        $message = 'Gagal menambah dokumen: ' . $e->getMessage();
+// Handle form submission for editing documents
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_document'])) {
+    if (!canUserEditOrDelete('akreditasi')) {
+        $message = 'Anda tidak memiliki akses untuk mengedit dokumen!';
+    } else {
+        $edit_id = (int)$_POST['edit_id'];
+        $bab = trim($_POST['bab']);
+        $nama_dokumen = trim($_POST['nama_dokumen']);
+        $kode_ep = trim($_POST['kode_ep']);
+        $tanggal_review = date('Y-m-d'); // Set to today if not provided
+        $target_capaian = (int)$_POST['target_capaian'];
+
+        // Get current file path
+        $stmt = $pdo->prepare("SELECT file_path FROM dokumen_akreditasi WHERE id = ?");
+        $stmt->execute([$edit_id]);
+        $current_doc = $stmt->fetch();
+        $file_path = $current_doc['file_path'] ?? null;
+
+        // Handle file upload if new file is provided
+        if (isset($_FILES['berkas']) && $_FILES['berkas']['error'] === UPLOAD_ERR_OK) {
+            $upload_dir = 'uploads/akreditasi/';
+            if (!is_dir($upload_dir)) {
+                mkdir($upload_dir, 0777, true);
+            }
+            $ext = strtolower(pathinfo($_FILES['berkas']['name'], PATHINFO_EXTENSION));
+            $allowed_exts = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'];
+            if (in_array($ext, $allowed_exts)) {
+                // Delete old file if exists
+                if ($file_path) {
+                    $old_file_path = $upload_dir . $file_path;
+                    if (file_exists($old_file_path)) {
+                        unlink($old_file_path);
+                    }
+                }
+                $unique_name = uniqid('akreditasi_', true) . '.' . $ext;
+                if (move_uploaded_file($_FILES['berkas']['tmp_name'], $upload_dir . $unique_name)) {
+                    $file_path = $unique_name;
+                }
+            }
+        }
+
+        try {
+            // Update document
+            $file_status = $file_path ? 'Ada' : 'Tidak Ada';
+            $stmt = $pdo->prepare("
+                UPDATE dokumen_akreditasi 
+                SET bab = ?, nama_dokumen = ?, kode_ep = ?, tanggal_review = ?, target_capaian = ?, file_path = ?, file_status = ?
+                WHERE id = ?
+            ");
+            $stmt->execute([$bab, $nama_dokumen, $kode_ep, $tanggal_review, $target_capaian, $file_path, $file_status, $edit_id]);
+            $message = 'Dokumen berhasil diperbarui!';
+        } catch (PDOException $e) {
+            $message = 'Gagal memperbarui dokumen: ' . $e->getMessage();
+        }
     }
 }
 
 // Handle deletion
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
-    $delete_id = (int)$_POST['delete_id'];
-    try {
-        // Get file path to delete if exists
-        $stmt = $pdo->prepare("SELECT file_path FROM dokumen_akreditasi WHERE id = ?");
-        $stmt->execute([$delete_id]);
-        $doc = $stmt->fetch();
-        if ($doc && $doc['file_path']) {
-            $file_path = 'uploads/akreditasi/' . $doc['file_path'];
-            if (file_exists($file_path)) {
-                unlink($file_path);
+    if (!canUserEditOrDelete('akreditasi')) {
+        $message = 'Anda tidak memiliki akses untuk menghapus dokumen!';
+    } else {
+        $delete_id = (int)$_POST['delete_id'];
+        try {
+            // Get file path to delete if exists
+            $stmt = $pdo->prepare("SELECT file_path FROM dokumen_akreditasi WHERE id = ?");
+            $stmt->execute([$delete_id]);
+            $doc = $stmt->fetch();
+            if ($doc && $doc['file_path']) {
+                $file_path = 'uploads/akreditasi/' . $doc['file_path'];
+                if (file_exists($file_path)) {
+                    unlink($file_path);
+                }
             }
-        }
 
-        // Delete from DB
-        $stmt = $pdo->prepare("DELETE FROM dokumen_akreditasi WHERE id = ?");
-        $stmt->execute([$delete_id]);
-        $message = 'Dokumen berhasil dihapus!';
-    } catch (PDOException $e) {
-        $message = 'Gagal menghapus dokumen: ' . $e->getMessage();
+            // Delete from DB
+            $stmt = $pdo->prepare("DELETE FROM dokumen_akreditasi WHERE id = ?");
+            $stmt->execute([$delete_id]);
+            $message = 'Dokumen berhasil dihapus!';
+        } catch (PDOException $e) {
+            $message = 'Gagal menghapus dokumen: ' . $e->getMessage();
+        }
     }
 }
 
@@ -214,6 +279,12 @@ try {
                         <h1 class="text-3xl font-bold text-gray-900">Akreditasi & Mutu</h1>
                         <p class="text-gray-600 mt-2">Dokumen Bukti EP & Capaian Standar Akreditasi STARKES</p>
                     </div>
+                    <?php if (canUserEditOrDelete('akreditasi')): ?>
+                        <button onclick="openModal()" class="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl font-medium hover:bg-emerald-700 transition-colors shadow-sm">
+                            ➕
+                            <span>Tambah Dokumen</span>
+                        </button>
+                    <?php endif; ?>
                 </div>
 
                 <?php if ($message): ?>
@@ -351,20 +422,25 @@ try {
                                                     <a 
                                                         href="uploads/akreditasi/<?php echo $doc['file_path']; ?>" 
                                                         target="_blank"
-                                                        class="text-blue-700 hover:text-blue-800 text-sm font-medium"
+                                                        class="px-3 py-1 text-sm bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition-colors"
                                                     >
                                                         Lihat
                                                     </a>
                                                 <?php endif; ?>
-                                                <form method="POST" onsubmit="return confirm('Yakin ingin menghapus dokumen ini?')">
-                                                    <input type="hidden" name="delete_id" value="<?php echo $doc['id']; ?>">
-                                                    <button 
-                                                        type="submit"
-                                                        class="text-red-700 hover:text-red-800 text-sm font-medium"
-                                                    >
-                                                        Hapus
+                                                <?php if (canUserEditOrDelete('akreditasi')): ?>
+                                                    <button onclick="openEditModal(<?php echo htmlspecialchars(json_encode($doc), ENT_QUOTES); ?>)" class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
+                                                        Edit
                                                     </button>
-                                                </form>
+                                                    <form method="POST" onsubmit="return confirm('Yakin ingin menghapus dokumen ini?')">
+                                                        <input type="hidden" name="delete_id" value="<?php echo $doc['id']; ?>">
+                                                        <button 
+                                                            type="submit"
+                                                            class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                                                        >
+                                                            Hapus
+                                                        </button>
+                                                    </form>
+                                                <?php endif; ?>
                                             </div>
                                         </td>
                                     </tr>
@@ -377,51 +453,107 @@ try {
         </div>
     </main>
 
-    <!-- Add Document Modal -->
-    <div id="modal" class="fixed inset-0 z-50 hidden">
-        <div class="modal-overlay absolute inset-0" onclick="closeModal()"></div>
-        <div class="relative z-10 flex items-center justify-center min-h-screen p-4">
-            <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden">
-                <div class="p-8 border-b border-gray-100 flex justify-between items-center">
-                    <h2 class="text-2xl font-bold text-gray-900">Tambah Dokumen / Bukti EP</h2>
-                    <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-2xl">×</button>
-                </div>
-                <form method="POST" enctype="multipart/form-data" class="p-8 space-y-6">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-3">Pilih Akreditasi</label>
-                        <select name="bab" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
-                            <?php foreach ($STARKES_BAB as $key => $value): ?>
-                                <option value="<?php echo $key; ?>"><?php echo htmlspecialchars($value); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-3">Nama Dokumen</label>
-                        <input type="text" name="nama_dokumen" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-3">Nomor Elemen Penilaian</label>
-                        <input type="text" name="kode_ep" required placeholder="Contoh: EP-101" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-3">Target Capaian (%)</label>
-                        <input type="number" name="target_capaian" min="0" max="100" required value="100" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-3">Upload Berkas (PDF/DOC/Image)</label>
-                        <input type="file" name="berkas" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
-                    </div>
-                    <div class="flex justify-end gap-4 pt-4 border-t border-gray-100">
-                        <button type="button" onclick="closeModal()" class="px-6 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl font-medium transition-colors">
-                            Batal
-                        </button>
-                        <button type="submit" name="add_document" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium transition-colors">
-                            Simpan
-                        </button>
-                    </div>
-                </form>
+    <!-- Add/Edit Document Modal -->
+    <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl mx-4">
+            <div class="p-8 border-b border-gray-100 flex justify-between items-center">
+                <h2 id="modal-title" class="text-2xl font-bold text-gray-900">Tambah Dokumen / Bukti EP</h2>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-2xl">×</button>
             </div>
+            <form method="POST" enctype="multipart/form-data" class="p-8 space-y-6">
+                <input type="hidden" name="edit_id" id="edit_id" value="">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-3">Pilih Akreditasi</label>
+                    <select name="bab" id="bab" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
+                        <?php foreach ($STARKES_BAB as $key => $value): ?>
+                            <option value="<?php echo $key; ?>"><?php echo htmlspecialchars($value); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-3">Nama Dokumen</label>
+                    <input type="text" name="nama_dokumen" id="nama_dokumen" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-3">Nomor Elemen Penilaian</label>
+                    <input type="text" name="kode_ep" id="kode_ep" required placeholder="Contoh: EP-101" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-3">Target Capaian (%)</label>
+                    <input type="number" name="target_capaian" id="target_capaian" min="0" max="100" required value="100" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-3">Upload Berkas (PDF/DOC/Image)</label>
+                    <input type="file" name="berkas" id="berkas" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
+                    <p class="text-xs text-gray-500 mt-1">Biarkan kosong jika tidak ingin mengubah berkas</p>
+                </div>
+                <div class="flex justify-end gap-4 pt-4 border-t border-gray-100">
+                    <button type="button" onclick="closeModal()" class="px-6 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl font-medium transition-colors">
+                        Batal
+                    </button>
+                    <button type="submit" name="add_document" id="submitBtn" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium transition-colors">
+                        Simpan
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
+
+    <script>
+        // Override window.openModal to reset form when adding new
+        const originalOpenModal = window.openModal;
+        window.openModal = function(modalId) {
+            if (modalId === 'modal' || !modalId) {
+                resetForm();
+                document.getElementById('submitBtn').name = 'add_document';
+                document.getElementById('submitBtn').textContent = 'Simpan';
+                document.getElementById('modal-title').textContent = 'Tambah Dokumen / Bukti EP';
+            }
+            if (originalOpenModal) {
+                originalOpenModal(modalId);
+            } else {
+                // Fallback to our own implementation if original doesn't exist
+                const element = document.getElementById(modalId || 'modal');
+                if (element) {
+                    element.classList.remove('hidden');
+                    element.classList.add('flex');
+                }
+            }
+        };
+
+        function resetForm() {
+            document.getElementById('edit_id').value = '';
+            document.getElementById('bab').value = '1';
+            document.getElementById('nama_dokumen').value = '';
+            document.getElementById('kode_ep').value = '';
+            document.getElementById('target_capaian').value = '100';
+            document.getElementById('berkas').value = '';
+        }
+
+        function openEditModal(doc) {
+            document.getElementById('edit_id').value = doc.id;
+            document.getElementById('bab').value = doc.bab;
+            document.getElementById('nama_dokumen').value = doc.nama_dokumen || '';
+            document.getElementById('kode_ep').value = doc.kode_ep || '';
+            document.getElementById('target_capaian').value = doc.target_capaian || '100';
+            document.getElementById('berkas').value = '';
+
+            document.getElementById('submitBtn').name = 'edit_document';
+            document.getElementById('submitBtn').textContent = 'Simpan Perubahan';
+            document.getElementById('modal-title').textContent = 'Edit Dokumen / Bukti EP';
+
+            const modal = document.getElementById('modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeModal(modalId = 'modal') {
+            const element = document.getElementById(modalId);
+            if (element) {
+                element.classList.add('hidden');
+                element.classList.remove('flex');
+            }
+        }
+    </script>
 </body>
 </html>

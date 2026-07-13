@@ -44,60 +44,122 @@ if (isset($isLocal) && $isLocal) {
 
 // Handle form submission for adding new document
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_surat'])) {
-    $nomor_surat = $_POST['nomor_surat'] ?? '';
-    $kategori = $_POST['kategori'] ?? 'Surat Masuk';
-    $asal_pengirim = $_POST['asal_pengirim'] ?? '';
-    $perihal = $_POST['perihal'] ?? '';
-    $tanggal_surat = $_POST['tanggal_surat'] ?? '';
-    $tanggal_diterima = !empty($_POST['tanggal_diterima']) ? $_POST['tanggal_diterima'] : null;
-    $status_tindak_lanjut = 'Pending';
-    $file_path = null;
-    $kepada = isset($_POST['kepada']) ? json_encode($_POST['kepada']) : null;
-    $cc = isset($_POST['cc']) ? json_encode($_POST['cc']) : null;
+    if (!canUserEditOrDelete('sekretariat')) {
+        $_SESSION['error_msg'] = "Anda tidak memiliki akses untuk menambah data!";
+    } else {
+        $nomor_surat = $_POST['nomor_surat'] ?? '';
+        $kategori = $_POST['kategori'] ?? 'Surat Masuk';
+        $asal_pengirim = $_POST['asal_pengirim'] ?? '';
+        $perihal = $_POST['perihal'] ?? '';
+        $tanggal_surat = $_POST['tanggal_surat'] ?? '';
+        $tanggal_diterima = !empty($_POST['tanggal_diterima']) ? $_POST['tanggal_diterima'] : null;
+        $status_tindak_lanjut = 'Pending';
+        $file_path = null;
+        $kepada = isset($_POST['kepada']) ? json_encode($_POST['kepada']) : null;
+        $cc = isset($_POST['cc']) ? json_encode($_POST['cc']) : null;
 
-    // Handle file upload
-    if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
-        $uploadDir = 'uploads/sekretariat/';
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0777, true);
+        // Handle file upload
+        if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
+            $uploadDir = 'uploads/sekretariat/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
+
+            $fileName = uniqid() . '_' . basename($_FILES['file']['name']);
+            $targetFile = $uploadDir . $fileName;
+
+            if (move_uploaded_file($_FILES['file']['tmp_name'], $targetFile)) {
+                $file_path = $targetFile;
+            }
         }
 
-        $fileName = uniqid() . '_' . basename($_FILES['file']['name']);
-        $targetFile = $uploadDir . $fileName;
+        try {
+            $stmt = $pdo->prepare("
+                INSERT INTO manajemen_surat (nomor_surat, kategori, asal_pengirim, perihal, tanggal_surat, tanggal_diterima, status_tindak_lanjut, file_path, kepada, cc)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([$nomor_surat, $kategori, $asal_pengirim, $perihal, $tanggal_surat, $tanggal_diterima, $status_tindak_lanjut, $file_path, $kepada, $cc]);
+            
+            // Send notifications
+            $penerima = [];
+            if (isset($_POST['kepada']) && is_array($_POST['kepada'])) {
+                $penerima = array_merge($penerima, $_POST['kepada']);
+            }
+            if (isset($_POST['cc']) && is_array($_POST['cc'])) {
+                $penerima = array_merge($penerima, $_POST['cc']);
+            }
+            
+            $penerima = array_unique($penerima);
+            foreach ($penerima as $role_or_user) {
+                createNotification(
+                    "$kategori Baru",
+                    "Ada $kategori baru dari $asal_pengirim dengan perihal: $perihal.",
+                    $role_or_user
+                );
+            }
 
-        if (move_uploaded_file($_FILES['file']['tmp_name'], $targetFile)) {
-            $file_path = $targetFile;
+            $_SESSION['success_msg'] = "Dokumen $kategori berhasil ditambahkan!";
+        } catch (PDOException $e) {
+            $_SESSION['error_msg'] = "Gagal menyimpan data: " . $e->getMessage();
         }
     }
 
-    try {
-        $stmt = $pdo->prepare("
-            INSERT INTO manajemen_surat (nomor_surat, kategori, asal_pengirim, perihal, tanggal_surat, tanggal_diterima, status_tindak_lanjut, file_path, kepada, cc)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ");
-        $stmt->execute([$nomor_surat, $kategori, $asal_pengirim, $perihal, $tanggal_surat, $tanggal_diterima, $status_tindak_lanjut, $file_path, $kepada, $cc]);
-        
-        // Send notifications
-        $penerima = [];
-        if (isset($_POST['kepada']) && is_array($_POST['kepada'])) {
-            $penerima = array_merge($penerima, $_POST['kepada']);
-        }
-        if (isset($_POST['cc']) && is_array($_POST['cc'])) {
-            $penerima = array_merge($penerima, $_POST['cc']);
-        }
-        
-        $penerima = array_unique($penerima);
-        foreach ($penerima as $role_or_user) {
-            createNotification(
-                "$kategori Baru",
-                "Ada $kategori baru dari $asal_pengirim dengan perihal: $perihal.",
-                $role_or_user
-            );
+    header("Location: surat-masuk.php");
+    exit;
+}
+
+// Handle form submission for editing document
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_surat'])) {
+    if (!canUserEditOrDelete('sekretariat')) {
+        $_SESSION['error_msg'] = "Anda tidak memiliki akses untuk mengedit data!";
+    } else {
+        $edit_id = (int)$_POST['edit_id'];
+        $nomor_surat = $_POST['nomor_surat'] ?? '';
+        $kategori = $_POST['kategori'] ?? 'Surat Masuk';
+        $asal_pengirim = $_POST['asal_pengirim'] ?? '';
+        $perihal = $_POST['perihal'] ?? '';
+        $tanggal_surat = $_POST['tanggal_surat'] ?? '';
+        $tanggal_diterima = !empty($_POST['tanggal_diterima']) ? $_POST['tanggal_diterima'] : null;
+        $kepada = isset($_POST['kepada']) ? json_encode($_POST['kepada']) : null;
+        $cc = isset($_POST['cc']) ? json_encode($_POST['cc']) : null;
+
+        // Get current file path
+        $stmt = $pdo->prepare("SELECT file_path FROM manajemen_surat WHERE id = ?");
+        $stmt->execute([$edit_id]);
+        $current_doc = $stmt->fetch();
+        $file_path = $current_doc['file_path'] ?? null;
+
+        // Handle file upload if new file is provided
+        if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
+            $uploadDir = 'uploads/sekretariat/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
+
+            $fileName = uniqid() . '_' . basename($_FILES['file']['name']);
+            $targetFile = $uploadDir . $fileName;
+
+            if (move_uploaded_file($_FILES['file']['tmp_name'], $targetFile)) {
+                // Delete old file if exists
+                if ($file_path && file_exists($file_path)) {
+                    unlink($file_path);
+                }
+                $file_path = $targetFile;
+            }
         }
 
-        $_SESSION['success_msg'] = "Dokumen $kategori berhasil ditambahkan!";
-    } catch (PDOException $e) {
-        $_SESSION['error_msg'] = "Gagal menyimpan data: " . $e->getMessage();
+        try {
+            $stmt = $pdo->prepare("
+                UPDATE manajemen_surat 
+                SET nomor_surat = ?, kategori = ?, asal_pengirim = ?, perihal = ?, tanggal_surat = ?, tanggal_diterima = ?, file_path = ?, kepada = ?, cc = ?
+                WHERE id = ?
+            ");
+            $stmt->execute([$nomor_surat, $kategori, $asal_pengirim, $perihal, $tanggal_surat, $tanggal_diterima, $file_path, $kepada, $cc, $edit_id]);
+            
+            $_SESSION['success_msg'] = "Dokumen berhasil diperbarui!";
+        } catch (PDOException $e) {
+            $_SESSION['error_msg'] = "Gagal memperbarui data: " . $e->getMessage();
+        }
     }
 
     header("Location: surat-masuk.php");
@@ -245,8 +307,15 @@ if (!function_exists('formatDate')) {
                         <p class="text-gray-600 mt-2">Manajemen surat masuk, disposisi, notulen, dan memo internal rumah sakit</p>
                     </div>
                     
-                    <!-- Category Filter Dropdown -->
                     <div class="flex items-center gap-3">
+                        <?php if (canUserEditOrDelete('sekretariat')): ?>
+                            <button onclick="openModal()" class="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl font-medium hover:bg-emerald-700 transition-colors shadow-sm">
+                                ➕
+                                <span>Tambah Surat</span>
+                            </button>
+                        <?php endif; ?>
+                        
+                        <!-- Category Filter Dropdown -->
                         <span class="text-sm font-medium text-gray-700">Kategori:</span>
                         <select onchange="location = this.value;" class="bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm font-medium text-gray-700 shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                             <option value="surat-masuk.php?kategori=Semua" <?php echo $selected_kategori === 'Semua' ? 'selected' : ''; ?>>Semua Dokumen</option>
@@ -395,6 +464,9 @@ if (!function_exists('formatDate')) {
                                                         </a>
                                                     <?php endif; ?>
                                                     <?php if (canUserEditOrDelete('sekretariat')): ?>
+                                                        <button onclick="openEditModal(<?php echo htmlspecialchars(json_encode($doc), ENT_QUOTES); ?>)" class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
+                                                            Edit
+                                                        </button>
                                                         <a href="surat-masuk.php?delete=<?php echo $doc['id']; ?>" onclick="return confirm('Apakah Anda yakin ingin menghapus dokumen ini?');" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
                                                             Hapus
                                                         </a>
@@ -416,13 +488,14 @@ if (!function_exists('formatDate')) {
     <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
         <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div class="p-6 border-b border-gray-100 flex items-center justify-between">
-                <h2 class="text-xl font-bold text-gray-900">Tambah Surat / Berkas</h2>
+                <h2 id="modal-title" class="text-xl font-bold text-gray-900">Tambah Surat / Berkas</h2>
                 <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
             </div>
             <form method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
+                <input type="hidden" name="edit_id" id="edit_id" value="">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Nomor Surat</label>
-                    <input type="text" name="nomor_surat" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <input type="text" name="nomor_surat" id="nomor_surat" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Kategori</label>
@@ -435,11 +508,11 @@ if (!function_exists('formatDate')) {
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Asal / Pengirim</label>
-                    <input type="text" name="asal_pengirim" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <input type="text" name="asal_pengirim" id="asal_pengirim" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Perihal / Ringkasan</label>
-                    <textarea name="perihal" required rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"></textarea>
+                    <textarea name="perihal" id="perihal" required rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"></textarea>
                 </div>
                 
                 <!-- Memo-specific fields -->
@@ -456,7 +529,7 @@ if (!function_exists('formatDate')) {
                             foreach ($recipients as $recipient):
                             ?>
                                 <label class="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" name="kepada[]" value="<?php echo htmlspecialchars($recipient); ?>" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500">
+                                    <input type="checkbox" name="kepada[]" id="kepada_<?php echo md5($recipient); ?>" value="<?php echo htmlspecialchars($recipient); ?>" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500">
                                     <span class="text-sm text-gray-700"><?php echo htmlspecialchars($recipient); ?></span>
                                 </label>
                             <?php endforeach; ?>
@@ -467,7 +540,7 @@ if (!function_exists('formatDate')) {
                         <div class="space-y-2 border border-gray-300 rounded-xl p-4 max-h-48 overflow-y-auto">
                             <?php foreach ($recipients as $recipient): ?>
                                 <label class="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" name="cc[]" value="<?php echo htmlspecialchars($recipient); ?>" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500">
+                                    <input type="checkbox" name="cc[]" id="cc_<?php echo md5($recipient); ?>" value="<?php echo htmlspecialchars($recipient); ?>" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500">
                                     <span class="text-sm text-gray-700"><?php echo htmlspecialchars($recipient); ?></span>
                                 </label>
                             <?php endforeach; ?>
@@ -478,22 +551,23 @@ if (!function_exists('formatDate')) {
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Surat</label>
-                        <input type="date" name="tanggal_surat" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        <input type="date" name="tanggal_surat" id="tanggal_surat" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Diterima</label>
-                        <input type="date" name="tanggal_diterima" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        <input type="date" name="tanggal_diterima" id="tanggal_diterima" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                     </div>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Upload File Berkas (PDF)</label>
-                    <input type="file" name="file" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-xl">
+                    <input type="file" name="file" id="file" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-xl">
+                    <p class="text-xs text-gray-500 mt-1">Biarkan kosong jika tidak ingin mengubah berkas</p>
                 </div>
                 <div class="flex gap-3 pt-4">
                     <button type="button" onclick="closeModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors">
                         Batal
                     </button>
-                    <button type="submit" name="tambah_surat" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors">
+                    <button type="submit" name="tambah_surat" id="submitBtn" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors">
                         Simpan
                     </button>
                 </div>
@@ -502,6 +576,12 @@ if (!function_exists('formatDate')) {
     </div>
 
     <script>
+        const recipients = [
+            'Direktur Utama', 'Direktur Keuangan', 'Direktur Umum & SDM',
+            'Kepala Komite Mutu', 'Kepala Bagian Medis', 'Kepala Bagian Keperawatan',
+            'Kepala Bagian Keuangan', 'Kepala Bagian Umum', 'Kepala Bagian SDM'
+        ];
+
         document.addEventListener('DOMContentLoaded', function() {
             const kategoriSelect = document.getElementById('kategoriSelect');
             const memoFields = document.getElementById('memoFields');
@@ -517,14 +597,98 @@ if (!function_exists('formatDate')) {
             }
         });
 
-        function openModal() {
-            document.getElementById('modal').classList.remove('hidden');
-            document.getElementById('modal').classList.add('flex');
+        // Override openModal to reset form when adding new
+        const originalOpenModal = window.openModal;
+        window.openModal = function(modalId) {
+            if (modalId === 'modal' || !modalId) {
+                resetForm();
+                document.getElementById('submitBtn').name = 'tambah_surat';
+                document.getElementById('submitBtn').textContent = 'Simpan';
+                document.getElementById('modal-title').textContent = 'Tambah Surat / Berkas';
+            }
+            const modal = document.getElementById(modalId || 'modal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        };
+
+        function resetForm() {
+            document.getElementById('edit_id').value = '';
+            document.getElementById('nomor_surat').value = '';
+            document.getElementById('kategoriSelect').value = 'Surat Masuk';
+            document.getElementById('asal_pengirim').value = '';
+            document.getElementById('perihal').value = '';
+            document.getElementById('tanggal_surat').value = '';
+            document.getElementById('tanggal_diterima').value = '';
+            document.getElementById('file').value = '';
+            
+            // Clear memo checkboxes
+            recipients.forEach(recipient => {
+                const kepadaCheckbox = document.getElementById('kepada_' + md5(recipient));
+                const ccCheckbox = document.getElementById('cc_' + md5(recipient));
+                if (kepadaCheckbox) kepadaCheckbox.checked = false;
+                if (ccCheckbox) ccCheckbox.checked = false;
+            });
+            
+            // Hide memo fields
+            const memoFields = document.getElementById('memoFields');
+            if (memoFields) memoFields.classList.add('hidden');
         }
 
-        function closeModal() {
-            document.getElementById('modal').classList.add('hidden');
-            document.getElementById('modal').classList.remove('flex');
+        function openEditModal(doc) {
+            document.getElementById('edit_id').value = doc.id;
+            document.getElementById('nomor_surat').value = doc.nomor_surat || '';
+            document.getElementById('kategoriSelect').value = doc.kategori || 'Surat Masuk';
+            document.getElementById('asal_pengirim').value = doc.asal_pengirim || '';
+            document.getElementById('perihal').value = doc.perihal || '';
+            document.getElementById('tanggal_surat').value = doc.tanggal_surat || '';
+            document.getElementById('tanggal_diterima').value = doc.tanggal_diterima || '';
+            document.getElementById('file').value = '';
+            
+            // Handle memo recipients
+            const memoFields = document.getElementById('memoFields');
+            if (doc.kategori === 'Memo' && memoFields) {
+                memoFields.classList.remove('hidden');
+                const kepada = doc.kepada ? JSON.parse(doc.kepada) : [];
+                const cc = doc.cc ? JSON.parse(doc.cc) : [];
+                
+                recipients.forEach(recipient => {
+                    const kepadaCheckbox = document.getElementById('kepada_' + md5(recipient));
+                    const ccCheckbox = document.getElementById('cc_' + md5(recipient));
+                    if (kepadaCheckbox) kepadaCheckbox.checked = kepada.includes(recipient);
+                    if (ccCheckbox) ccCheckbox.checked = cc.includes(recipient);
+                });
+            } else if (memoFields) {
+                memoFields.classList.add('hidden');
+            }
+            
+            document.getElementById('submitBtn').name = 'edit_surat';
+            document.getElementById('submitBtn').textContent = 'Simpan Perubahan';
+            document.getElementById('modal-title').textContent = 'Edit Surat / Berkas';
+            
+            const modal = document.getElementById('modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeModal(modalId = 'modal') {
+            const element = document.getElementById(modalId);
+            if (element) {
+                element.classList.add('hidden');
+                element.classList.remove('flex');
+            }
+        }
+
+        function md5(string) {
+            // Simple MD5 implementation for the purpose of this demo
+            let hash = 0;
+            for (let i = 0; i < string.length; i++) {
+                let chr = string.charCodeAt(i);
+                hash = ((hash << 5) - hash) + chr;
+                hash |= 0; // Convert to 32bit integer
+            }
+            return hash.toString(16).replace(/-/g, '');
         }
     </script>
 </body>

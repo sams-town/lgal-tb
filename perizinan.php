@@ -64,6 +64,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_perizinan'])) 
     exit;
 }
 
+// Handle form submission for editing Perizinan
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_perizinan'])) {
+    if (!canUserEditOrDelete('legal')) {
+        $_SESSION['pks_error'] = "Anda tidak memiliki akses untuk mengedit data!";
+        header("Location: perizinan.php");
+        exit;
+    }
+    
+    $edit_id = (int)$_POST['edit_id'];
+    $nama_izin = $_POST['nama_izin'] ?? null;
+    $pemilik_izin = $_POST['pemilik_izin'] ?? null;
+    $masa_berlaku_mulai = $_POST['masa_berlaku_mulai'] ?? null;
+    $masa_berlaku_akhir = $_POST['masa_berlaku_akhir'] ?? null;
+    $instansi_penerbit = $_POST['instansi_penerbit'] ?? null;
+    $penanggung_jawab = $_POST['penanggung_jawab'] ?? null;
+
+    // Get current file path
+    $stmt = $pdo->prepare("SELECT file_path FROM dokumen_perizinan WHERE id = ?");
+    $stmt->execute([$edit_id]);
+    $current_doc = $stmt->fetch();
+    $file_path = $current_doc['file_path'] ?? null;
+
+    // Handle file upload if new file is provided
+    if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
+        $uploadDir = 'uploads/perizinan/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+
+        $fileName = uniqid() . '_' . basename($_FILES['file']['name']);
+        $targetFile = $uploadDir . $fileName;
+
+        if (move_uploaded_file($_FILES['file']['tmp_name'], $targetFile)) {
+            // Delete old file if exists
+            if ($file_path && file_exists($file_path)) {
+                unlink($file_path);
+            }
+            $file_path = $targetFile;
+        }
+    }
+
+    try {
+        $stmt = $pdo->prepare("
+            UPDATE dokumen_perizinan 
+            SET nama_izin = ?, pemilik_izin = ?, masa_berlaku_mulai = ?, masa_berlaku_akhir = ?, instansi_penerbit = ?, penanggung_jawab = ?, file_path = ?
+            WHERE id = ?
+        ");
+        $stmt->execute([$nama_izin, $pemilik_izin, $masa_berlaku_mulai, $masa_berlaku_akhir, $instansi_penerbit, $penanggung_jawab, $file_path, $edit_id]);
+
+        $_SESSION['pks_success'] = "Dokumen Perizinan berhasil diperbarui!";
+    } catch (PDOException $e) {
+        $_SESSION['pks_error'] = "Gagal memperbarui data: " . $e->getMessage();
+    }
+
+    header("Location: perizinan.php");
+    exit;
+}
+
 // Handle delete
 if (isset($_GET['delete'])) {
     if (!canUserEditOrDelete('legal')) {
@@ -354,6 +412,9 @@ try {
                                                         </a>
                                                     <?php endif; ?>
                                                     <?php if (canUserEditOrDelete('legal')): ?>
+                                                        <button onclick="openEditModal(<?php echo htmlspecialchars(json_encode($doc), ENT_QUOTES); ?>)" class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
+                                                            Edit
+                                                        </button>
                                                         <a href="perizinan.php?delete=<?php echo $doc['id']; ?>" onclick="return confirm('Apakah Anda yakin ingin menghapus dokumen ini?');" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
                                                             Hapus
                                                         </a>
@@ -379,13 +440,14 @@ try {
                 <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
             </div>
             <form method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
+                <input type="hidden" name="edit_id" id="edit_id" value="">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Nama Izin</label>
-                    <input type="text" name="nama_izin" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <input type="text" name="nama_izin" id="nama_izin" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Pemilik Izin</label>
-                    <select name="pemilik_izin" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <select name="pemilik_izin" id="pemilik_izin" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                         <option value="RS THB">RS THB</option>
                         <option value="PT PBA">PT PBA</option>
                     </select>
@@ -393,30 +455,31 @@ try {
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Masa Berlaku Mulai</label>
-                        <input type="date" name="masa_berlaku_mulai" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        <input type="date" name="masa_berlaku_mulai" id="masa_berlaku_mulai" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Masa Berlaku Akhir</label>
-                        <input type="date" name="masa_berlaku_akhir" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        <input type="date" name="masa_berlaku_akhir" id="masa_berlaku_akhir" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                     </div>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Instansi Penerbit</label>
-                    <input type="text" name="instansi_penerbit" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <input type="text" name="instansi_penerbit" id="instansi_penerbit" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Penanggung Jawab</label>
-                    <input type="text" name="penanggung_jawab" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <input type="text" name="penanggung_jawab" id="penanggung_jawab" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Upload Berkas (PDF)</label>
-                    <input type="file" name="file" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-xl">
+                    <input type="file" name="file" id="file" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-xl">
+                    <p class="text-xs text-gray-500 mt-1">Biarkan kosong jika tidak ingin mengubah berkas</p>
                 </div>
                 <div class="flex gap-3 pt-4">
                     <button type="button" onclick="closeModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors">
                         Batal
                     </button>
-                    <button type="submit" name="tambah_perizinan" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors">
+                    <button type="submit" name="tambah_perizinan" id="submitBtn" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors">
                         Simpan
                     </button>
                 </div>
@@ -450,6 +513,57 @@ try {
     </div>
 
     <script>
+        // Override window.openModal to reset form when adding new
+        const originalOpenModal = window.openModal;
+        window.openModal = function(modalId) {
+            if (modalId === 'modal' || !modalId) {
+                resetForm();
+                document.getElementById('submitBtn').name = 'tambah_perizinan';
+                document.getElementById('submitBtn').textContent = 'Simpan';
+                document.querySelector('#modal h2').textContent = 'Tambah Dokumen Perizinan';
+            }
+            if (originalOpenModal) {
+                originalOpenModal(modalId);
+            } else {
+                // Fallback to our own implementation if original doesn't exist
+                const element = document.getElementById(modalId || 'modal');
+                if (element) {
+                    element.classList.remove('hidden');
+                    element.classList.add('flex');
+                }
+            }
+        };
+
+        function resetForm() {
+            document.getElementById('edit_id').value = '';
+            document.getElementById('nama_izin').value = '';
+            document.getElementById('pemilik_izin').value = 'RS THB';
+            document.getElementById('masa_berlaku_mulai').value = '';
+            document.getElementById('masa_berlaku_akhir').value = '';
+            document.getElementById('instansi_penerbit').value = '';
+            document.getElementById('penanggung_jawab').value = '';
+            document.getElementById('file').value = '';
+        }
+
+        function openEditModal(doc) {
+            document.getElementById('edit_id').value = doc.id;
+            document.getElementById('nama_izin').value = doc.nama_izin || '';
+            document.getElementById('pemilik_izin').value = doc.pemilik_izin || 'RS THB';
+            document.getElementById('masa_berlaku_mulai').value = doc.masa_berlaku_mulai || '';
+            document.getElementById('masa_berlaku_akhir').value = doc.masa_berlaku_akhir || '';
+            document.getElementById('instansi_penerbit').value = doc.instansi_penerbit || '';
+            document.getElementById('penanggung_jawab').value = doc.penanggung_jawab || '';
+            document.getElementById('file').value = '';
+            
+            document.getElementById('submitBtn').name = 'edit_perizinan';
+            document.getElementById('submitBtn').textContent = 'Simpan Perubahan';
+            document.querySelector('#modal h2').textContent = 'Edit Dokumen Perizinan';
+            
+            const modal = document.getElementById('modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
         function openImportModal() {
             openModal('importModal');
         }

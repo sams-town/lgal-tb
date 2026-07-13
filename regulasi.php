@@ -63,6 +63,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_regulasi'])) {
     exit;
 }
 
+// Handle form submission for editing Regulasi
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_regulasi'])) {
+    if (!canUserEditOrDelete('legal')) {
+        $_SESSION['pks_error'] = "Anda tidak memiliki akses untuk mengedit data!";
+        header("Location: regulasi.php");
+        exit;
+    }
+    
+    $edit_id = (int)$_POST['edit_id'];
+    $judul_regulasi = $_POST['judul_regulasi'] ?? null;
+    $nomor_regulasi = $_POST['nomor_regulasi'] ?? null;
+    $kategori_regulasi = $_POST['kategori_regulasi'] ?? null;
+    $tanggal_terbit = $_POST['tanggal_terbit'] ?? null;
+    $penanggung_jawab = $_POST['penanggung_jawab'] ?? null;
+
+    // Get current file path
+    $stmt = $pdo->prepare("SELECT file_path FROM dokumen_regulasi WHERE id = ?");
+    $stmt->execute([$edit_id]);
+    $current_doc = $stmt->fetch();
+    $file_path = $current_doc['file_path'] ?? null;
+
+    // Handle file upload if new file is provided
+    if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
+        $uploadDir = 'uploads/regulasi/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+
+        $fileName = uniqid() . '_' . basename($_FILES['file']['name']);
+        $targetFile = $uploadDir . $fileName;
+
+        if (move_uploaded_file($_FILES['file']['tmp_name'], $targetFile)) {
+            // Delete old file if exists
+            if ($file_path && file_exists($file_path)) {
+                unlink($file_path);
+            }
+            $file_path = $targetFile;
+        }
+    }
+
+    try {
+        $stmt = $pdo->prepare("
+            UPDATE dokumen_regulasi 
+            SET judul_regulasi = ?, nomor_regulasi = ?, kategori_regulasi = ?, tanggal_terbit = ?, penanggung_jawab = ?, file_path = ?
+            WHERE id = ?
+        ");
+        $stmt->execute([$judul_regulasi, $nomor_regulasi, $kategori_regulasi, $tanggal_terbit, $penanggung_jawab, $file_path, $edit_id]);
+        
+        $_SESSION['pks_success'] = "Dokumen Regulasi berhasil diperbarui!";
+    } catch (PDOException $e) {
+        $_SESSION['pks_error'] = "Gagal memperbarui data: " . $e->getMessage();
+    }
+    
+    header("Location: regulasi.php");
+    exit;
+}
+
 // Handle delete
 if (isset($_GET['delete'])) {
     if (!canUserEditOrDelete('legal')) {
@@ -362,6 +419,9 @@ try {
                                                         </a>
                                                     <?php endif; ?>
                                                      <?php if (canUserEditOrDelete('legal')): ?>
+                                                         <button onclick="openEditModal(<?php echo htmlspecialchars(json_encode($doc), ENT_QUOTES); ?>)" class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
+                                                             Edit
+                                                         </button>
                                                          <a href="regulasi.php?delete=<?php echo $doc['id']; ?>" onclick="return confirm('Apakah Anda yakin ingin menghapus dokumen ini?');" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
                                                              Hapus
                                                          </a>
@@ -387,17 +447,18 @@ try {
                 <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
             </div>
             <form method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
+                <input type="hidden" name="edit_id" id="edit_id" value="">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Judul Regulasi</label>
-                    <input type="text" name="judul_regulasi" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <input type="text" name="judul_regulasi" id="judul_regulasi" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Nomor Regulasi</label>
-                    <input type="text" name="nomor_regulasi" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <input type="text" name="nomor_regulasi" id="nomor_regulasi" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Kategori Regulasi</label>
-                    <select name="kategori_regulasi" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <select name="kategori_regulasi" id="kategori_regulasi" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                         <option value="SPO">SPO</option>
                         <option value="Peraturan Direktur">Peraturan Direktur</option>
                         <option value="Keputusan Direktur">Keputusan Direktur</option>
@@ -406,21 +467,22 @@ try {
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Terbit</label>
-                    <input type="date" name="tanggal_terbit" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <input type="date" name="tanggal_terbit" id="tanggal_terbit" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Penanggung Jawab</label>
-                    <input type="text" name="penanggung_jawab" placeholder="Masukkan nama penanggung jawab" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <input type="text" name="penanggung_jawab" id="penanggung_jawab" placeholder="Masukkan nama penanggung jawab" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Upload Berkas (PDF)</label>
-                    <input type="file" name="file" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-xl">
+                    <input type="file" name="file" id="file" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-xl">
+                    <p class="text-xs text-gray-500 mt-1">Biarkan kosong jika tidak ingin mengubah berkas</p>
                 </div>
                 <div class="flex gap-3 pt-4">
                     <button type="button" onclick="closeModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors">
                         Batal
                     </button>
-                    <button type="submit" name="tambah_regulasi" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors">
+                    <button type="submit" name="tambah_regulasi" id="submitBtn" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors">
                         Simpan
                     </button>
                 </div>
@@ -454,6 +516,55 @@ try {
     </div>
 
     <script>
+        // Override window.openModal to reset form when adding new
+        const originalOpenModal = window.openModal;
+        window.openModal = function(modalId) {
+            if (modalId === 'modal' || !modalId) {
+                resetForm();
+                document.getElementById('submitBtn').name = 'tambah_regulasi';
+                document.getElementById('submitBtn').textContent = 'Simpan';
+                document.querySelector('#modal h2').textContent = 'Tambah Dokumen Regulasi';
+            }
+            if (originalOpenModal) {
+                originalOpenModal(modalId);
+            } else {
+                // Fallback to our own implementation if original doesn't exist
+                const element = document.getElementById(modalId || 'modal');
+                if (element) {
+                    element.classList.remove('hidden');
+                    element.classList.add('flex');
+                }
+            }
+        };
+
+        function resetForm() {
+            document.getElementById('edit_id').value = '';
+            document.getElementById('judul_regulasi').value = '';
+            document.getElementById('nomor_regulasi').value = '';
+            document.getElementById('kategori_regulasi').value = 'SPO';
+            document.getElementById('tanggal_terbit').value = '';
+            document.getElementById('penanggung_jawab').value = '';
+            document.getElementById('file').value = '';
+        }
+
+        function openEditModal(doc) {
+            document.getElementById('edit_id').value = doc.id;
+            document.getElementById('judul_regulasi').value = doc.judul_regulasi || '';
+            document.getElementById('nomor_regulasi').value = doc.nomor_regulasi || '';
+            document.getElementById('kategori_regulasi').value = doc.kategori_regulasi || 'SPO';
+            document.getElementById('tanggal_terbit').value = doc.tanggal_terbit || '';
+            document.getElementById('penanggung_jawab').value = doc.penanggung_jawab || '';
+            document.getElementById('file').value = '';
+            
+            document.getElementById('submitBtn').name = 'edit_regulasi';
+            document.getElementById('submitBtn').textContent = 'Simpan Perubahan';
+            document.querySelector('#modal h2').textContent = 'Edit Dokumen Regulasi';
+            
+            const modal = document.getElementById('modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
         function openImportModal() {
             openModal('importModal');
         }

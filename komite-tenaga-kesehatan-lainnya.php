@@ -98,6 +98,101 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_tenaga_medis']
     exit;
 }
 
+// Handle form submission for Edit Tenaga Medis
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_tenaga_medis']) && isset($_POST['edit_id'])) {
+    if (!canUserEditOrDelete('komite')) {
+        $_SESSION['error_msg'] = "Anda tidak memiliki akses untuk mengedit data ini!";
+        header("Location: komite-tenaga-kesehatan-lainnya.php");
+        exit;
+    }
+
+    $id = (int)$_POST['edit_id'];
+    $uploadDir = 'uploads/medis/';
+
+    // Get current data
+    try {
+        $stmt = $pdo->prepare("SELECT * FROM tenaga_medis WHERE id = ? AND tipe_form = 'komite-tenaga-kesehatan-lainnya'");
+        $stmt->execute([$id]);
+        $currentData = $stmt->fetch();
+
+        if (!$currentData) {
+            $_SESSION['error_msg'] = "Data tidak ditemukan!";
+            header("Location: komite-tenaga-kesehatan-lainnya.php");
+            exit;
+        }
+    } catch (PDOException $e) {
+        $_SESSION['error_msg'] = "Gagal mengambil data: " . $e->getMessage();
+        header("Location: komite-tenaga-kesehatan-lainnya.php");
+        exit;
+    }
+
+    // Handle file uploads - only replace if new file is uploaded
+    $fileStr = isset($_FILES['file_str']) && $_FILES['file_str']['error'] === UPLOAD_ERR_OK 
+        ? handleFileUpload('file_str', $uploadDir) 
+        : $currentData['file_str'];
+    $fileSip = isset($_FILES['file_sip']) && $_FILES['file_sip']['error'] === UPLOAD_ERR_OK 
+        ? handleFileUpload('file_sip', $uploadDir) 
+        : $currentData['file_sip'];
+    $filePks = isset($_FILES['file_pks']) && $_FILES['file_pks']['error'] === UPLOAD_ERR_OK 
+        ? handleFileUpload('file_pks', $uploadDir) 
+        : $currentData['file_pks'];
+    $fileSk = isset($_FILES['file_sk']) && $_FILES['file_sk']['error'] === UPLOAD_ERR_OK 
+        ? handleFileUpload('file_sk', $uploadDir) 
+        : $currentData['file_sk'];
+
+    $sertifikasi = isset($_POST['sertifikasi']) ? json_encode($_POST['sertifikasi']) : null;
+
+    try {
+        $stmt = $pdo->prepare("
+            UPDATE tenaga_medis SET
+                nama_lengkap = ?, unit_ruangan = ?, status_kepegawaian = ?,
+                no_str = ?, masa_berlaku_str_mulai = ?, masa_berlaku_str_akhir = ?, file_str = ?,
+                no_sip = ?, masa_berlaku_sip_mulai = ?, masa_berlaku_sip_akhir = ?, file_sip = ?,
+                no_pks = ?, masa_berlaku_pks_mulai = ?, masa_berlaku_pks_akhir = ?, file_pks = ?,
+                no_sk = ?, masa_berlaku_sk_mulai = ?, masa_berlaku_sk_akhir = ?, file_sk = ?,
+                kompetensi_klinis = ?, sertifikasi_kompetensi = ?, jabatan_keperawatan = ?,
+                spesialis = ?, nomor_pkwt = ?, rincian_kewenangan_klinis = ?,
+                lantai = ?, nomor_keputusan_direktur = ?
+            WHERE id = ? AND tipe_form = 'komite-tenaga-kesehatan-lainnya'
+        ");
+        $stmt->execute([
+            $_POST['nama_lengkap'],
+            $_POST['unit_ruangan'] ?? null,
+            $_POST['status_kepegawaian'],
+            $_POST['no_str'] ?? null,
+            $_POST['masa_berlaku_str_mulai'] ?? null,
+            $_POST['masa_berlaku_str_akhir'] ?? null,
+            $fileStr,
+            $_POST['no_sip'] ?? null,
+            $_POST['masa_berlaku_sip_mulai'] ?? null,
+            $_POST['masa_berlaku_sip_akhir'] ?? null,
+            $fileSip,
+            $_POST['no_pks'] ?? null,
+            $_POST['masa_berlaku_pks_mulai'] ?? null,
+            $_POST['masa_berlaku_pks_akhir'] ?? null,
+            $filePks,
+            $_POST['no_sk'] ?? null,
+            $_POST['masa_berlaku_sk_mulai'] ?? null,
+            $_POST['masa_berlaku_sk_akhir'] ?? null,
+            $fileSk,
+            $_POST['kompetensi_klinis'] ?? null,
+            $sertifikasi,
+            $_POST['jabatan_keperawatan'] ?? null,
+            $_POST['spesialis'] ?? null,
+            $_POST['nomor_pkwt'] ?? null,
+            $_POST['rincian_kewenangan_klinis'] ?? null,
+            $_POST['lantai'] ?? null,
+            $_POST['nomor_keputusan_direktur'] ?? null,
+            $id
+        ]);
+        $_SESSION['success_msg'] = "Data Komite Tenaga Kesehatan Lainnya berhasil diperbarui";
+    } catch (PDOException $e) {
+        $_SESSION['error_msg'] = "Gagal memperbarui data: " . $e->getMessage();
+    }
+    header("Location: komite-tenaga-kesehatan-lainnya.php");
+    exit;
+}
+
 // Handle delete
 if (isset($_GET['delete'])) {
     if (!canUserEditOrDelete('komite')) {
@@ -393,7 +488,7 @@ if (!function_exists('formatDate')) {
                                             <td class="px-6 py-4">
                                                  <div class="flex items-center gap-2">
                                                      <?php if (canUserEditOrDelete('komite')): ?>
-                                                         <button class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">Edit</button>
+                                                         <button onclick="openEditModal(<?php echo htmlspecialchars(json_encode($data)); ?>)" class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">Edit</button>
                                                          <a href="komite-tenaga-kesehatan-lainnya.php?delete=<?php echo $data['id']; ?>" onclick="return confirm('Apakah Anda yakin ingin menghapus data ini?');" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">Hapus</a>
                                                      <?php else: ?>
                                                          <span class="text-gray-400 text-sm">-</span>
@@ -415,21 +510,22 @@ if (!function_exists('formatDate')) {
     <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
         <div class="bg-white rounded-2xl shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div class="p-6 border-b border-gray-100 flex items-center justify-between">
-                <h2 class="text-xl font-bold text-gray-900">Form Tambah Tenaga Medis - Komite Tenaga Kesehatan Lainnya</h2>
+                <h2 id="modal_title" class="text-xl font-bold text-gray-900">Form Tambah Tenaga Medis - Komite Tenaga Kesehatan Lainnya</h2>
                 <button onclick="closeModal('modal')" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
             </div>
             <form method="POST" enctype="multipart/form-data" class="p-6 space-y-6">
+                <input type="hidden" name="edit_id" id="edit_id" value="">
                 <!-- Informasi Dasar -->
                 <div class="space-y-4">
                     <h3 class="text-lg font-semibold text-gray-800 border-b pb-2">Informasi Dasar</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Nama Lengkap <span class="text-red-500">*</span></label>
-                            <input type="text" name="nama_lengkap" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan nama lengkap">
+                            <input type="text" name="nama_lengkap" id="nama_lengkap" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan nama lengkap">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Jabatan</label>
-                            <select name="unit_ruangan" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                            <select name="unit_ruangan" id="unit_ruangan" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                                 <?php foreach ($jabatanOptions as $option): ?>
                                     <option value="<?php echo htmlspecialchars($option); ?>"><?php echo htmlspecialchars($option); ?></option>
                                 <?php endforeach; ?>
@@ -444,16 +540,16 @@ if (!function_exists('formatDate')) {
                         </div>
                         <div id="container_sk_lainnya" class="mt-0">
                             <label class="block text-sm font-medium text-gray-700 mb-2">Nomor SK Direktur</label>
-                            <input type="text" name="nomor_keputusan_direktur" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan nomor SK Direktur">
+                            <input type="text" name="nomor_keputusan_direktur" id="nomor_keputusan_direktur" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan nomor SK Direktur">
                         </div>
                         <div id="container_pkwt_lainnya" class="mt-0 hidden">
                             <label class="block text-sm font-medium text-gray-700 mb-2">Nomor PKWT</label>
-                            <input type="text" name="nomor_pkwt" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan nomor PKWT">
+                            <input type="text" name="nomor_pkwt" id="nomor_pkwt" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan nomor PKWT">
                         </div>
                     </div>
                     <div class="space-y-2 pt-2">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Rincian Kewenangan Klinis</label>
-                        <textarea name="rincian_kewenangan_klinis" rows="4" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan rincian kewenangan klinis"></textarea>
+                        <textarea name="rincian_kewenangan_klinis" id="rincian_kewenangan_klinis" rows="4" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan rincian kewenangan klinis"></textarea>
                     </div>
                 </div>
 
@@ -467,21 +563,21 @@ if (!function_exists('formatDate')) {
                             <div class="space-y-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">No. STR</label>
-                                    <input type="text" name="no_str" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan nomor STR">
+                                    <input type="text" name="no_str" id="no_str" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan nomor STR">
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">Masa Berlaku (Mulai)</label>
-                                        <input type="date" name="masa_berlaku_str_mulai" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                        <input type="date" name="masa_berlaku_str_mulai" id="masa_berlaku_str_mulai" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">Masa Berlaku (Akhir)</label>
-                                        <input type="date" name="masa_berlaku_str_akhir" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                        <input type="date" name="masa_berlaku_str_akhir" id="masa_berlaku_str_akhir" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                                     </div>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">STR (PDF)</label>
-                                    <input type="file" name="file_str" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-xl">
+                                    <input type="file" name="file_str" id="file_str" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-xl">
                                 </div>
                             </div>
                         </div>
@@ -492,21 +588,21 @@ if (!function_exists('formatDate')) {
                             <div class="space-y-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">No. SIP</label>
-                                    <input type="text" name="no_sip" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan nomor SIP">
+                                    <input type="text" name="no_sip" id="no_sip" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan nomor SIP">
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">Masa Berlaku (Mulai)</label>
-                                        <input type="date" name="masa_berlaku_sip_mulai" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                        <input type="date" name="masa_berlaku_sip_mulai" id="masa_berlaku_sip_mulai" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">Masa Berlaku (Akhir)</label>
-                                        <input type="date" name="masa_berlaku_sip_akhir" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                        <input type="date" name="masa_berlaku_sip_akhir" id="masa_berlaku_sip_akhir" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                                     </div>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">SIP (PDF)</label>
-                                    <input type="file" name="file_sip" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-xl">
+                                    <input type="file" name="file_sip" id="file_sip" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-xl">
                                 </div>
                             </div>
                         </div>
@@ -517,21 +613,21 @@ if (!function_exists('formatDate')) {
                             <div class="space-y-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">No. PKS</label>
-                                    <input type="text" name="no_pks" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan nomor PKS">
+                                    <input type="text" name="no_pks" id="no_pks" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan nomor PKS">
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">Masa Berlaku (Mulai)</label>
-                                        <input type="date" name="masa_berlaku_pks_mulai" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                        <input type="date" name="masa_berlaku_pks_mulai" id="masa_berlaku_pks_mulai" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">Masa Berlaku (Akhir)</label>
-                                        <input type="date" name="masa_berlaku_pks_akhir" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                        <input type="date" name="masa_berlaku_pks_akhir" id="masa_berlaku_pks_akhir" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                                     </div>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">PKS (PDF)</label>
-                                    <input type="file" name="file_pks" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-xl">
+                                    <input type="file" name="file_pks" id="file_pks" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-xl">
                                 </div>
                             </div>
                         </div>
@@ -542,21 +638,21 @@ if (!function_exists('formatDate')) {
                             <div class="space-y-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">No. SK</label>
-                                    <input type="text" name="no_sk" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan nomor SK">
+                                    <input type="text" name="no_sk" id="no_sk" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan nomor SK">
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">Masa Berlaku (Mulai)</label>
-                                        <input type="date" name="masa_berlaku_sk_mulai" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                        <input type="date" name="masa_berlaku_sk_mulai" id="masa_berlaku_sk_mulai" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">Masa Berlaku (Akhir)</label>
-                                        <input type="date" name="masa_berlaku_sk_akhir" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                        <input type="date" name="masa_berlaku_sk_akhir" id="masa_berlaku_sk_akhir" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                                     </div>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">SK (PDF)</label>
-                                    <input type="file" name="file_sk" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-xl">
+                                    <input type="file" name="file_sk" id="file_sk" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-xl">
                                 </div>
                             </div>
                         </div>
@@ -581,7 +677,7 @@ if (!function_exists('formatDate')) {
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Kompetensi Klinis</label>
-                        <textarea name="kompetensi_klinis" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Tulis daftar tindakan medis yang diizinkan"></textarea>
+                        <textarea name="kompetensi_klinis" id="kompetensi_klinis" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Tulis daftar tindakan medis yang diizinkan"></textarea>
                     </div>
                 </div>
 
@@ -589,7 +685,7 @@ if (!function_exists('formatDate')) {
                     <button type="button" onclick="closeModal('modal')" class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-300 transition-colors">
                         Batal
                     </button>
-                    <button type="submit" name="tambah_tenaga_medis" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors">
+                    <button type="submit" name="tambah_tenaga_medis" id="submit-btn" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors">
                         Simpan Data
                     </button>
                 </div>
@@ -622,14 +718,115 @@ if (!function_exists('formatDate')) {
     </div>
 
     <script>
+        const originalOpenModal = window.openModal;
         function openModal(modalId) {
-            document.getElementById(modalId).classList.remove('hidden');
-            document.getElementById(modalId).classList.add('flex');
+            if (modalId === 'modal' || !modalId) {
+                resetForm();
+                document.getElementById('submit-btn').name = 'tambah_tenaga_medis';
+                document.getElementById('submit-btn').textContent = 'Simpan Data';
+                document.getElementById('modal_title').textContent = 'Form Tambah Tenaga Medis - Komite Tenaga Kesehatan Lainnya';
+            }
+            originalOpenModal(modalId);
         }
 
         function closeModal(modalId) {
             document.getElementById(modalId).classList.add('hidden');
             document.getElementById(modalId).classList.remove('flex');
+        }
+
+        function resetForm() {
+            document.getElementById('edit_id').value = '';
+            document.getElementById('nama_lengkap').value = '';
+            document.getElementById('unit_ruangan').value = '';
+            document.getElementById('status_karyawan_lainnya').value = 'Tetap';
+            document.getElementById('nomor_keputusan_direktur').value = '';
+            document.getElementById('nomor_pkwt').value = '';
+            document.getElementById('rincian_kewenangan_klinis').value = '';
+            document.getElementById('no_str').value = '';
+            document.getElementById('masa_berlaku_str_mulai').value = '';
+            document.getElementById('masa_berlaku_str_akhir').value = '';
+            document.getElementById('file_str').value = '';
+            document.getElementById('no_sip').value = '';
+            document.getElementById('masa_berlaku_sip_mulai').value = '';
+            document.getElementById('masa_berlaku_sip_akhir').value = '';
+            document.getElementById('file_sip').value = '';
+            document.getElementById('no_pks').value = '';
+            document.getElementById('masa_berlaku_pks_mulai').value = '';
+            document.getElementById('masa_berlaku_pks_akhir').value = '';
+            document.getElementById('file_pks').value = '';
+            document.getElementById('no_sk').value = '';
+            document.getElementById('masa_berlaku_sk_mulai').value = '';
+            document.getElementById('masa_berlaku_sk_akhir').value = '';
+            document.getElementById('file_sk').value = '';
+            document.getElementById('kompetensi_klinis').value = '';
+            document.getElementById('sertifikasi-container').innerHTML = `
+                <div class="flex gap-2">
+                    <input type="text" name="sertifikasi[]" class="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan sertifikasi">
+                </div>
+            `;
+            // Reset visibility of SK/PKWT containers
+            document.getElementById('container_sk_lainnya').classList.remove('hidden');
+            document.getElementById('container_pkwt_lainnya').classList.add('hidden');
+        }
+
+        function openEditModal(data) {
+            resetForm();
+            document.getElementById('edit_id').value = data.id;
+            document.getElementById('nama_lengkap').value = data.nama_lengkap || '';
+            document.getElementById('unit_ruangan').value = data.unit_ruangan || '';
+            document.getElementById('status_karyawan_lainnya').value = data.status_kepegawaian || 'Tetap';
+            document.getElementById('nomor_keputusan_direktur').value = data.nomor_keputusan_direktur || '';
+            document.getElementById('nomor_pkwt').value = data.nomor_pkwt || '';
+            document.getElementById('rincian_kewenangan_klinis').value = data.rincian_kewenangan_klinis || '';
+            document.getElementById('no_str').value = data.no_str || '';
+            document.getElementById('masa_berlaku_str_mulai').value = data.masa_berlaku_str_mulai || '';
+            document.getElementById('masa_berlaku_str_akhir').value = data.masa_berlaku_str_akhir || '';
+            document.getElementById('no_sip').value = data.no_sip || '';
+            document.getElementById('masa_berlaku_sip_mulai').value = data.masa_berlaku_sip_mulai || '';
+            document.getElementById('masa_berlaku_sip_akhir').value = data.masa_berlaku_sip_akhir || '';
+            document.getElementById('no_pks').value = data.no_pks || '';
+            document.getElementById('masa_berlaku_pks_mulai').value = data.masa_berlaku_pks_mulai || '';
+            document.getElementById('masa_berlaku_pks_akhir').value = data.masa_berlaku_pks_akhir || '';
+            document.getElementById('no_sk').value = data.no_sk || '';
+            document.getElementById('masa_berlaku_sk_mulai').value = data.masa_berlaku_sk_mulai || '';
+            document.getElementById('masa_berlaku_sk_akhir').value = data.masa_berlaku_sk_akhir || '';
+            document.getElementById('kompetensi_klinis').value = data.kompetensi_klinis || '';
+            
+            // Handle sertifikasi
+            if (data.sertifikasi_kompetensi) {
+                try {
+                    const sertifikasi = JSON.parse(data.sertifikasi_kompetensi);
+                    if (Array.isArray(sertifikasi) && sertifikasi.length > 0) {
+                        const container = document.getElementById('sertifikasi-container');
+                        container.innerHTML = '';
+                        sertifikasi.forEach(s => {
+                            const template = `
+                                <div class="flex gap-2">
+                                    <input type="text" name="sertifikasi[]" class="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan sertifikasi" value="${s}">
+                                </div>
+                            `;
+                            container.insertAdjacentHTML('beforeend', template);
+                        });
+                    }
+                } catch (e) {
+                    console.error('Error parsing sertifikasi:', e);
+                }
+            }
+            
+            // Handle visibility of SK/PKWT containers
+            const status = data.status_kepegawaian || 'Tetap';
+            if (status === 'Tetap') {
+                document.getElementById('container_sk_lainnya').classList.remove('hidden');
+                document.getElementById('container_pkwt_lainnya').classList.add('hidden');
+            } else {
+                document.getElementById('container_sk_lainnya').classList.add('hidden');
+                document.getElementById('container_pkwt_lainnya').classList.remove('hidden');
+            }
+            
+            document.getElementById('submit-btn').name = 'edit_tenaga_medis';
+            document.getElementById('submit-btn').textContent = 'Simpan Perubahan';
+            document.getElementById('modal_title').textContent = 'Form Edit Tenaga Medis - Komite Tenaga Kesehatan Lainnya';
+            originalOpenModal('modal');
         }
 
         function addSertifikasi() {

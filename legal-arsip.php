@@ -86,6 +86,68 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_arsip_legal'])
     exit;
 }
 
+// Handle form submission for editing Arsip Dokumen Legal
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_arsip_legal'])) {
+    if (!canUserEditOrDelete('legal')) {
+        $_SESSION['pks_error'] = "Anda tidak memiliki akses untuk mengedit data!";
+        header("Location: legal-arsip.php");
+        exit;
+    }
+    
+    $edit_id = (int)$_POST['edit_id'];
+    $tipe_kontrak = $_POST['tipe_kontrak'] ?? null;
+    $perusahaan = $_POST['perusahaan'] ?? null;
+    $ruang_lingkup = $_POST['ruang_lingkup'] ?? null;
+    $nilai_kontrak = !empty($_POST['nilai_kontrak']) ? (float)$_POST['nilai_kontrak'] : null;
+    $potongan_harga = $_POST['potongan_harga'] ?? null;
+    $cara_pembayaran = $_POST['cara_pembayaran'] ?? null;
+    $tanggal_mulai = !empty($_POST['tanggal_mulai']) ? $_POST['tanggal_mulai'] : null;
+    $tanggal_berakhir = !empty($_POST['tanggal_berakhir']) ? $_POST['tanggal_berakhir'] : null;
+    $nama_pj = $_POST['nama_pj'] ?? null;
+    $no_telp_pj = $_POST['no_telp_pj'] ?? null;
+
+    // Get current file path
+    $stmt = $pdo->prepare("SELECT file_path FROM dokumen_arsip_legal WHERE id = ?");
+    $stmt->execute([$edit_id]);
+    $current_doc = $stmt->fetch();
+    $file_path = $current_doc['file_path'] ?? null;
+
+    // Handle file upload if new file is provided
+    if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
+        $uploadDir = 'uploads/arsip_legal/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+
+        $fileName = uniqid() . '_' . basename($_FILES['file']['name']);
+        $targetFile = $uploadDir . $fileName;
+
+        if (move_uploaded_file($_FILES['file']['tmp_name'], $targetFile)) {
+            // Delete old file if exists
+            if ($file_path && file_exists($file_path)) {
+                unlink($file_path);
+            }
+            $file_path = $targetFile;
+        }
+    }
+
+    try {
+        $stmt = $pdo->prepare("
+            UPDATE dokumen_arsip_legal 
+            SET tipe_kontrak = ?, perusahaan = ?, ruang_lingkup = ?, nilai_kontrak = ?, potongan_harga = ?, cara_pembayaran = ?, tanggal_mulai = ?, tanggal_berakhir = ?, nama_pj = ?, no_telp_pj = ?, file_path = ?
+            WHERE id = ?
+        ");
+        $stmt->execute([$tipe_kontrak, $perusahaan, $ruang_lingkup, $nilai_kontrak, $potongan_harga, $cara_pembayaran, $tanggal_mulai, $tanggal_berakhir, $nama_pj, $no_telp_pj, $file_path, $edit_id]);
+
+        $_SESSION['pks_success'] = "Dokumen Arsip Legal berhasil diperbarui!";
+    } catch (PDOException $e) {
+        $_SESSION['pks_error'] = "Gagal memperbarui data: " . $e->getMessage();
+    }
+
+    header("Location: legal-arsip.php");
+    exit;
+}
+
 // Handle delete
 if (isset($_GET['delete'])) {
     if (!canUserEditOrDelete('legal')) {
@@ -415,6 +477,9 @@ try {
                                                         </a>
                                                     <?php endif; ?>
                                                      <?php if (canUserEditOrDelete('legal')): ?>
+                                                         <button onclick="openEditModal(<?php echo htmlspecialchars(json_encode($doc), ENT_QUOTES); ?>)" class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
+                                                             Edit
+                                                         </button>
                                                          <a href="legal-arsip.php?delete=<?php echo $doc['id']; ?>" onclick="return confirm('Apakah Anda yakin ingin menghapus dokumen ini?');" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
                                                              Hapus
                                                          </a>
@@ -440,9 +505,10 @@ try {
                 <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
             </div>
             <form method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
+                <input type="hidden" name="edit_id" id="edit_id" value="">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Tipe Kontrak</label>
-                    <select name="tipe_kontrak" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <select name="tipe_kontrak" id="tipe_kontrak" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                         <option value="Asuransi">Asuransi</option>
                         <option value="Perusahaan">Perusahaan</option>
                         <option value="Alat Kesehatan">Alat Kesehatan</option>
@@ -454,55 +520,56 @@ try {
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Perusahaan/Instansi</label>
-                    <input type="text" name="perusahaan" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <input type="text" name="perusahaan" id="perusahaan" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Ruang Lingkup Kerjasama</label>
-                    <textarea name="ruang_lingkup" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"></textarea>
+                    <textarea name="ruang_lingkup" id="ruang_lingkup" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"></textarea>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Nilai Kontrak</label>
-                    <input type="number" name="nilai_kontrak" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <input type="number" name="nilai_kontrak" id="nilai_kontrak" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Potongan Harga</label>
-                        <input type="text" name="potongan_harga" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Misal: 10%, Rp 50.000, dll.">
+                        <input type="text" name="potongan_harga" id="potongan_harga" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Misal: 10%, Rp 50.000, dll.">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Cara Pembayaran</label>
-                        <input type="text" name="cara_pembayaran" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Misal: Transfer, Tahunan, dll.">
+                        <input type="text" name="cara_pembayaran" id="cara_pembayaran" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Misal: Transfer, Tahunan, dll.">
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Mulai</label>
-                        <input type="date" name="tanggal_mulai" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        <input type="date" name="tanggal_mulai" id="tanggal_mulai" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Berakhir</label>
-                        <input type="date" name="tanggal_berakhir" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        <input type="date" name="tanggal_berakhir" id="tanggal_berakhir" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Nama Penanggung Jawab Mitra</label>
-                        <input type="text" name="nama_pj" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        <input type="text" name="nama_pj" id="nama_pj" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Nomor Telepon Penanggung Jawab</label>
-                        <input type="text" name="no_telp_pj" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        <input type="text" name="no_telp_pj" id="no_telp_pj" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                     </div>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Upload Berkas (PDF)</label>
-                    <input type="file" name="file" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-xl">
+                    <input type="file" name="file" id="file" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-xl">
+                    <p class="text-xs text-gray-500 mt-1">Biarkan kosong jika tidak ingin mengubah berkas</p>
                 </div>
                 <div class="flex gap-3 pt-4">
                     <button type="button" onclick="closeModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors">
                         Batal
                     </button>
-                    <button type="submit" name="tambah_arsip_legal" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors">
+                    <button type="submit" name="tambah_arsip_legal" id="submitBtn" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors">
                         Simpan
                     </button>
                 </div>
@@ -536,6 +603,65 @@ try {
     </div>
 
     <script>
+        // Override window.openModal to reset form when adding new
+        const originalOpenModal = window.openModal;
+        window.openModal = function(modalId) {
+            if (modalId === 'modal' || !modalId) {
+                resetForm();
+                document.getElementById('submitBtn').name = 'tambah_arsip_legal';
+                document.getElementById('submitBtn').textContent = 'Simpan';
+                document.querySelector('#modal h2').textContent = 'Tambah Dokumen Arsip Legal';
+            }
+            if (originalOpenModal) {
+                originalOpenModal(modalId);
+            } else {
+                // Fallback to our own implementation if original doesn't exist
+                const element = document.getElementById(modalId || 'modal');
+                if (element) {
+                    element.classList.remove('hidden');
+                    element.classList.add('flex');
+                }
+            }
+        };
+
+        function resetForm() {
+            document.getElementById('edit_id').value = '';
+            document.getElementById('tipe_kontrak').value = 'Asuransi';
+            document.getElementById('perusahaan').value = '';
+            document.getElementById('ruang_lingkup').value = '';
+            document.getElementById('nilai_kontrak').value = '';
+            document.getElementById('potongan_harga').value = '';
+            document.getElementById('cara_pembayaran').value = '';
+            document.getElementById('tanggal_mulai').value = '';
+            document.getElementById('tanggal_berakhir').value = '';
+            document.getElementById('nama_pj').value = '';
+            document.getElementById('no_telp_pj').value = '';
+            document.getElementById('file').value = '';
+        }
+
+        function openEditModal(doc) {
+            document.getElementById('edit_id').value = doc.id;
+            document.getElementById('tipe_kontrak').value = doc.tipe_kontrak || 'Asuransi';
+            document.getElementById('perusahaan').value = doc.perusahaan || '';
+            document.getElementById('ruang_lingkup').value = doc.ruang_lingkup || '';
+            document.getElementById('nilai_kontrak').value = doc.nilai_kontrak || '';
+            document.getElementById('potongan_harga').value = doc.potongan_harga || '';
+            document.getElementById('cara_pembayaran').value = doc.cara_pembayaran || '';
+            document.getElementById('tanggal_mulai').value = doc.tanggal_mulai || '';
+            document.getElementById('tanggal_berakhir').value = doc.tanggal_berakhir || '';
+            document.getElementById('nama_pj').value = doc.nama_pj || '';
+            document.getElementById('no_telp_pj').value = doc.no_telp_pj || '';
+            document.getElementById('file').value = '';
+            
+            document.getElementById('submitBtn').name = 'edit_arsip_legal';
+            document.getElementById('submitBtn').textContent = 'Simpan Perubahan';
+            document.querySelector('#modal h2').textContent = 'Edit Dokumen Arsip Legal';
+            
+            const modal = document.getElementById('modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
         function openImportModal() {
             openModal('importModal');
         }
