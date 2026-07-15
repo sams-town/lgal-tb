@@ -530,9 +530,12 @@ try {
                         <div class="flex items-center gap-2 file-input-row">
                             <input type="file" name="files[]" accept=".pdf"
                                 class="flex-1 px-3 py-2 border border-gray-300 rounded-xl cursor-pointer text-sm">
-                            <button type="button" onclick="addFileInput()"
+                            <button type="button" onclick="appendFileRow()"
                                 class="flex-shrink-0 w-9 h-9 flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-lg font-bold transition-colors"
                                 title="Tambah berkas">+</button>
+                            <button type="button" onclick="this.closest('.file-input-row').remove()"
+                                class="flex-shrink-0 w-9 h-9 flex items-center justify-center bg-red-100 hover:bg-red-200 text-red-600 rounded-xl text-lg font-bold transition-colors"
+                                title="Hapus baris ini">×</button>
                         </div>
                     </div>
                     <p class="text-xs text-gray-500 mt-1">Klik <strong>+</strong> untuk menambah berkas. Biarkan kosong jika tidak ingin mengubah berkas.</p>
@@ -614,14 +617,15 @@ try {
         function resetFileInputs() {
             const container = document.getElementById('file-inputs-container');
             container.innerHTML = '';
-            addFileInput();
+            appendFileRow(); // add first row
         }
 
-        // Add a new file input row
-        function addFileInput() {
+        // Append one file input row. Every row has:
+        //   - file input
+        //   - green "+" button (adds another row)
+        //   - red "×" button (removes this row) — hidden on the very first row
+        function appendFileRow() {
             const container = document.getElementById('file-inputs-container');
-            const rows = container.querySelectorAll('.file-input-row');
-            const isFirst = rows.length === 0;
 
             const div = document.createElement('div');
             div.className = 'flex items-center gap-2 file-input-row';
@@ -632,24 +636,30 @@ try {
             input.accept = '.pdf';
             input.className = 'flex-1 px-3 py-2 border border-gray-300 rounded-xl cursor-pointer text-sm';
 
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.title = isFirst ? 'Tambah berkas' : 'Hapus baris ini';
-            btn.className = isFirst
-                ? 'flex-shrink-0 w-9 h-9 flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-lg font-bold transition-colors'
-                : 'flex-shrink-0 w-9 h-9 flex items-center justify-center bg-red-100 hover:bg-red-200 text-red-600 rounded-xl text-lg font-bold transition-colors';
-            btn.textContent = isFirst ? '+' : '×';
+            // "+" button — always adds a new row
+            const addBtn = document.createElement('button');
+            addBtn.type = 'button';
+            addBtn.title = 'Tambah berkas';
+            addBtn.className = 'flex-shrink-0 w-9 h-9 flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-lg font-bold transition-colors';
+            addBtn.textContent = '+';
+            addBtn.onclick = function() { appendFileRow(); };
 
-            if (isFirst) {
-                btn.onclick = function() { addFileInput(); };
-            } else {
-                btn.onclick = function() { div.remove(); };
-            }
+            // "×" button — removes this row
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.title = 'Hapus baris ini';
+            removeBtn.className = 'flex-shrink-0 w-9 h-9 flex items-center justify-center bg-red-100 hover:bg-red-200 text-red-600 rounded-xl text-lg font-bold transition-colors';
+            removeBtn.textContent = '×';
+            removeBtn.onclick = function() { div.remove(); };
 
             div.appendChild(input);
-            div.appendChild(btn);
+            div.appendChild(addBtn);
+            div.appendChild(removeBtn);
             container.appendChild(div);
         }
+
+        // Called from inline HTML onclick — kept for backward compat with static first row
+        function addFileInput() { appendFileRow(); }
             const container = document.getElementById('existing-files-container');
             const list = document.getElementById('existing-files-list');
             list.innerHTML = '';
