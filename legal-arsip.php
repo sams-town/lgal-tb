@@ -35,6 +35,40 @@ function getLegalArsipStatus($tanggalBerakhir) {
     }
 }
 
+// Helper: decode file_path for arsip legal (supports legacy single path and JSON array)
+function decodeArsipFilePaths(?string $raw): array {
+    if (empty($raw)) return [];
+    $decoded = json_decode($raw, true);
+    if (is_array($decoded)) return $decoded;
+    return [$raw];
+}
+
+// Helper: delete all files associated with an encoded file_path value
+function deleteArsipFiles(?string $raw): void {
+    foreach (decodeArsipFilePaths($raw) as $path) {
+        if (!empty($path) && file_exists($path)) {
+            unlink($path);
+        }
+    }
+}
+
+// Helper: upload multiple files for arsip legal, return JSON-encoded array of paths or null
+function uploadArsipFiles(array $filesInput, string $uploadDir = 'uploads/arsip_legal/'): ?string {
+    if (!isset($filesInput['name']) || !is_array($filesInput['name'])) return null;
+    if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+    $paths = [];
+    $count = count($filesInput['name']);
+    for ($i = 0; $i < $count; $i++) {
+        if ($filesInput['error'][$i] !== UPLOAD_ERR_OK) continue;
+        $fileName = uniqid() . '_' . basename($filesInput['name'][$i]);
+        $targetFile = $uploadDir . $fileName;
+        if (move_uploaded_file($filesInput['tmp_name'][$i], $targetFile)) {
+            $paths[] = $targetFile;
+        }
+    }
+    return count($paths) > 0 ? json_encode($paths) : null;
+}
+
 // Handle form submission for adding new Arsip Dokumen Legal
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_arsip_legal'])) {
     if (!canUserEditOrDelete('legal')) {
@@ -54,20 +88,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_arsip_legal'])
     $no_telp_pj = $_POST['no_telp_pj'] ?? null;
 
     $file_path = null;
-
-    // Handle file upload
-    if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
-        $uploadDir = 'uploads/arsip_legal/';
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0777, true);
-        }
-
-        $fileName = uniqid() . '_' . basename($_FILES['file']['name']);
-        $targetFile = $uploadDir . $fileName;
-
-        if (move_uploaded_file($_FILES['file']['tmp_name'], $targetFile)) {
-            $file_path = $targetFile;
-        }
+    if (!empty($_FILES['files']['name'][0])) {
+        $file_path = uploadArsipFiles($_FILES['files']);
     }
 
     try {
@@ -105,31 +127,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_arsip_legal'])) 
     $tanggal_berakhir = !empty($_POST['tanggal_berakhir']) ? $_POST['tanggal_berakhir'] : null;
     $nama_pj = $_POST['nama_pj'] ?? null;
     $no_telp_pj = $_POST['no_telp_pj'] ?? null;
+    $remove_files = json_decode($_POST['remove_files'] ?? '[]', true);
+    if (!is_array($remove_files)) $remove_files = [];
 
-    // Get current file path
+    // Get current file paths
     $stmt = $pdo->prepare("SELECT file_path FROM dokumen_arsip_legal WHERE id = ?");
     $stmt->execute([$edit_id]);
     $current_doc = $stmt->fetch();
-    $file_path = $current_doc['file_path'] ?? null;
+    $existing_paths = decodeArsipFilePaths($current_doc['file_path'] ?? null);
 
-    // Handle file upload if new file is provided
-    if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
-        $uploadDir = 'uploads/arsip_legal/';
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0777, true);
-        }
+    // Remove files marked for deletion
+    foreach ($remove_files as $rp) {
+        if (!empty($rp) && file_exists($rp)) unlink($rp);
+        $existing_paths = array_values(array_filter($existing_paths, fn($p) => $p !== $rp));
+    }
 
-        $fileName = uniqid() . '_' . basename($_FILES['file']['name']);
-        $targetFile = $uploadDir . $fileName;
-
-        if (move_uploaded_file($_FILES['file']['tmp_name'], $targetFile)) {
-            // Delete old file if exists
-            if ($file_path && file_exists($file_path)) {
-                unlink($file_path);
-            }
-            $file_path = $targetFile;
+    // Append newly uploaded files
+    if (!empty($_FILES['files']['name'][0])) {
+        $new_encoded = uploadArsipFiles($_FILES['files']);
+        if ($new_encoded) {
+            $existing_paths = array_merge($existing_paths, json_decode($new_encoded, true));
         }
     }
+
+    $file_path = count($existing_paths) > 0 ? json_encode(array_values($existing_paths)) : null;
 
     try {
         $stmt = $pdo->prepare("
@@ -167,8 +188,8 @@ if (isset($_GET['delete'])) {
         $stmt->execute([$id]);
 
         // Delete file if exists
-        if ($doc && $doc['file_path'] && file_exists($doc['file_path'])) {
-            unlink($doc['file_path']);
+        if ($doc) {
+            deleteArsipFiles($doc['file_path'] ?? null);
         }
         $_SESSION['pks_success'] = "Dokumen Arsip Legal berhasil dihapus!";
     } catch (PDOException $e) {
@@ -458,24 +479,29 @@ try {
                                                 </span>
                                             </td>
                                             <td class="px-6 py-4">
-                                                <?php $file_path = $doc['file_path'] ?? ''; ?>
-                                                <?php if (!empty($file_path)): ?>
-                                                    <a href="download_pdf.php?file=<?php echo urlencode($file_path); ?>" target="_blank" class="text-emerald-600 hover:text-emerald-700 font-medium text-sm flex items-center gap-1">
-                                                        📥
-                                                        <span>Download</span>
-                                                    </a>
+                                                <?php $file_paths = decodeArsipFilePaths($doc['file_path'] ?? null); ?>
+                                                <?php if (!empty($file_paths)): ?>
+                                                    <div class="flex flex-col gap-1">
+                                                    <?php foreach ($file_paths as $idx => $fp): ?>
+                                                        <a href="download_pdf.php?file=<?php echo urlencode($fp); ?>" target="_blank" class="text-emerald-600 hover:text-emerald-700 font-medium text-sm flex items-center gap-1">
+                                                            📥 <span>Berkas <?php echo $idx + 1; ?></span>
+                                                        </a>
+                                                    <?php endforeach; ?>
+                                                    </div>
                                                 <?php else: ?>
                                                     <span class="text-gray-400 text-sm">-</span>
                                                 <?php endif; ?>
                                             </td>
                                             <td class="px-6 py-4">
                                                 <div class="flex items-center gap-2">
-                                                    <?php $file_path = $doc['file_path'] ?? ''; ?>
-                                                    <?php if (!empty($file_path)): ?>
-                                                        <a href="view_pdf.php?file=<?php echo urlencode($file_path); ?>" target="_blank" class="px-3 py-1 text-sm bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition-colors">
-                                                            Lihat
+                                                <?php $file_paths_action = decodeArsipFilePaths($doc['file_path'] ?? null); ?>
+                                                <?php if (!empty($file_paths_action)): ?>
+                                                    <?php foreach ($file_paths_action as $idx => $fp): ?>
+                                                        <a href="view_pdf.php?file=<?php echo urlencode($fp); ?>" target="_blank" class="px-3 py-1 text-sm bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition-colors">
+                                                            Lihat<?php echo count($file_paths_action) > 1 ? ' ' . ($idx + 1) : ''; ?>
                                                         </a>
-                                                    <?php endif; ?>
+                                                    <?php endforeach; ?>
+                                                <?php endif; ?>
                                                      <?php if (canUserEditOrDelete('legal')): ?>
                                                          <button onclick="openEditModal(<?php echo htmlspecialchars(json_encode($doc), ENT_QUOTES); ?>)" class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
                                                              Edit
@@ -562,8 +588,27 @@ try {
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Upload Berkas (PDF)</label>
-                    <input type="file" name="file" id="file" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-xl">
-                    <p class="text-xs text-gray-500 mt-1">Biarkan kosong jika tidak ingin mengubah berkas</p>
+                    <!-- Existing files list (shown in edit mode) -->
+                    <div id="existing-files-container" class="hidden mb-3 space-y-2">
+                        <p class="text-xs font-medium text-gray-600">Berkas yang sudah ada:</p>
+                        <ul id="existing-files-list" class="space-y-1"></ul>
+                    </div>
+                    <!-- Hidden input to track removed files -->
+                    <input type="hidden" name="remove_files" id="remove_files" value="[]">
+                    <!-- Dynamic file input rows -->
+                    <div id="file-inputs-container" class="space-y-2">
+                        <div class="flex items-center gap-2 file-input-row">
+                            <input type="file" name="files[]" accept=".pdf"
+                                class="flex-1 px-3 py-2 border border-gray-300 rounded-xl cursor-pointer text-sm">
+                            <button type="button" onclick="appendArsipFileRow()"
+                                class="flex-shrink-0 w-9 h-9 flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-lg font-bold transition-colors"
+                                title="Tambah berkas">+</button>
+                            <button type="button" onclick="this.closest('.file-input-row').remove()"
+                                class="flex-shrink-0 w-9 h-9 flex items-center justify-center bg-red-100 hover:bg-red-200 text-red-600 rounded-xl text-lg font-bold transition-colors"
+                                title="Hapus baris ini">×</button>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Klik <strong>+</strong> untuk menambah berkas. Biarkan kosong jika tidak ingin mengubah berkas.</p>
                 </div>
                 <div class="flex gap-3 pt-4">
                     <button type="button" onclick="closeModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors">
@@ -615,7 +660,6 @@ try {
             if (originalOpenModal) {
                 originalOpenModal(modalId);
             } else {
-                // Fallback to our own implementation if original doesn't exist
                 const element = document.getElementById(modalId || 'modal');
                 if (element) {
                     element.classList.remove('hidden');
@@ -636,10 +680,86 @@ try {
             document.getElementById('tanggal_berakhir').value = '';
             document.getElementById('nama_pj').value = '';
             document.getElementById('no_telp_pj').value = '';
-            document.getElementById('file').value = '';
+            document.getElementById('remove_files').value = '[]';
+            document.getElementById('existing-files-container').classList.add('hidden');
+            document.getElementById('existing-files-list').innerHTML = '';
+            resetArsipFileInputs();
+        }
+
+        function resetArsipFileInputs() {
+            const container = document.getElementById('file-inputs-container');
+            container.innerHTML = '';
+            appendArsipFileRow();
+        }
+
+        function appendArsipFileRow() {
+            const container = document.getElementById('file-inputs-container');
+            const div = document.createElement('div');
+            div.className = 'flex items-center gap-2 file-input-row';
+
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.name = 'files[]';
+            input.accept = '.pdf';
+            input.className = 'flex-1 px-3 py-2 border border-gray-300 rounded-xl cursor-pointer text-sm';
+
+            const addBtn = document.createElement('button');
+            addBtn.type = 'button';
+            addBtn.title = 'Tambah berkas';
+            addBtn.className = 'flex-shrink-0 w-9 h-9 flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-lg font-bold transition-colors';
+            addBtn.textContent = '+';
+            addBtn.onclick = function() { appendArsipFileRow(); };
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.title = 'Hapus baris ini';
+            removeBtn.className = 'flex-shrink-0 w-9 h-9 flex items-center justify-center bg-red-100 hover:bg-red-200 text-red-600 rounded-xl text-lg font-bold transition-colors';
+            removeBtn.textContent = '×';
+            removeBtn.onclick = function() { div.remove(); };
+
+            div.appendChild(input);
+            div.appendChild(addBtn);
+            div.appendChild(removeBtn);
+            container.appendChild(div);
+        }
+
+        function renderArsipExistingFiles(paths) {
+            const container = document.getElementById('existing-files-container');
+            const list = document.getElementById('existing-files-list');
+            list.innerHTML = '';
+            if (!paths || paths.length === 0) {
+                container.classList.add('hidden');
+                return;
+            }
+            container.classList.remove('hidden');
+            paths.forEach(function(p, i) {
+                const parts = p.split('/');
+                const rawName = parts[parts.length - 1];
+                const displayName = rawName.replace(/^[a-f0-9]+_/, '') || rawName;
+                const li = document.createElement('li');
+                li.id = 'arsip-existing-file-' + i;
+                li.className = 'flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm';
+                li.innerHTML = '<span class="text-gray-700 truncate max-w-xs">📄 ' + displayName + '</span>'
+                    + '<button type="button" onclick="removeArsipExistingFile(\'' + p.replace(/'/g, "\\'") + '\', ' + i + ')" '
+                    + 'class="ml-2 text-red-500 hover:text-red-700 font-medium flex-shrink-0">✕ Hapus</button>';
+                list.appendChild(li);
+            });
+        }
+
+        function removeArsipExistingFile(path, index) {
+            const input = document.getElementById('remove_files');
+            let toRemove = JSON.parse(input.value || '[]');
+            if (!toRemove.includes(path)) toRemove.push(path);
+            input.value = JSON.stringify(toRemove);
+            const li = document.getElementById('arsip-existing-file-' + index);
+            if (li) {
+                li.classList.add('opacity-40', 'line-through');
+                li.querySelector('button').disabled = true;
+            }
         }
 
         function openEditModal(doc) {
+            resetForm();
             document.getElementById('edit_id').value = doc.id;
             document.getElementById('tipe_kontrak').value = doc.tipe_kontrak || 'Asuransi';
             document.getElementById('perusahaan').value = doc.perusahaan || '';
@@ -651,12 +771,23 @@ try {
             document.getElementById('tanggal_berakhir').value = doc.tanggal_berakhir || '';
             document.getElementById('nama_pj').value = doc.nama_pj || '';
             document.getElementById('no_telp_pj').value = doc.no_telp_pj || '';
-            document.getElementById('file').value = '';
-            
+
+            let existingPaths = [];
+            if (doc.file_path) {
+                try {
+                    const parsed = JSON.parse(doc.file_path);
+                    existingPaths = Array.isArray(parsed) ? parsed : [doc.file_path];
+                } catch(e) {
+                    existingPaths = [doc.file_path];
+                }
+            }
+            renderArsipExistingFiles(existingPaths);
+            resetArsipFileInputs();
+
             document.getElementById('submitBtn').name = 'edit_arsip_legal';
             document.getElementById('submitBtn').textContent = 'Simpan Perubahan';
             document.querySelector('#modal h2').textContent = 'Edit Dokumen Arsip Legal';
-            
+
             const modal = document.getElementById('modal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
