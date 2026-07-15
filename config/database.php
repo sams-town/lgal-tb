@@ -126,6 +126,11 @@ try {
             if ($colExists == 0) {
                 $pdo->exec("ALTER TABLE dokumen_regulasi ADD COLUMN penanggung_jawab VARCHAR(255) NULL AFTER tanggal_terbit");
             }
+            // Ensure file_path on dokumen_regulasi is TEXT (to hold JSON array of multiple paths)
+            $colInfo = $pdo->query("SHOW COLUMNS FROM dokumen_regulasi LIKE 'file_path'")->fetch();
+            if ($colInfo && strpos(strtolower($colInfo['Type']), 'text') === false) {
+                $pdo->exec("ALTER TABLE dokumen_regulasi MODIFY COLUMN file_path TEXT NULL");
+            }
         } catch (Exception $ex) {
             // Silently continue if table not created yet
         }
