@@ -525,13 +525,17 @@ try {
                     </div>
                     <!-- Hidden input to track removed files -->
                     <input type="hidden" name="remove_files" id="remove_files" value="[]">
-                    <!-- New file upload -->
-                    <input type="file" name="files[]" id="files" accept=".pdf" multiple
-                        class="w-full px-4 py-2 border border-gray-300 rounded-xl cursor-pointer"
-                        onchange="previewNewFiles(this)">
-                    <p class="text-xs text-gray-500 mt-1">Pilih satu atau lebih file PDF. Biarkan kosong jika tidak ingin mengubah berkas.</p>
-                    <!-- Preview new files to be uploaded -->
-                    <ul id="new-files-preview" class="mt-2 space-y-1"></ul>
+                    <!-- Dynamic file input rows -->
+                    <div id="file-inputs-container" class="space-y-2">
+                        <div class="flex items-center gap-2 file-input-row">
+                            <input type="file" name="files[]" accept=".pdf"
+                                class="flex-1 px-3 py-2 border border-gray-300 rounded-xl cursor-pointer text-sm">
+                            <button type="button" onclick="addFileInput()"
+                                class="flex-shrink-0 w-9 h-9 flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-lg font-bold transition-colors"
+                                title="Tambah berkas">+</button>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Klik <strong>+</strong> untuk menambah berkas. Biarkan kosong jika tidak ingin mengubah berkas.</p>
                 </div>
                 <div class="flex gap-3 pt-4">
                     <button type="button" onclick="closeModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors">
@@ -598,16 +602,54 @@ try {
             document.getElementById('kategori_regulasi').value = 'SPO';
             document.getElementById('tanggal_terbit').value = '';
             document.getElementById('penanggung_jawab').value = '';
-            document.getElementById('files').value = '';
             document.getElementById('remove_files').value = '[]';
-            document.getElementById('new-files-preview').innerHTML = '';
             // Hide existing files section
             document.getElementById('existing-files-container').classList.add('hidden');
             document.getElementById('existing-files-list').innerHTML = '';
+            // Reset file inputs to a single empty row
+            resetFileInputs();
         }
 
-        // Render the list of existing files with per-file delete buttons (edit mode)
-        function renderExistingFiles(paths) {
+        // Reset file inputs container to one empty row
+        function resetFileInputs() {
+            const container = document.getElementById('file-inputs-container');
+            container.innerHTML = '';
+            addFileInput();
+        }
+
+        // Add a new file input row
+        function addFileInput() {
+            const container = document.getElementById('file-inputs-container');
+            const rows = container.querySelectorAll('.file-input-row');
+            const isFirst = rows.length === 0;
+
+            const div = document.createElement('div');
+            div.className = 'flex items-center gap-2 file-input-row';
+
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.name = 'files[]';
+            input.accept = '.pdf';
+            input.className = 'flex-1 px-3 py-2 border border-gray-300 rounded-xl cursor-pointer text-sm';
+
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.title = isFirst ? 'Tambah berkas' : 'Hapus baris ini';
+            btn.className = isFirst
+                ? 'flex-shrink-0 w-9 h-9 flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-lg font-bold transition-colors'
+                : 'flex-shrink-0 w-9 h-9 flex items-center justify-center bg-red-100 hover:bg-red-200 text-red-600 rounded-xl text-lg font-bold transition-colors';
+            btn.textContent = isFirst ? '+' : '×';
+
+            if (isFirst) {
+                btn.onclick = function() { addFileInput(); };
+            } else {
+                btn.onclick = function() { div.remove(); };
+            }
+
+            div.appendChild(input);
+            div.appendChild(btn);
+            container.appendChild(div);
+        }
             const container = document.getElementById('existing-files-container');
             const list = document.getElementById('existing-files-list');
             list.innerHTML = '';
@@ -645,19 +687,6 @@ try {
             }
         }
 
-        // Show preview of newly selected files
-        function previewNewFiles(input) {
-            const preview = document.getElementById('new-files-preview');
-            preview.innerHTML = '';
-            if (!input.files || input.files.length === 0) return;
-            Array.from(input.files).forEach(function(f) {
-                const li = document.createElement('li');
-                li.className = 'flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-1.5 text-sm text-emerald-700';
-                li.innerHTML = '📄 ' + f.name + ' <span class="text-xs text-emerald-500">(' + (f.size / 1024).toFixed(1) + ' KB)</span>';
-                preview.appendChild(li);
-            });
-        }
-
         function openEditModal(doc) {
             resetForm();
             document.getElementById('edit_id').value = doc.id;
@@ -678,6 +707,8 @@ try {
                 }
             }
             renderExistingFiles(existingPaths);
+            // Start with one empty file input row for adding new files
+            resetFileInputs();
 
             document.getElementById('submitBtn').name = 'edit_regulasi';
             document.getElementById('submitBtn').textContent = 'Simpan Perubahan';
