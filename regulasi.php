@@ -660,6 +660,9 @@ try {
 
         // Called from inline HTML onclick — kept for backward compat with static first row
         function addFileInput() { appendFileRow(); }
+
+        // Render the list of existing files with per-file delete buttons (edit mode)
+        function renderExistingFiles(paths) {
             const container = document.getElementById('existing-files-container');
             const list = document.getElementById('existing-files-list');
             list.innerHTML = '';
