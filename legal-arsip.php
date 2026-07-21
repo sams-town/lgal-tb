@@ -391,6 +391,7 @@ try {
                                             <option value="Farmasi" <?php echo $filter_tipe === 'Farmasi' ? 'selected' : ''; ?>>Farmasi</option>
                                             <option value="Alat Kesehatan" <?php echo $filter_tipe === 'Alat Kesehatan' ? 'selected' : ''; ?>>Alat Kesehatan</option>
                                             <option value="Penelitian/Pendidikan" <?php echo $filter_tipe === 'Penelitian/Pendidikan' ? 'selected' : ''; ?>>Penelitian/Pendidikan</option>
+                                            <option value="Rujukan lab/RS" <?php echo $filter_tipe === 'Rujukan lab/RS' ? 'selected' : ''; ?>>Rujukan lab/RS</option>
                                         </select>
                                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">📁</span>
                                         <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">▼</span>
@@ -542,6 +543,7 @@ try {
                         <option value="Penelitian/Pendidikan">Penelitian/Pendidikan</option>
                         <option value="Operasional">Operasional</option>
                         <option value="Umum">Umum</option>
+                        <option value="Rujukan lab/RS">Rujukan lab/RS</option>
                     </select>
                 </div>
                 <div>
