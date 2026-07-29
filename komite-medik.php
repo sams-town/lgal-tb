@@ -675,6 +675,21 @@ if (!function_exists('formatDate')) {
                         <label class="block text-sm font-medium text-gray-700 mb-2">Kompetensi Klinis</label>
                         <textarea name="kompetensi_klinis" id="kompetensi_klinis" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Tulis daftar tindakan medis yang diizinkan"></textarea>
                     </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="block text-sm font-medium text-gray-700">Upload Dokumen Kompetensi</label>
+                            <button type="button" onclick="addFileMedik()" class="text-emerald-600 hover:text-emerald-700 text-sm font-medium flex items-center gap-1">
+                                <span class="text-lg leading-none">+</span> Tambah File
+                            </button>
+                        </div>
+                        <div id="file-medik-container" class="space-y-2">
+                            <div class="flex items-center gap-2">
+                                <input type="file" name="dokumen_kompetensi[]" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                <button type="button" onclick="removeFileMedik(this)" class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors font-bold text-lg leading-none" title="Hapus">−</button>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1">Format: PDF, DOC, DOCX, JPG, PNG</p>
+                    </div>
                 </div>
 
                 <div class="flex gap-3 pt-4">
@@ -838,6 +853,27 @@ if (!function_exists('formatDate')) {
             if (element) {
                 element.classList.add('hidden');
                 element.classList.remove('flex');
+            }
+        }
+
+        function addFileMedik() {
+            const container = document.getElementById('file-medik-container');
+            const div = document.createElement('div');
+            div.className = 'flex items-center gap-2';
+            div.innerHTML = `
+                <input type="file" name="dokumen_kompetensi[]" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                <button type="button" onclick="removeFileMedik(this)" class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors font-bold text-lg leading-none" title="Hapus">−</button>
+            `;
+            container.appendChild(div);
+        }
+
+        function removeFileMedik(btn) {
+            const container = document.getElementById('file-medik-container');
+            if (container.children.length > 1) {
+                btn.closest('div').remove();
+            } else {
+                // Jika hanya satu, reset saja inputnya
+                btn.closest('div').querySelector('input[type="file"]').value = '';
             }
         }
 
