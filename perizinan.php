@@ -25,6 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_perizinan'])) 
         exit;
     }
     $nama_izin = $_POST['nama_izin'] ?? null;
+    $nomor_izin = $_POST['nomor_izin'] ?? null;
     $pemilik_izin = $_POST['pemilik_izin'] ?? null;
     $masa_berlaku_mulai = $_POST['masa_berlaku_mulai'] ?? null;
     $masa_berlaku_akhir = $_POST['masa_berlaku_akhir'] ?? null;
@@ -50,10 +51,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_perizinan'])) 
 
     try {
         $stmt = $pdo->prepare("
-            INSERT INTO dokumen_perizinan (nama_izin, pemilik_izin, masa_berlaku_mulai, masa_berlaku_akhir, instansi_penerbit, penanggung_jawab, file_path)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO dokumen_perizinan (nama_izin, nomor_izin, pemilik_izin, masa_berlaku_mulai, masa_berlaku_akhir, instansi_penerbit, penanggung_jawab, file_path)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ");
-        $stmt->execute([$nama_izin, $pemilik_izin, $masa_berlaku_mulai, $masa_berlaku_akhir, $instansi_penerbit, $penanggung_jawab, $file_path]);
+        $stmt->execute([$nama_izin, $nomor_izin, $pemilik_izin, $masa_berlaku_mulai, $masa_berlaku_akhir, $instansi_penerbit, $penanggung_jawab, $file_path]);
 
         $_SESSION['pks_success'] = "Dokumen Perizinan berhasil ditambahkan!";
     } catch (PDOException $e) {
@@ -74,6 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_perizinan'])) {
     
     $edit_id = (int)$_POST['edit_id'];
     $nama_izin = $_POST['nama_izin'] ?? null;
+    $nomor_izin = $_POST['nomor_izin'] ?? null;
     $pemilik_izin = $_POST['pemilik_izin'] ?? null;
     $masa_berlaku_mulai = $_POST['masa_berlaku_mulai'] ?? null;
     $masa_berlaku_akhir = $_POST['masa_berlaku_akhir'] ?? null;
@@ -108,10 +110,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_perizinan'])) {
     try {
         $stmt = $pdo->prepare("
             UPDATE dokumen_perizinan 
-            SET nama_izin = ?, pemilik_izin = ?, masa_berlaku_mulai = ?, masa_berlaku_akhir = ?, instansi_penerbit = ?, penanggung_jawab = ?, file_path = ?
+            SET nama_izin = ?, nomor_izin = ?, pemilik_izin = ?, masa_berlaku_mulai = ?, masa_berlaku_akhir = ?, instansi_penerbit = ?, penanggung_jawab = ?, file_path = ?
             WHERE id = ?
         ");
-        $stmt->execute([$nama_izin, $pemilik_izin, $masa_berlaku_mulai, $masa_berlaku_akhir, $instansi_penerbit, $penanggung_jawab, $file_path, $edit_id]);
+        $stmt->execute([$nama_izin, $nomor_izin, $pemilik_izin, $masa_berlaku_mulai, $masa_berlaku_akhir, $instansi_penerbit, $penanggung_jawab, $file_path, $edit_id]);
 
         $_SESSION['pks_success'] = "Dokumen Perizinan berhasil diperbarui!";
     } catch (PDOException $e) {
@@ -446,6 +448,10 @@ try {
                     <input type="text" name="nama_izin" id="nama_izin" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                 </div>
                 <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Nomor Izin</label>
+                    <input type="text" name="nomor_izin" id="nomor_izin" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan nomor izin">
+                </div>
+                <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Pemilik Izin</label>
                     <select name="pemilik_izin" id="pemilik_izin" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                         <option value="RS THB">RS THB</option>
@@ -548,6 +554,7 @@ try {
         function openEditModal(doc) {
             document.getElementById('edit_id').value = doc.id;
             document.getElementById('nama_izin').value = doc.nama_izin || '';
+            document.getElementById('nomor_izin').value = doc.nomor_izin || '';
             document.getElementById('pemilik_izin').value = doc.pemilik_izin || 'RS THB';
             document.getElementById('masa_berlaku_mulai').value = doc.masa_berlaku_mulai || '';
             document.getElementById('masa_berlaku_akhir').value = doc.masa_berlaku_akhir || '';

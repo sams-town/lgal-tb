@@ -151,6 +151,7 @@ CREATE TABLE IF NOT EXISTS `dokumen_regulasi` (
 CREATE TABLE IF NOT EXISTS `dokumen_perizinan` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `nama_izin` varchar(255) NOT NULL,
+  `nomor_izin` varchar(255) DEFAULT NULL,
   `instansi_penerbit` varchar(255) NOT NULL,
   `tanggal_mulai` date NOT NULL,
   `tanggal_habis_berlaku` date NOT NULL,
