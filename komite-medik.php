@@ -629,7 +629,7 @@ if (!function_exists('formatDate')) {
 
                         <!-- SK -->
                         <div class="border border-gray-200 rounded-xl p-4">
-                            <h4 class="font-medium text-gray-800 mb-4">SK (Surat Keputusan)</h4>
+                            <h4 class="font-medium text-gray-800 mb-4">SK (Surat Kewenangan Klinis)</h4>
                             <div class="space-y-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">No. SK</label>
