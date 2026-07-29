@@ -775,10 +775,18 @@ if (!function_exists('formatDate')) {
             document.getElementById('masa_berlaku_sk_mulai').value = '';
             document.getElementById('masa_berlaku_sk_akhir').value = '';
             document.getElementById('file_sk').value = '';
-            document.getElementById('kompetensi_klinis').value = '';
+            // Reset sertifikasi container
             document.getElementById('sertifikasi-container').innerHTML = `
-                <div class="flex gap-2">
-                    <input type="text" name="sertifikasi[]" class="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan sertifikasi">
+                <div class="flex items-center gap-2">
+                    <input type="file" name="sertifikasi[]" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <button type="button" onclick="removeSertifikasi(this)" class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors font-bold text-lg leading-none" title="Hapus">−</button>
+                </div>
+            `;
+            // Reset kompetensi klinis container
+            document.getElementById('kompetensi-klinis-container').innerHTML = `
+                <div class="flex items-center gap-2">
+                    <input type="file" name="kompetensi_klinis[]" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <button type="button" onclick="removeKompetensiKlinis(this)" class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors font-bold text-lg leading-none" title="Hapus">−</button>
                 </div>
             `;
         }
@@ -846,22 +854,6 @@ if (!function_exists('formatDate')) {
             const modal = document.getElementById('modal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
-        }
-
-        function openModal(modalId) {
-            const element = document.getElementById(modalId);
-            if (element) {
-                element.classList.remove('hidden');
-                element.classList.add('flex');
-            }
-        }
-
-        function closeModal(modalId) {
-            const element = document.getElementById(modalId);
-            if (element) {
-                element.classList.add('hidden');
-                element.classList.remove('flex');
-            }
         }
 
         function addSertifikasi() {
