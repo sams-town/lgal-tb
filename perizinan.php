@@ -34,18 +34,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_perizinan'])) 
 
     $file_path = null;
 
-    // Handle file upload
-    if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
+    // Handle multiple file uploads
+    if (isset($_FILES['file']) && is_array($_FILES['file']['name'])) {
         $uploadDir = 'uploads/perizinan/';
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0777, true);
         }
-
-        $fileName = uniqid() . '_' . basename($_FILES['file']['name']);
-        $targetFile = $uploadDir . $fileName;
-
-        if (move_uploaded_file($_FILES['file']['tmp_name'], $targetFile)) {
-            $file_path = $targetFile;
+        $uploaded_paths = [];
+        foreach ($_FILES['file']['tmp_name'] as $i => $tmp_name) {
+            if ($_FILES['file']['error'][$i] === UPLOAD_ERR_OK && !empty($tmp_name)) {
+                $fileName = uniqid() . '_' . basename($_FILES['file']['name'][$i]);
+                $targetFile = $uploadDir . $fileName;
+                if (move_uploaded_file($tmp_name, $targetFile)) {
+                    $uploaded_paths[] = $targetFile;
+                }
+            }
+        }
+        if (!empty($uploaded_paths)) {
+            $file_path = json_encode($uploaded_paths);
         }
     }
 
@@ -88,22 +94,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_perizinan'])) {
     $current_doc = $stmt->fetch();
     $file_path = $current_doc['file_path'] ?? null;
 
-    // Handle file upload if new file is provided
-    if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
+    // Handle multiple file uploads if new files are provided
+    if (isset($_FILES['file']) && is_array($_FILES['file']['name'])) {
         $uploadDir = 'uploads/perizinan/';
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0777, true);
         }
-
-        $fileName = uniqid() . '_' . basename($_FILES['file']['name']);
-        $targetFile = $uploadDir . $fileName;
-
-        if (move_uploaded_file($_FILES['file']['tmp_name'], $targetFile)) {
-            // Delete old file if exists
-            if ($file_path && file_exists($file_path)) {
-                unlink($file_path);
+        $uploaded_paths = [];
+        foreach ($_FILES['file']['tmp_name'] as $i => $tmp_name) {
+            if ($_FILES['file']['error'][$i] === UPLOAD_ERR_OK && !empty($tmp_name)) {
+                $fileName = uniqid() . '_' . basename($_FILES['file']['name'][$i]);
+                $targetFile = $uploadDir . $fileName;
+                if (move_uploaded_file($tmp_name, $targetFile)) {
+                    $uploaded_paths[] = $targetFile;
+                }
             }
-            $file_path = $targetFile;
+        }
+        if (!empty($uploaded_paths)) {
+            // Delete old files if exists
+            if ($file_path) {
+                $old_paths = json_decode($file_path, true) ?: [$file_path];
+                foreach ($old_paths as $old) {
+                    if (file_exists($old)) unlink($old);
+                }
+            }
+            $file_path = json_encode($uploaded_paths);
         }
     }
 
@@ -395,24 +410,41 @@ try {
                                                 <p class="text-sm"><?php echo htmlspecialchars($doc['penanggung_jawab'] ?? '-'); ?></p>
                                             </td>
                                             <td class="px-6 py-4">
-                                                <?php $file_path = $doc['file_path'] ?? ''; ?>
-                                                <?php if (!empty($file_path)): ?>
-                                                    <a href="download_pdf.php?file=<?php echo urlencode($file_path); ?>" target="_blank" class="text-emerald-600 hover:text-emerald-700 font-medium text-sm flex items-center gap-1">
-                                                        📥
-                                                        <span>Download</span>
-                                                    </a>
+                                                <?php 
+                                                $file_path = $doc['file_path'] ?? '';
+                                                $files = [];
+                                                if (!empty($file_path)) {
+                                                    $decoded = json_decode($file_path, true);
+                                                    $files = is_array($decoded) ? $decoded : [$file_path];
+                                                }
+                                                ?>
+                                                <?php if (!empty($files)): ?>
+                                                    <div class="flex flex-col gap-1">
+                                                    <?php foreach ($files as $fi => $fp): ?>
+                                                        <a href="download_pdf.php?file=<?php echo urlencode($fp); ?>" target="_blank" class="text-emerald-600 hover:text-emerald-700 font-medium text-sm flex items-center gap-1">
+                                                            📥 <span>File <?php echo $fi + 1; ?></span>
+                                                        </a>
+                                                    <?php endforeach; ?>
+                                                    </div>
                                                 <?php else: ?>
                                                     <span class="text-gray-400 text-sm">-</span>
                                                 <?php endif; ?>
                                             </td>
                                             <td class="px-6 py-4">
                                                 <div class="flex items-center gap-2">
-                                                    <?php $file_path = $doc['file_path'] ?? ''; ?>
-                                                    <?php if (!empty($file_path)): ?>
-                                                        <a href="view_pdf.php?file=<?php echo urlencode($file_path); ?>" target="_blank" class="px-3 py-1 text-sm bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition-colors">
-                                                            Lihat
+                                                    <?php 
+                                                    $file_path = $doc['file_path'] ?? '';
+                                                    $files = [];
+                                                    if (!empty($file_path)) {
+                                                        $decoded = json_decode($file_path, true);
+                                                        $files = is_array($decoded) ? $decoded : [$file_path];
+                                                    }
+                                                    ?>
+                                                    <?php foreach ($files as $fi => $fp): ?>
+                                                        <a href="view_pdf.php?file=<?php echo urlencode($fp); ?>" target="_blank" class="px-3 py-1 text-sm bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition-colors">
+                                                            Lihat <?php echo count($files) > 1 ? ($fi + 1) : ''; ?>
                                                         </a>
-                                                    <?php endif; ?>
+                                                    <?php endforeach; ?>
                                                     <?php if (canUserEditOrDelete('legal')): ?>
                                                         <button onclick="openEditModal(<?php echo htmlspecialchars(json_encode($doc), ENT_QUOTES); ?>)" class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
                                                             Edit
@@ -477,9 +509,19 @@ try {
                     <input type="text" name="penanggung_jawab" id="penanggung_jawab" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Upload Berkas (PDF)</label>
-                    <input type="file" name="file" id="file" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-xl">
-                    <p class="text-xs text-gray-500 mt-1">Biarkan kosong jika tidak ingin mengubah berkas</p>
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="block text-sm font-medium text-gray-700">Upload Berkas (PDF)</label>
+                        <button type="button" onclick="addFilePerizinan()" class="text-emerald-600 hover:text-emerald-700 text-sm font-medium flex items-center gap-1">
+                            <span>+</span> Tambah File
+                        </button>
+                    </div>
+                    <div id="file-perizinan-container" class="space-y-2">
+                        <div class="flex items-center gap-2">
+                            <input type="file" name="file[]" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                            <button type="button" onclick="removeFilePerizinan(this)" class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors font-bold text-lg leading-none" title="Hapus">−</button>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Biarkan kosong jika tidak ingin mengubah berkas. Format: PDF, DOC, DOCX, JPG, PNG</p>
                 </div>
                 <div class="flex gap-3 pt-4">
                     <button type="button" onclick="closeModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors">
@@ -543,12 +585,38 @@ try {
         function resetForm() {
             document.getElementById('edit_id').value = '';
             document.getElementById('nama_izin').value = '';
+            document.getElementById('nomor_izin').value = '';
             document.getElementById('pemilik_izin').value = 'RS THB';
             document.getElementById('masa_berlaku_mulai').value = '';
             document.getElementById('masa_berlaku_akhir').value = '';
             document.getElementById('instansi_penerbit').value = '';
             document.getElementById('penanggung_jawab').value = '';
-            document.getElementById('file').value = '';
+            document.getElementById('file-perizinan-container').innerHTML = `
+                <div class="flex items-center gap-2">
+                    <input type="file" name="file[]" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <button type="button" onclick="removeFilePerizinan(this)" class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors font-bold text-lg leading-none" title="Hapus">−</button>
+                </div>
+            `;
+        }
+
+        function addFilePerizinan() {
+            const container = document.getElementById('file-perizinan-container');
+            const div = document.createElement('div');
+            div.className = 'flex items-center gap-2';
+            div.innerHTML = `
+                <input type="file" name="file[]" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                <button type="button" onclick="removeFilePerizinan(this)" class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors font-bold text-lg leading-none" title="Hapus">−</button>
+            `;
+            container.appendChild(div);
+        }
+
+        function removeFilePerizinan(btn) {
+            const container = document.getElementById('file-perizinan-container');
+            if (container.children.length > 1) {
+                btn.closest('div').remove();
+            } else {
+                btn.closest('div').querySelector('input[type="file"]').value = '';
+            }
         }
 
         function openEditModal(doc) {
@@ -560,7 +628,13 @@ try {
             document.getElementById('masa_berlaku_akhir').value = doc.masa_berlaku_akhir || '';
             document.getElementById('instansi_penerbit').value = doc.instansi_penerbit || '';
             document.getElementById('penanggung_jawab').value = doc.penanggung_jawab || '';
-            document.getElementById('file').value = '';
+            // Reset file input container saat edit
+            document.getElementById('file-perizinan-container').innerHTML = `
+                <div class="flex items-center gap-2">
+                    <input type="file" name="file[]" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <button type="button" onclick="removeFilePerizinan(this)" class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors font-bold text-lg leading-none" title="Hapus">−</button>
+                </div>
+            `;
             
             document.getElementById('submitBtn').name = 'edit_perizinan';
             document.getElementById('submitBtn').textContent = 'Simpan Perubahan';
