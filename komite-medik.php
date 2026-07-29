@@ -848,6 +848,14 @@ if (!function_exists('formatDate')) {
             modal.classList.add('flex');
         }
 
+        function openModal(modalId) {
+            const element = document.getElementById(modalId);
+            if (element) {
+                element.classList.remove('hidden');
+                element.classList.add('flex');
+            }
+        }
+
         function closeModal(modalId) {
             const element = document.getElementById(modalId);
             if (element) {
