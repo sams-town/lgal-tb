@@ -56,8 +56,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_tenaga_medis']
                 no_sk, masa_berlaku_sk_mulai, masa_berlaku_sk_akhir, file_sk,
                 kompetensi_klinis, sertifikasi_kompetensi, jabatan_keperawatan,
                 spesialis, nomor_pkwt, rincian_kewenangan_klinis,
-                lantai, nomor_keputusan_direktur
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                lantai, jenjang_keperawatan, nomor_keputusan_direktur
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $stmt->execute([
             $_POST['nama_lengkap'],
@@ -87,6 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_tenaga_medis']
             $_POST['nomor_pkwt'] ?? null,
             $_POST['rincian_kewenangan_klinis'] ?? null,
             $_POST['lantai'] ?? null,
+            $_POST['jenjang_keperawatan'] ?? null,
             $_POST['nomor_keputusan_direktur'] ?? null
         ]);
         $_SESSION['success_msg'] = "Data Komite Keperawatan berhasil ditambahkan";
@@ -148,7 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_tenaga_medis']))
                     no_sk = ?, masa_berlaku_sk_mulai = ?, masa_berlaku_sk_akhir = ?, file_sk = ?,
                     kompetensi_klinis = ?, sertifikasi_kompetensi = ?, jabatan_keperawatan = ?,
                     spesialis = ?, nomor_pkwt = ?, rincian_kewenangan_klinis = ?,
-                    lantai = ?, nomor_keputusan_direktur = ?
+                    lantai = ?, jenjang_keperawatan = ?, nomor_keputusan_direktur = ?
                 WHERE id = ?
             ");
             $stmt->execute([
@@ -178,6 +179,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_tenaga_medis']))
                 $_POST['nomor_pkwt'] ?? null,
                 $_POST['rincian_kewenangan_klinis'] ?? null,
                 $_POST['lantai'] ?? null,
+                $_POST['jenjang_keperawatan'] ?? null,
                 $_POST['nomor_keputusan_direktur'] ?? null,
                 $editId
             ]);
@@ -542,6 +544,15 @@ if (!function_exists('formatDate')) {
                             </select>
                         </div>
                         <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Jenjang Keperawatan</label>
+                            <select name="jenjang_keperawatan" id="jenjang_keperawatan" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                <option value="">-- Pilih Jenjang --</option>
+                                <option value="PK 1">PK 1</option>
+                                <option value="PK 2">PK 2</option>
+                                <option value="PK 3">PK 3</option>
+                            </select>
+                        </div>
+                        <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Jabatan</label>
                             <select name="jabatan_keperawatan" id="jabatan_keperawatan" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                                 <?php foreach ($jabatanKeperawatanOptions as $option): ?>
@@ -765,6 +776,7 @@ if (!function_exists('formatDate')) {
             document.getElementById('nama_lengkap').value = '';
             document.getElementById('unit_ruangan').value = '';
             document.getElementById('lantai').value = '1';
+            document.getElementById('jenjang_keperawatan').value = '';
             document.getElementById('jabatan_keperawatan').value = '<?php echo $jabatanKeperawatanOptions[0]; ?>';
             document.getElementById('status_karyawan').value = 'Tetap';
             document.getElementById('container_sk').classList.remove('hidden');
@@ -801,6 +813,7 @@ if (!function_exists('formatDate')) {
             document.getElementById('nama_lengkap').value = doc.nama_lengkap || '';
             document.getElementById('unit_ruangan').value = doc.unit_ruangan || '';
             document.getElementById('lantai').value = doc.lantai || '1';
+            document.getElementById('jenjang_keperawatan').value = doc.jenjang_keperawatan || '';
             document.getElementById('jabatan_keperawatan').value = doc.jabatan_keperawatan || '<?php echo $jabatanKeperawatanOptions[0]; ?>';
             document.getElementById('status_karyawan').value = doc.status_kepegawaian || 'Tetap';
             if (doc.status_kepegawaian === 'Tetap') {
