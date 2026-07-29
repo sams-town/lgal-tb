@@ -527,6 +527,7 @@ if (!function_exists('formatDate')) {
                             <select name="status_kepegawaian" id="status_karyawan_medik" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                                 <option value="Tetap" selected>Tetap</option>
                                 <option value="Tidak Tetap">Tidak Tetap</option>
+                                <option value="Partime">Partime</option>
                             </select>
                         </div>
                         <div id="container_sk_medik" class="mt-0">
@@ -775,6 +776,9 @@ if (!function_exists('formatDate')) {
             if (doc.status_kepegawaian === 'Tetap') {
                 document.getElementById('container_sk_medik').classList.remove('hidden');
                 document.getElementById('container_pkwt_medik').classList.add('hidden');
+            } else if (doc.status_kepegawaian === 'Partime') {
+                document.getElementById('container_sk_medik').classList.add('hidden');
+                document.getElementById('container_pkwt_medik').classList.add('hidden');
             } else {
                 document.getElementById('container_sk_medik').classList.add('hidden');
                 document.getElementById('container_pkwt_medik').classList.remove('hidden');
@@ -861,6 +865,9 @@ if (!function_exists('formatDate')) {
                     } else if (status === 'Tidak Tetap') {
                         containerSKMedik.classList.add('hidden');
                         containerPKWTMedik.classList.remove('hidden');
+                    } else if (status === 'Partime') {
+                        containerSKMedik.classList.add('hidden');
+                        containerPKWTMedik.classList.add('hidden');
                     }
                 });
             }
