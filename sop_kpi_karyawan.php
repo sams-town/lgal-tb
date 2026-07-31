@@ -41,16 +41,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
     elseif ($action === 'delete') {
-        $id = $_POST['id'];
         $stmt = $pdo->prepare("DELETE FROM kpi_karyawan WHERE id=?");
-        $stmt->execute([$id]);
+        $stmt->execute([$_POST['id']]);
         header("Location: sop_kpi_karyawan.php?success=delete");
+        exit;
+    } elseif ($action === 'sync_komite') {
+        // Sync tenaga_medis to kpi_karyawan
+        $stmtKomite = $pdo->query("SELECT id, nama_lengkap, unit_ruangan, jabatan_keperawatan, tipe_form FROM tenaga_medis");
+        $komiteList = $stmtKomite->fetchAll();
+        
+        $synced = 0;
+        foreach($komiteList as $k) {
+            // Check if exists
+            $stmtCheck = $pdo->prepare("SELECT id FROM kpi_karyawan WHERE tenaga_medis_id = ? OR nik = ? OR nama = ?");
+            // Generating a fake NIK if syncing
+            $nik = 'KOM-'.str_pad($k['id'], 3, '0', STR_PAD_LEFT);
+            $stmtCheck->execute([$k['id'], $nik, $k['nama_lengkap']]);
+            
+            if ($stmtCheck->rowCount() == 0) {
+                // Insert new
+                $unit = $k['unit_ruangan'] ?? 'Belum Ditentukan';
+                $jabatan = $k['jabatan_keperawatan'];
+                if (!$jabatan) {
+                    if ($k['tipe_form'] == 'komite-medik') $jabatan = 'Dokter';
+                    elseif ($k['tipe_form'] == 'komite-keperawatan') $jabatan = 'Perawat';
+                    else $jabatan = 'Tenaga Kesehatan';
+                }
+                
+                $stmtInsert = $pdo->prepare("INSERT INTO kpi_karyawan (nik, nama, unit, jabatan, tenaga_medis_id) VALUES (?, ?, ?, ?, ?)");
+                $stmtInsert->execute([$nik, $k['nama_lengkap'], $unit, $jabatan, $k['id']]);
+                $synced++;
+            } else {
+                // Update existing if tenaga_medis_id is null
+                $existing = $stmtCheck->fetch();
+                $pdo->prepare("UPDATE kpi_karyawan SET tenaga_medis_id = ? WHERE id = ? AND tenaga_medis_id IS NULL")->execute([$k['id'], $existing['id']]);
+            }
+        }
+        
+        header("Location: sop_kpi_karyawan.php?success=sync&count=".$synced);
         exit;
     }
 }
 
-// Ambil Data Karyawan
-$stmt = $pdo->query("SELECT * FROM kpi_karyawan ORDER BY nama ASC");
+// Fetch all data
+$stmt = $pdo->query("SELECT * FROM kpi_karyawan ORDER BY id DESC");
 $karyawanList = $stmt->fetchAll();
 
 ?>
@@ -84,15 +118,30 @@ $karyawanList = $stmt->fetchAll();
                         <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Data Karyawan</h1>
                         <p class="text-gray-500 mt-1">Daftar Karyawan untuk Penilaian Performa</p>
                     </div>
-                    <button onclick="openModal('modalAdd')" class="bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2.5 px-5 rounded-xl transition-all shadow-md hover:shadow-lg flex items-center gap-2">
-                        <i data-lucide="plus" class="w-4 h-4"></i> Tambah Karyawan
-                    </button>
+                    <div class="flex gap-2">
+                        <form method="POST" class="inline" onsubmit="return confirm('Tarik data tenaga medis dari tabel Komite?');">
+                            <input type="hidden" name="action" value="sync_komite">
+                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-5 rounded-xl transition-all shadow-md hover:shadow-lg flex items-center gap-2">
+                                <i data-lucide="refresh-cw" class="w-4 h-4"></i> Sinkronisasi Data Komite
+                            </button>
+                        </form>
+                        <button onclick="openModal('modalAdd')" class="bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2.5 px-5 rounded-xl transition-all shadow-md hover:shadow-lg flex items-center gap-2">
+                            <i data-lucide="plus" class="w-4 h-4"></i> Tambah Karyawan
+                        </button>
+                    </div>
                 </div>
 
                 <?php if (isset($_GET['success'])): ?>
                 <div class="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl flex items-center gap-2">
                     <i data-lucide="check-circle" class="w-5 h-5"></i>
-                    <span>Data berhasil disimpan/dihapus!</span>
+                    <span>
+                        <?php 
+                        if($_GET['success'] == 'add') echo "Data karyawan berhasil ditambahkan!";
+                        elseif($_GET['success'] == 'edit') echo "Data karyawan berhasil diperbarui!";
+                        elseif($_GET['success'] == 'delete') echo "Data karyawan berhasil dihapus!";
+                        elseif($_GET['success'] == 'sync') echo "Sinkronisasi selesai! " . ($_GET['count'] ?? 0) . " data baru ditarik dari Komite.";
+                        ?>
+                    </span>
                 </div>
                 <?php endif; ?>
 

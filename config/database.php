@@ -143,11 +143,23 @@ try {
                   `unit` varchar(100) NOT NULL,
                   `jabatan` varchar(100) NOT NULL,
                   `status` varchar(50) DEFAULT 'Aktif',
+                  `tenaga_medis_id` int(11) DEFAULT NULL,
                   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
                   PRIMARY KEY (`id`),
-                  UNIQUE KEY `nik` (`nik`)
+                  UNIQUE KEY `nik` (`nik`),
+                  KEY `tenaga_medis_id` (`tenaga_medis_id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             ");
+            
+            // Ensure tenaga_medis_id column exists on kpi_karyawan table (for sync)
+            try {
+                $colExists = $pdo->query("SHOW COLUMNS FROM kpi_karyawan LIKE 'tenaga_medis_id'")->rowCount();
+                if ($colExists == 0) {
+                    $pdo->exec("ALTER TABLE kpi_karyawan ADD COLUMN tenaga_medis_id INT NULL AFTER status");
+                }
+            } catch (Exception $ex) {
+                // Silently continue
+            }
 
             $pdo->exec("
                 CREATE TABLE IF NOT EXISTS `kpi_kriteria` (

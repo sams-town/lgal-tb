@@ -12,22 +12,49 @@ if (!hasPermission('sop_view')) {
     exit;
 }
 
+function syncRKKtoKomite($pdo, $karyawan_id) {
+    // Cek apakah karyawan ini terhubung dengan tenaga medis komite
+    $stmtCheck = $pdo->prepare("SELECT tenaga_medis_id FROM kpi_karyawan WHERE id = ?");
+    $stmtCheck->execute([$karyawan_id]);
+    $k = $stmtCheck->fetch();
+    if ($k && $k['tenaga_medis_id']) {
+        // Ambil semua tugas untuk dijadikan rincian
+        $stmtTugas = $pdo->prepare("SELECT tugas, deskripsi FROM kpi_rkk_karyawan WHERE karyawan_id = ? ORDER BY jenis DESC, id ASC");
+        $stmtTugas->execute([$karyawan_id]);
+        $tugasList = $stmtTugas->fetchAll();
+        
+        $rincian_text = "";
+        $no = 1;
+        foreach($tugasList as $t) {
+            $rincian_text .= $no . ". " . $t['tugas'] . "\n";
+            $no++;
+        }
+        
+        // Update ke tenaga_medis
+        $stmtUpdate = $pdo->prepare("UPDATE tenaga_medis SET rincian_kewenangan_klinis = ? WHERE id = ?");
+        $stmtUpdate->execute([$rincian_text, $k['tenaga_medis_id']]);
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     
     if ($action === 'add') {
         $stmt = $pdo->prepare("INSERT INTO kpi_rkk_karyawan (karyawan_id, tugas, deskripsi, jenis) VALUES (?, ?, ?, ?)");
         $stmt->execute([$_POST['karyawan_id'], $_POST['tugas'], $_POST['deskripsi'], $_POST['jenis']]);
+        syncRKKtoKomite($pdo, $_POST['karyawan_id']);
         header("Location: sop_kpi_rkk.php?success=add&karyawan_id=".$_POST['karyawan_id']);
         exit;
     } elseif ($action === 'edit') {
         $stmt = $pdo->prepare("UPDATE kpi_rkk_karyawan SET tugas=?, deskripsi=?, jenis=? WHERE id=?");
         $stmt->execute([$_POST['tugas'], $_POST['deskripsi'], $_POST['jenis'], $_POST['id']]);
+        syncRKKtoKomite($pdo, $_POST['karyawan_id']);
         header("Location: sop_kpi_rkk.php?success=edit&karyawan_id=".$_POST['karyawan_id']);
         exit;
     } elseif ($action === 'delete') {
         $stmt = $pdo->prepare("DELETE FROM kpi_rkk_karyawan WHERE id=?");
         $stmt->execute([$_POST['id']]);
+        syncRKKtoKomite($pdo, $_POST['karyawan_id']);
         header("Location: sop_kpi_rkk.php?success=delete&karyawan_id=".$_POST['karyawan_id']);
         exit;
     } elseif ($action === 'copy_template') {
@@ -42,6 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         foreach($tugasList as $t) {
             $stmtInsert->execute([$karyawan_id, $t['tugas'], $t['deskripsi'], 'Pokok']);
         }
+        syncRKKtoKomite($pdo, $karyawan_id);
         header("Location: sop_kpi_rkk.php?success=copy&karyawan_id=".$karyawan_id);
         exit;
     }
