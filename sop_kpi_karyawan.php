@@ -93,7 +93,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Fetch all data
-$stmt = $pdo->query("SELECT * FROM kpi_karyawan ORDER BY id DESC");
+$stmt = $pdo->query("
+    SELECT k.*, 
+           t.spesialis, t.status_kepegawaian, t.nomor_pkwt, t.no_sip, t.no_str, t.masa_berlaku_sip_akhir
+    FROM kpi_karyawan k
+    LEFT JOIN tenaga_medis t ON k.tenaga_medis_id = t.id
+    ORDER BY k.id DESC
+");
 $karyawanList = $stmt->fetchAll();
 
 $karyawanNonKomite = [];
@@ -232,10 +238,10 @@ foreach ($karyawanList as $k) {
                             <thead>
                                 <tr>
                                     <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">ID / NIK</th>
-                                    <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Nama Karyawan</th>
-                                    <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Unit / Departemen</th>
-                                    <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Jabatan</th>
-                                    <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Nama & Spesialis</th>
+                                    <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Unit & Jabatan</th>
+                                    <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Detail Medis</th>
+                                    <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Status KPI</th>
                                     <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Aksi</th>
                                 </tr>
                             </thead>
@@ -245,10 +251,23 @@ foreach ($karyawanList as $k) {
                                     <td class="text-sm font-medium text-gray-900 py-3"><?= htmlspecialchars($k['nik']) ?></td>
                                     <td class="py-3">
                                         <div class="text-sm font-semibold text-gray-800"><?= htmlspecialchars($k['nama']) ?></div>
-                                        <div class="text-xs text-blue-600 font-medium">Sinkronisasi Komite</div>
+                                        <?php if(!empty($k['spesialis'])): ?>
+                                            <div class="text-xs text-gray-500 mt-0.5"><?= htmlspecialchars($k['spesialis']) ?></div>
+                                        <?php endif; ?>
+                                        <div class="text-xs text-blue-600 font-medium mt-1">Sinkronisasi Komite</div>
                                     </td>
-                                    <td class="text-sm text-gray-600 py-3"><?= htmlspecialchars($k['unit']) ?></td>
-                                    <td class="text-sm text-gray-600 py-3"><?= htmlspecialchars($k['jabatan']) ?></td>
+                                    <td class="py-3">
+                                        <div class="text-sm text-gray-800 font-medium"><?= htmlspecialchars($k['jabatan']) ?></div>
+                                        <div class="text-xs text-gray-600 mt-0.5"><?= htmlspecialchars($k['unit']) ?></div>
+                                    </td>
+                                    <td class="py-3">
+                                        <div class="text-xs text-gray-700 mb-1"><span class="font-semibold">Pegawai:</span> <?= htmlspecialchars($k['status_kepegawaian'] ?? '-') ?></div>
+                                        <div class="text-xs text-gray-700 mb-1"><span class="font-semibold">STR:</span> <?= htmlspecialchars($k['no_str'] ?? '-') ?></div>
+                                        <div class="text-xs text-gray-700"><span class="font-semibold">SIP:</span> <?= htmlspecialchars($k['no_sip'] ?? '-') ?></div>
+                                        <?php if(!empty($k['masa_berlaku_sip_akhir'])): ?>
+                                            <div class="text-xs text-emerald-600 mt-0.5">(s/d <?= date('d M Y', strtotime($k['masa_berlaku_sip_akhir'])) ?>)</div>
+                                        <?php endif; ?>
+                                    </td>
                                     <td class="py-3">
                                         <?php if($k['status'] === 'Aktif'): ?>
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Aktif</span>
