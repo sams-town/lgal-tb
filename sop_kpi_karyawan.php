@@ -46,6 +46,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header("Location: sop_kpi_karyawan.php?success=delete");
         exit;
     } elseif ($action === 'sync_komite') {
+        // Ensure tenaga_medis_id column exists (in case session blocked database.php from altering)
+        try {
+            $colExists = $pdo->query("SHOW COLUMNS FROM kpi_karyawan LIKE 'tenaga_medis_id'")->rowCount();
+            if ($colExists == 0) {
+                $pdo->exec("ALTER TABLE kpi_karyawan ADD COLUMN tenaga_medis_id INT NULL AFTER status");
+                $pdo->exec("ALTER TABLE kpi_karyawan ADD KEY tenaga_medis_id (tenaga_medis_id)");
+            }
+        } catch (Exception $ex) {}
+        
         // Sync tenaga_medis to kpi_karyawan
         $stmtKomite = $pdo->query("SELECT id, nama_lengkap, unit_ruangan, jabatan_keperawatan, tipe_form FROM tenaga_medis");
         $komiteList = $stmtKomite->fetchAll();
