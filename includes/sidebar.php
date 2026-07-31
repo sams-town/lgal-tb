@@ -173,10 +173,54 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
 
         <!-- SOP & SDM -->
         <?php if (hasPermission('sop_view')): ?>
-        <a href="sop.php" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 <?php echo $current_page === 'sop.php' ? 'bg-teal-600 text-white font-semibold shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'; ?>">
-            <i data-lucide="book-open" class="w-5 h-5"></i>
-            <span>SOP & SDM</span>
-        </a>
+            <?php 
+            $sop_kpi_pages = [
+                'sop_kpi_dashboard.php', 
+                'sop_kpi_karyawan.php', 
+                'sop_kpi_penilaian.php', 
+                'sop_kpi_rkk.php', 
+                'sop_kpi_template_rkk.php', 
+                'sop_kpi_laporan.php', 
+                'sop_kpi_kriteria.php',
+                'sop.php'
+            ];
+            $is_sop_active = in_array($current_page, $sop_kpi_pages); 
+            ?>
+            <div class="space-y-1">
+                <button onclick="toggleAccordion('sop-submenu', this)" class="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200 <?php echo $is_sop_active ? 'bg-slate-800/60 text-white font-medium' : 'text-slate-300 hover:bg-slate-800 hover:text-white'; ?>">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="book-open" class="w-5 h-5"></i>
+                        <span>SOP & SDM</span>
+                    </div>
+                    <i data-lucide="chevron-down" class="w-4 h-4 arrow-icon transition-transform duration-200 <?php echo $is_sop_active ? 'rotate-180' : ''; ?>"></i>
+                </button>
+                <div id="sop-submenu" class="<?php echo $is_sop_active ? '' : 'hidden'; ?> space-y-1 py-1 pl-8">
+                    <a href="sop.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'sop.php') ? 'bg-teal-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white'; ?>">
+                        › Overview SOP
+                    </a>
+                    <a href="sop_kpi_dashboard.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'sop_kpi_dashboard.php') ? 'bg-teal-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white'; ?>">
+                        › Dashboard KPI
+                    </a>
+                    <a href="sop_kpi_karyawan.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'sop_kpi_karyawan.php') ? 'bg-teal-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white'; ?>">
+                        › Data Karyawan
+                    </a>
+                    <a href="sop_kpi_penilaian.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'sop_kpi_penilaian.php') ? 'bg-teal-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white'; ?>">
+                        › Log Penilaian
+                    </a>
+                    <a href="sop_kpi_rkk.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'sop_kpi_rkk.php') ? 'bg-teal-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white'; ?>">
+                        › Log RKK / Job Des
+                    </a>
+                    <a href="sop_kpi_template_rkk.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'sop_kpi_template_rkk.php') ? 'bg-teal-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white'; ?>">
+                        › Template RKK
+                    </a>
+                    <a href="sop_kpi_laporan.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'sop_kpi_laporan.php') ? 'bg-teal-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white'; ?>">
+                        › Laporan KPI
+                    </a>
+                    <a href="sop_kpi_kriteria.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'sop_kpi_kriteria.php') ? 'bg-teal-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white'; ?>">
+                        › Kriteria Penilaian
+                    </a>
+                </div>
+            </div>
         <?php endif; ?>
 
         <!-- Komite / Tenaga Medis -->

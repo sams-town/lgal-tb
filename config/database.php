@@ -131,6 +131,99 @@ try {
             if ($colInfo && strpos(strtolower($colInfo['Type']), 'text') === false) {
                 $pdo->exec("ALTER TABLE dokumen_regulasi MODIFY COLUMN file_path TEXT NULL");
             }
+            
+            // ============================================
+            // AUTO CREATE KPI TABLES (SOP & SDM MODULE)
+            // ============================================
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS `kpi_karyawan` (
+                  `id` int(11) NOT NULL AUTO_INCREMENT,
+                  `nik` varchar(50) NOT NULL,
+                  `nama` varchar(150) NOT NULL,
+                  `unit` varchar(100) NOT NULL,
+                  `jabatan` varchar(100) NOT NULL,
+                  `status` varchar(50) DEFAULT 'Aktif',
+                  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                  PRIMARY KEY (`id`),
+                  UNIQUE KEY `nik` (`nik`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            ");
+
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS `kpi_kriteria` (
+                  `id` int(11) NOT NULL AUTO_INCREMENT,
+                  `kategori` varchar(100) NOT NULL,
+                  `nama_indikator` varchar(200) NOT NULL,
+                  `deskripsi` text,
+                  `bobot` int(11) NOT NULL DEFAULT '10',
+                  PRIMARY KEY (`id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            ");
+
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS `kpi_penilaian` (
+                  `id` int(11) NOT NULL AUTO_INCREMENT,
+                  `karyawan_id` int(11) NOT NULL,
+                  `bulan` varchar(2) NOT NULL,
+                  `tahun` varchar(4) NOT NULL,
+                  `total_skor` decimal(5,2) DEFAULT '0.00',
+                  `catatan` text,
+                  `created_by` varchar(100) DEFAULT NULL,
+                  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                  PRIMARY KEY (`id`),
+                  KEY `karyawan_id` (`karyawan_id`),
+                  CONSTRAINT `kpi_penilaian_ibfk_1` FOREIGN KEY (`karyawan_id`) REFERENCES `kpi_karyawan` (`id`) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            ");
+
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS `kpi_penilaian_detail` (
+                  `id` int(11) NOT NULL AUTO_INCREMENT,
+                  `penilaian_id` int(11) NOT NULL,
+                  `kriteria_id` int(11) NOT NULL,
+                  `nilai` decimal(5,2) NOT NULL,
+                  PRIMARY KEY (`id`),
+                  KEY `penilaian_id` (`penilaian_id`),
+                  KEY `kriteria_id` (`kriteria_id`),
+                  CONSTRAINT `kpi_penilaian_detail_ibfk_1` FOREIGN KEY (`penilaian_id`) REFERENCES `kpi_penilaian` (`id`) ON DELETE CASCADE,
+                  CONSTRAINT `kpi_penilaian_detail_ibfk_2` FOREIGN KEY (`kriteria_id`) REFERENCES `kpi_kriteria` (`id`) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            ");
+
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS `kpi_rkk_template` (
+                  `id` int(11) NOT NULL AUTO_INCREMENT,
+                  `jabatan` varchar(100) NOT NULL,
+                  `unit` varchar(100) NOT NULL,
+                  PRIMARY KEY (`id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            ");
+
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS `kpi_rkk_tugas` (
+                  `id` int(11) NOT NULL AUTO_INCREMENT,
+                  `template_id` int(11) DEFAULT NULL,
+                  `tipe_tugas` varchar(50) DEFAULT 'Pokok',
+                  `deskripsi` text NOT NULL,
+                  PRIMARY KEY (`id`),
+                  KEY `template_id` (`template_id`),
+                  CONSTRAINT `kpi_rkk_tugas_ibfk_1` FOREIGN KEY (`template_id`) REFERENCES `kpi_rkk_template` (`id`) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            ");
+
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS `kpi_rkk_karyawan` (
+                  `id` int(11) NOT NULL AUTO_INCREMENT,
+                  `karyawan_id` int(11) NOT NULL,
+                  `tugas_id` int(11) NOT NULL,
+                  `status` varchar(50) DEFAULT 'Aktif',
+                  PRIMARY KEY (`id`),
+                  KEY `karyawan_id` (`karyawan_id`),
+                  KEY `tugas_id` (`tugas_id`),
+                  CONSTRAINT `kpi_rkk_karyawan_ibfk_1` FOREIGN KEY (`karyawan_id`) REFERENCES `kpi_karyawan` (`id`) ON DELETE CASCADE,
+                  CONSTRAINT `kpi_rkk_karyawan_ibfk_2` FOREIGN KEY (`tugas_id`) REFERENCES `kpi_rkk_tugas` (`id`) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            ");
         } catch (Exception $ex) {
             // Silently continue if table not created yet
         }
