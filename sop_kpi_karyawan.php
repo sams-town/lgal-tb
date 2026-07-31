@@ -96,6 +96,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $stmt = $pdo->query("SELECT * FROM kpi_karyawan ORDER BY id DESC");
 $karyawanList = $stmt->fetchAll();
 
+$karyawanNonKomite = [];
+$karyawanKomite = [];
+foreach ($karyawanList as $k) {
+    if (empty($k['tenaga_medis_id'])) {
+        $karyawanNonKomite[] = $k;
+    } else {
+        $karyawanKomite[] = $k;
+    }
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -127,14 +137,20 @@ $karyawanList = $stmt->fetchAll();
                         <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Data Karyawan</h1>
                         <p class="text-gray-500 mt-1">Daftar Karyawan untuk Penilaian Performa</p>
                     </div>
-                    <div class="flex gap-2">
+                    <div class="flex flex-wrap gap-2">
+                        <a href="export_handler.php?action=export_data&module=kpi_karyawan" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-xl transition-all shadow-md hover:shadow-lg flex items-center gap-2">
+                            <i data-lucide="download" class="w-4 h-4"></i> Export
+                        </a>
+                        <button onclick="openModal('importModal')" class="bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2.5 px-4 rounded-xl transition-all shadow-md hover:shadow-lg flex items-center gap-2">
+                            <i data-lucide="upload" class="w-4 h-4"></i> Import
+                        </button>
                         <form method="POST" class="inline" onsubmit="return confirm('Tarik data tenaga medis dari tabel Komite?');">
                             <input type="hidden" name="action" value="sync_komite">
-                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-5 rounded-xl transition-all shadow-md hover:shadow-lg flex items-center gap-2">
-                                <i data-lucide="refresh-cw" class="w-4 h-4"></i> Sinkronisasi Data Komite
+                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-xl transition-all shadow-md hover:shadow-lg flex items-center gap-2">
+                                <i data-lucide="refresh-cw" class="w-4 h-4"></i> Sinkronisasi
                             </button>
                         </form>
-                        <button onclick="openModal('modalAdd')" class="bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2.5 px-5 rounded-xl transition-all shadow-md hover:shadow-lg flex items-center gap-2">
+                        <button onclick="openModal('modalAdd')" class="bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2.5 px-4 rounded-xl transition-all shadow-md hover:shadow-lg flex items-center gap-2">
                             <i data-lucide="plus" class="w-4 h-4"></i> Tambah Karyawan
                         </button>
                     </div>
@@ -154,10 +170,16 @@ $karyawanList = $stmt->fetchAll();
                 </div>
                 <?php endif; ?>
 
-                <!-- Table Area -->
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden p-6">
+                <!-- Tabs -->
+                <div class="flex gap-4 border-b border-gray-200">
+                    <button onclick="switchTab('non-komite')" id="btn-non-komite" class="px-4 py-3 font-semibold text-teal-600 border-b-2 border-teal-600 transition-all">Non-Komite (Manual)</button>
+                    <button onclick="switchTab('komite')" id="btn-komite" class="px-4 py-3 font-semibold text-gray-500 border-b-2 border-transparent hover:text-gray-700 transition-all">Komite Medis (Sinkronisasi)</button>
+                </div>
+
+                <!-- Table Non-Komite -->
+                <div id="tab-non-komite" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden p-6 block">
                     <div class="overflow-x-auto">
-                        <table id="karyawanTable" class="w-full text-left" style="width:100%">
+                        <table id="tableNonKomite" class="w-full text-left" style="width:100%">
                             <thead>
                                 <tr>
                                     <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">ID / NIK</th>
@@ -169,11 +191,61 @@ $karyawanList = $stmt->fetchAll();
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100">
-                                <?php foreach ($karyawanList as $k): ?>
+                                <?php foreach ($karyawanNonKomite as $k): ?>
                                 <tr class="hover:bg-gray-50 transition-colors">
                                     <td class="text-sm font-medium text-gray-900 py-3"><?= htmlspecialchars($k['nik']) ?></td>
                                     <td class="py-3">
                                         <div class="text-sm font-semibold text-gray-800"><?= htmlspecialchars($k['nama']) ?></div>
+                                    </td>
+                                    <td class="text-sm text-gray-600 py-3"><?= htmlspecialchars($k['unit']) ?></td>
+                                    <td class="text-sm text-gray-600 py-3"><?= htmlspecialchars($k['jabatan']) ?></td>
+                                    <td class="py-3">
+                                        <?php if($k['status'] === 'Aktif'): ?>
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Aktif</span>
+                                        <?php else: ?>
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Nonaktif</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-right py-3">
+                                        <button onclick='editData(<?= json_encode($k) ?>)' class="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 p-2 rounded-lg transition-colors inline-flex items-center" title="Edit">
+                                            <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                        </button>
+                                        <form method="POST" class="inline" onsubmit="return confirm('Yakin ingin menghapus?');">
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="id" value="<?= $k['id'] ?>">
+                                            <button type="submit" class="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-2 rounded-lg transition-colors inline-flex items-center ml-1" title="Hapus">
+                                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Table Komite -->
+                <div id="tab-komite" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden p-6 hidden">
+                    <div class="overflow-x-auto">
+                        <table id="tableKomite" class="w-full text-left" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">ID / NIK</th>
+                                    <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Nama Karyawan</th>
+                                    <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Unit / Departemen</th>
+                                    <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Jabatan</th>
+                                    <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <?php foreach ($karyawanKomite as $k): ?>
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="text-sm font-medium text-gray-900 py-3"><?= htmlspecialchars($k['nik']) ?></td>
+                                    <td class="py-3">
+                                        <div class="text-sm font-semibold text-gray-800"><?= htmlspecialchars($k['nama']) ?></div>
+                                        <div class="text-xs text-blue-600 font-medium">Sinkronisasi Komite</div>
                                     </td>
                                     <td class="text-sm text-gray-600 py-3"><?= htmlspecialchars($k['unit']) ?></td>
                                     <td class="text-sm text-gray-600 py-3"><?= htmlspecialchars($k['jabatan']) ?></td>
@@ -277,17 +349,62 @@ $karyawanList = $stmt->fetchAll();
             </form>
         </div>
     </div>
+    
+    <!-- Modal Import -->
+    <div id="importModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-2xl w-full max-w-lg p-6 m-4 relative shadow-xl">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">Import Data Karyawan</h2>
+            <form action="export_handler.php?action=import_data&module=kpi_karyawan" method="POST" enctype="multipart/form-data">
+                <div class="space-y-4">
+                    <div class="p-4 bg-blue-50 text-blue-800 rounded-xl text-sm mb-4">
+                        <p class="font-semibold mb-1">Panduan Import:</p>
+                        <ul class="list-disc ml-5 space-y-1">
+                            <li>Gunakan format file CSV.</li>
+                            <li>Kolom harus berurutan: NIK, Nama Karyawan, Unit, Jabatan, Status.</li>
+                            <li><a href="export_handler.php?action=download_template&module=kpi_karyawan" class="text-blue-600 hover:underline font-medium">Download Template CSV</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Pilih File CSV</label>
+                        <input type="file" name="csv_file" accept=".csv" required class="w-full border border-gray-200 py-2 px-3 rounded-xl focus:ring-teal-500 outline-none">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" onclick="closeModal('importModal')" class="px-4 py-2 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-amber-500 text-white rounded-xl hover:bg-amber-600 font-medium flex items-center gap-2">
+                        <i data-lucide="upload" class="w-4 h-4"></i> Upload & Import
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <script>
         lucide.createIcons();
         $(document).ready(function() {
-            $('#karyawanTable').DataTable({
+            $('#tableNonKomite, #tableKomite').DataTable({
                 "language": {
                     "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/id.json"
                 },
                 "pageLength": 10
             });
         });
+
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.getElementById('tab-non-komite').classList.add('hidden');
+            document.getElementById('tab-non-komite').classList.remove('block');
+            document.getElementById('tab-komite').classList.add('hidden');
+            document.getElementById('tab-komite').classList.remove('block');
+            
+            // Show selected tab
+            document.getElementById('tab-' + tabName).classList.remove('hidden');
+            document.getElementById('tab-' + tabName).classList.add('block');
+            
+            // Update button styles
+            document.getElementById('btn-non-komite').className = "px-4 py-3 font-semibold transition-all " + (tabName === 'non-komite' ? 'text-teal-600 border-b-2 border-teal-600' : 'text-gray-500 border-b-2 border-transparent hover:text-gray-700');
+            document.getElementById('btn-komite').className = "px-4 py-3 font-semibold transition-all " + (tabName === 'komite' ? 'text-teal-600 border-b-2 border-teal-600' : 'text-gray-500 border-b-2 border-transparent hover:text-gray-700');
+        }
 
         function openModal(id) {
             document.getElementById(id).classList.remove('hidden');

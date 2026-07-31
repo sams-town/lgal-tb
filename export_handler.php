@@ -158,6 +158,19 @@ $moduleConfigs = [
         ],
         'insertColumns' => ['tipe_kontrak', 'perusahaan', 'ruang_lingkup', 'nilai_kontrak', 'potongan_harga', 'cara_pembayaran', 'tanggal_mulai', 'tanggal_berakhir', 'nama_pj', 'no_telp_pj', 'file_path'],
         'displayName' => 'Arsip Dokumen Legal'
+    ],
+    'kpi_karyawan' => [
+        'table' => 'kpi_karyawan',
+        'filename' => 'karyawan_kpi_data',
+        'columns' => [
+            'NIK' => 'nik',
+            'Nama Karyawan' => 'nama',
+            'Unit / Departemen' => 'unit',
+            'Jabatan' => 'jabatan',
+            'Status' => 'status'
+        ],
+        'insertColumns' => ['nik', 'nama', 'unit', 'jabatan', 'status'],
+        'displayName' => 'Data Karyawan KPI'
     ]
 ];
 
@@ -336,6 +349,14 @@ if ($action === 'download_template') {
                         $row[8] ?? null, // nama_pj
                         $row[9] ?? null, // no_telp_pj
                         null // file_path
+                    ];
+                } elseif ($module === 'kpi_karyawan') {
+                    $insertData = [
+                        $row[0] ?? '', // nik
+                        $row[1] ?? '', // nama
+                        $row[2] ?? '', // unit
+                        $row[3] ?? '', // jabatan
+                        $row[4] ?? 'Aktif' // status
                     ];
                 }
                 
