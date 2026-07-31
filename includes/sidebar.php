@@ -195,9 +195,7 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
                     <i data-lucide="chevron-down" class="w-4 h-4 arrow-icon transition-transform duration-200 <?php echo $is_sop_active ? 'rotate-180' : ''; ?>"></i>
                 </button>
                 <div id="sop-submenu" class="<?php echo $is_sop_active ? '' : 'hidden'; ?> space-y-1 py-1 pl-8">
-                    <a href="sop.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'sop.php') ? 'bg-teal-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white'; ?>">
-                        › Overview SOP
-                    </a>
+
                     <a href="sop_kpi_dashboard.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'sop_kpi_dashboard.php') ? 'bg-teal-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white'; ?>">
                         › Dashboard KPI
                     </a>
