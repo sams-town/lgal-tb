@@ -662,22 +662,37 @@ if (!function_exists('formatDate')) {
                 <!-- Kompetensi -->
                 <div class="space-y-4">
                     <h3 class="text-lg font-semibold text-gray-800 border-b pb-2">Kompetensi</h3>
+                    <!-- Sertifikasi Kompetensi -->
                     <div>
                         <div class="flex items-center justify-between mb-2">
                             <label class="block text-sm font-medium text-gray-700">Sertifikasi Kompetensi</label>
                             <button type="button" onclick="addSertifikasi()" class="text-emerald-600 hover:text-emerald-700 text-sm font-medium flex items-center gap-1">
-                                <span>+</span> Tambah Sertifikasi
+                                <span>+</span> Tambah File
                             </button>
                         </div>
                         <div id="sertifikasi-container" class="space-y-2">
-                            <div class="flex gap-2">
-                                <input type="text" name="sertifikasi[]" class="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan sertifikasi">
+                            <div class="flex items-center gap-2">
+                                <input type="file" name="sertifikasi[]" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                <button type="button" onclick="removeSertifikasi(this)" class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors font-bold text-lg leading-none" title="Hapus">−</button>
                             </div>
                         </div>
+                        <p class="text-xs text-gray-400 mt-1">Format: PDF, DOC, DOCX, JPG, PNG</p>
                     </div>
+                    <!-- Kompetensi Klinis -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Kompetensi Klinis</label>
-                        <textarea name="kompetensi_klinis" id="kompetensi_klinis" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Tulis daftar tindakan medis yang diizinkan"></textarea>
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="block text-sm font-medium text-gray-700">Kompetensi Klinis</label>
+                            <button type="button" onclick="addKompetensiKlinis()" class="text-emerald-600 hover:text-emerald-700 text-sm font-medium flex items-center gap-1">
+                                <span>+</span> Tambah File
+                            </button>
+                        </div>
+                        <div id="kompetensi-klinis-container" class="space-y-2">
+                            <div class="flex items-center gap-2">
+                                <input type="file" name="kompetensi_klinis[]" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                <button type="button" onclick="removeKompetensiKlinis(this)" class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors font-bold text-lg leading-none" title="Hapus">−</button>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1">Format: PDF, DOC, DOCX, JPG, PNG</p>
                     </div>
                 </div>
 
@@ -718,7 +733,6 @@ if (!function_exists('formatDate')) {
     </div>
 
     <script>
-        const originalOpenModal = window.openModal;
         function openModal(modalId) {
             if (modalId === 'modal' || !modalId) {
                 resetForm();
@@ -726,7 +740,11 @@ if (!function_exists('formatDate')) {
                 document.getElementById('submit-btn').textContent = 'Simpan Data';
                 document.getElementById('modal_title').textContent = 'Form Tambah Tenaga Medis - Komite Tenaga Kesehatan Lainnya';
             }
-            originalOpenModal(modalId);
+            const element = document.getElementById(modalId || 'modal');
+            if (element) {
+                element.classList.remove('hidden');
+                element.classList.add('flex');
+            }
         }
 
         function closeModal(modalId) {
@@ -758,10 +776,18 @@ if (!function_exists('formatDate')) {
             document.getElementById('masa_berlaku_sk_mulai').value = '';
             document.getElementById('masa_berlaku_sk_akhir').value = '';
             document.getElementById('file_sk').value = '';
-            document.getElementById('kompetensi_klinis').value = '';
+            // Reset sertifikasi container
             document.getElementById('sertifikasi-container').innerHTML = `
-                <div class="flex gap-2">
-                    <input type="text" name="sertifikasi[]" class="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan sertifikasi">
+                <div class="flex items-center gap-2">
+                    <input type="file" name="sertifikasi[]" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <button type="button" onclick="removeSertifikasi(this)" class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors font-bold text-lg leading-none" title="Hapus">−</button>
+                </div>
+            `;
+            // Reset kompetensi klinis container
+            document.getElementById('kompetensi-klinis-container').innerHTML = `
+                <div class="flex items-center gap-2">
+                    <input type="file" name="kompetensi_klinis[]" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <button type="button" onclick="removeKompetensiKlinis(this)" class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors font-bold text-lg leading-none" title="Hapus">−</button>
                 </div>
             `;
             // Reset visibility of SK/PKWT containers
@@ -790,23 +816,15 @@ if (!function_exists('formatDate')) {
             document.getElementById('no_sk').value = data.no_sk || '';
             document.getElementById('masa_berlaku_sk_mulai').value = data.masa_berlaku_sk_mulai || '';
             document.getElementById('masa_berlaku_sk_akhir').value = data.masa_berlaku_sk_akhir || '';
-            document.getElementById('kompetensi_klinis').value = data.kompetensi_klinis || '';
+            // kompetensi_klinis dan sertifikasi kini berupa file upload, tidak bisa di-prefill
             
             // Handle sertifikasi
             if (data.sertifikasi_kompetensi) {
                 try {
                     const sertifikasi = JSON.parse(data.sertifikasi_kompetensi);
                     if (Array.isArray(sertifikasi) && sertifikasi.length > 0) {
-                        const container = document.getElementById('sertifikasi-container');
                         container.innerHTML = '';
-                        sertifikasi.forEach(s => {
-                            const template = `
-                                <div class="flex gap-2">
-                                    <input type="text" name="sertifikasi[]" class="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan sertifikasi" value="${s}">
-                                </div>
-                            `;
-                            container.insertAdjacentHTML('beforeend', template);
-                        });
+                        // sertifikasi kini file upload, tidak bisa di-prefill dari data lama
                     }
                 } catch (e) {
                     console.error('Error parsing sertifikasi:', e);
@@ -826,17 +844,49 @@ if (!function_exists('formatDate')) {
             document.getElementById('submit-btn').name = 'edit_tenaga_medis';
             document.getElementById('submit-btn').textContent = 'Simpan Perubahan';
             document.getElementById('modal_title').textContent = 'Form Edit Tenaga Medis - Komite Tenaga Kesehatan Lainnya';
-            originalOpenModal('modal');
+            const modal = document.getElementById('modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
         }
 
         function addSertifikasi() {
             const container = document.getElementById('sertifikasi-container');
-            const template = `
-                <div class="flex gap-2">
-                    <input type="text" name="sertifikasi[]" class="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan sertifikasi">
-                </div>
+            const div = document.createElement('div');
+            div.className = 'flex items-center gap-2';
+            div.innerHTML = `
+                <input type="file" name="sertifikasi[]" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                <button type="button" onclick="removeSertifikasi(this)" class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors font-bold text-lg leading-none" title="Hapus">−</button>
             `;
-            container.insertAdjacentHTML('beforeend', template);
+            container.appendChild(div);
+        }
+
+        function removeSertifikasi(btn) {
+            const container = document.getElementById('sertifikasi-container');
+            if (container.children.length > 1) {
+                btn.closest('div').remove();
+            } else {
+                btn.closest('div').querySelector('input[type="file"]').value = '';
+            }
+        }
+
+        function addKompetensiKlinis() {
+            const container = document.getElementById('kompetensi-klinis-container');
+            const div = document.createElement('div');
+            div.className = 'flex items-center gap-2';
+            div.innerHTML = `
+                <input type="file" name="kompetensi_klinis[]" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                <button type="button" onclick="removeKompetensiKlinis(this)" class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors font-bold text-lg leading-none" title="Hapus">−</button>
+            `;
+            container.appendChild(div);
+        }
+
+        function removeKompetensiKlinis(btn) {
+            const container = document.getElementById('kompetensi-klinis-container');
+            if (container.children.length > 1) {
+                btn.closest('div').remove();
+            } else {
+                btn.closest('div').querySelector('input[type="file"]').value = '';
+            }
         }
 
         document.addEventListener('DOMContentLoaded', function() {
