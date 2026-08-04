@@ -54,14 +54,12 @@ $tahun_sel      = (int)($_GET['tahun'] ?? date('Y'));
 $karyawan_id    = (int)($_GET['karyawan_id'] ?? 0);
 
 // Jumlah hari dalam bulan
-$jumlah_hari = cal_days_in_month(CAL_GREGORIAN, $bulan_sel, $tahun_sel);
+$jumlah_hari = (int)date('t', mktime(0, 0, 0, $bulan_sel, 1, $tahun_sel));
 
-// Nama hari singkat (S=Senin, S=Selasa, dst.) per tanggal
-$nama_hari_singkat = ['M', 'S', 'S', 'R', 'K', 'J', 'S']; // 0=Minggu..6=Sabtu => mapping
-
+// Nama hari singkat per tanggal
 function getNamaHari($hari, $bulan, $tahun) {
-    $map = ['M', 'S', 'S', 'R', 'K', 'J', 'S']; // Sun, Mon, Tue, Wed, Thu, Fri, Sat
-    $dow = date('w', mktime(0, 0, 0, $bulan, $hari, $tahun));
+    $map = ['M', 'S', 'S', 'R', 'K', 'J', 'S']; // Sun=0, Mon=1, ... Sat=6
+    $dow = (int)date('w', mktime(0, 0, 0, $bulan, $hari, $tahun));
     return $map[$dow];
 }
 
@@ -80,10 +78,15 @@ foreach ($kriteriaRaw as $kr) {
 // Fetch nilai yang sudah ada
 $nilaiExisting = [];
 if ($karyawan_id) {
-    $stmtN = $pdo->prepare("SELECT kriteria_id, hari, nilai FROM kpi_penilaian_harian WHERE karyawan_id = ? AND bulan = ? AND tahun = ?");
-    $stmtN->execute([$karyawan_id, $bulan_sel, $tahun_sel]);
-    foreach ($stmtN->fetchAll() as $row) {
-        $nilaiExisting[$row['kriteria_id']][$row['hari']] = $row['nilai'];
+    try {
+        $stmtN = $pdo->prepare("SELECT kriteria_id, hari, nilai FROM kpi_penilaian_harian WHERE karyawan_id = ? AND bulan = ? AND tahun = ?");
+        $stmtN->execute([$karyawan_id, $bulan_sel, $tahun_sel]);
+        foreach ($stmtN->fetchAll() as $row) {
+            $nilaiExisting[$row['kriteria_id']][$row['hari']] = $row['nilai'];
+        }
+    } catch (PDOException $e) {
+        // Tabel belum ada, abaikan — halaman tetap bisa ditampilkan
+        $nilaiExisting = [];
     }
 }
 
