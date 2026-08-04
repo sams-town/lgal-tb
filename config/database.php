@@ -317,6 +317,25 @@ try {
                     $pdo->exec("ALTER TABLE `manajemen_surat` MODIFY COLUMN `kategori` VARCHAR(100) NOT NULL");
                 }
             } catch (Exception $ex) { /* skip */ }
+
+            // Kolom tambahan untuk format surat keluar resmi
+            $suratCols = [
+                'lampiran'        => "VARCHAR(255) DEFAULT NULL AFTER perihal",
+                'tujuan_alamat'   => "VARCHAR(255) DEFAULT NULL AFTER asal_pengirim",
+                'up_nama'         => "VARCHAR(255) DEFAULT NULL AFTER tujuan_alamat",
+                'ucapan_mitra'    => "TEXT DEFAULT NULL AFTER up_nama",
+                'isi_surat'       => "TEXT DEFAULT NULL AFTER ucapan_mitra",
+                'penanda_tangan'  => "VARCHAR(255) DEFAULT NULL AFTER isi_surat",
+                'jabatan_ttd'     => "VARCHAR(255) DEFAULT NULL AFTER penanda_tangan",
+            ];
+            foreach ($suratCols as $col => $def) {
+                try {
+                    $exists = $pdo->query("SHOW COLUMNS FROM `manajemen_surat` LIKE '$col'")->rowCount();
+                    if ($exists == 0) {
+                        $pdo->exec("ALTER TABLE `manajemen_surat` ADD COLUMN `$col` $def");
+                    }
+                } catch (Exception $ex) { /* skip */ }
+            }
         } catch (Exception $ex) {
             // Silently continue if table not created yet
         }

@@ -21,14 +21,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_surat'])) {
     if (!canUserEditOrDelete('sekretariat')) {
         $_SESSION['error_msg'] = "Anda tidak memiliki akses untuk menambah data!";
     } else {
-        $nomor_surat = $_POST['nomor_surat'] ?? '';
-        $kategori = $_POST['kategori'] ?? 'Surat Keluar';
-        $asal_pengirim = $_POST['asal_pengirim'] ?? '';
-        $perihal = $_POST['perihal'] ?? '';
-        $tanggal_surat = $_POST['tanggal_surat'] ?? '';
-        $tanggal_diterima = null; // Surat Keluar doesn't have tanggal_diterima
+        $nomor_surat          = $_POST['nomor_surat'] ?? '';
+        $kategori             = $_POST['kategori'] ?? 'Surat Keluar';
+        $asal_pengirim        = $_POST['asal_pengirim'] ?? '';
+        $perihal              = $_POST['perihal'] ?? '';
+        $tanggal_surat        = $_POST['tanggal_surat'] ?? '';
+        $tanggal_diterima     = null;
         $status_tindak_lanjut = $_POST['status_tindak_lanjut'] ?? 'Pending';
-        $file_path = null;
+        $lampiran             = $_POST['lampiran'] ?? null;
+        $tujuan_alamat        = $_POST['tujuan_alamat'] ?? null;
+        $up_nama              = $_POST['up_nama'] ?? null;
+        $ucapan_mitra         = $_POST['ucapan_mitra'] ?? null;
+        $isi_surat            = $_POST['isi_surat'] ?? null;
+        $penanda_tangan       = $_POST['penanda_tangan'] ?? null;
+        $jabatan_ttd          = $_POST['jabatan_ttd'] ?? null;
+        $file_path            = null;
 
         // Handle file upload
         if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
@@ -47,10 +54,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_surat'])) {
 
         try {
             $stmt = $pdo->prepare("
-                INSERT INTO manajemen_surat (nomor_surat, kategori, asal_pengirim, perihal, tanggal_surat, tanggal_diterima, status_tindak_lanjut, file_path)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO manajemen_surat (nomor_surat, kategori, asal_pengirim, perihal, tanggal_surat, tanggal_diterima, status_tindak_lanjut, file_path, lampiran, tujuan_alamat, up_nama, ucapan_mitra, isi_surat, penanda_tangan, jabatan_ttd)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
-            $stmt->execute([$nomor_surat, $kategori, $asal_pengirim, $perihal, $tanggal_surat, $tanggal_diterima, $status_tindak_lanjut, $file_path]);
+            $stmt->execute([$nomor_surat, $kategori, $asal_pengirim, $perihal, $tanggal_surat, $tanggal_diterima, $status_tindak_lanjut, $file_path, $lampiran, $tujuan_alamat, $up_nama, $ucapan_mitra, $isi_surat, $penanda_tangan, $jabatan_ttd]);
 
             $_SESSION['success_msg'] = "Surat Keluar berhasil ditambahkan!";
         } catch (PDOException $e) {
@@ -67,13 +74,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_surat'])) {
     if (!canUserEditOrDelete('sekretariat')) {
         $_SESSION['error_msg'] = "Anda tidak memiliki akses untuk mengedit data!";
     } else {
-        $edit_id = (int)$_POST['edit_id'];
-        $nomor_surat = $_POST['nomor_surat'] ?? '';
-        $kategori = $_POST['kategori'] ?? 'Surat Keluar';
-        $asal_pengirim = $_POST['asal_pengirim'] ?? '';
-        $perihal = $_POST['perihal'] ?? '';
-        $tanggal_surat = $_POST['tanggal_surat'] ?? '';
+        $edit_id              = (int)$_POST['edit_id'];
+        $nomor_surat          = $_POST['nomor_surat'] ?? '';
+        $kategori             = $_POST['kategori'] ?? 'Surat Keluar';
+        $asal_pengirim        = $_POST['asal_pengirim'] ?? '';
+        $perihal              = $_POST['perihal'] ?? '';
+        $tanggal_surat        = $_POST['tanggal_surat'] ?? '';
         $status_tindak_lanjut = $_POST['status_tindak_lanjut'] ?? 'Pending';
+        $lampiran             = $_POST['lampiran'] ?? null;
+        $tujuan_alamat        = $_POST['tujuan_alamat'] ?? null;
+        $up_nama              = $_POST['up_nama'] ?? null;
+        $ucapan_mitra         = $_POST['ucapan_mitra'] ?? null;
+        $isi_surat            = $_POST['isi_surat'] ?? null;
+        $penanda_tangan       = $_POST['penanda_tangan'] ?? null;
+        $jabatan_ttd          = $_POST['jabatan_ttd'] ?? null;
 
         // Get current file path
         $stmt = $pdo->prepare("SELECT file_path FROM manajemen_surat WHERE id = ?");
@@ -87,27 +101,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_surat'])) {
             if (!is_dir($uploadDir)) {
                 mkdir($uploadDir, 0777, true);
             }
-
             $fileName = uniqid() . '_' . basename($_FILES['file']['name']);
             $targetFile = $uploadDir . $fileName;
-
             if (move_uploaded_file($_FILES['file']['tmp_name'], $targetFile)) {
-                // Delete old file if exists
-                if ($file_path && file_exists($file_path)) {
-                    unlink($file_path);
-                }
+                if ($file_path && file_exists($file_path)) unlink($file_path);
                 $file_path = $targetFile;
             }
         }
 
         try {
             $stmt = $pdo->prepare("
-                UPDATE manajemen_surat 
-                SET nomor_surat = ?, asal_pengirim = ?, perihal = ?, tanggal_surat = ?, status_tindak_lanjut = ?, file_path = ?
-                WHERE id = ?
+                UPDATE manajemen_surat
+                SET nomor_surat=?, kategori=?, asal_pengirim=?, perihal=?, tanggal_surat=?,
+                    status_tindak_lanjut=?, file_path=?,
+                    lampiran=?, tujuan_alamat=?, up_nama=?, ucapan_mitra=?,
+                    isi_surat=?, penanda_tangan=?, jabatan_ttd=?
+                WHERE id=?
             ");
-            $stmt->execute([$nomor_surat, $asal_pengirim, $perihal, $tanggal_surat, $status_tindak_lanjut, $file_path, $edit_id]);
-
+            $stmt->execute([
+                $nomor_surat, $kategori, $asal_pengirim, $perihal, $tanggal_surat,
+                $status_tindak_lanjut, $file_path,
+                $lampiran, $tujuan_alamat, $up_nama, $ucapan_mitra,
+                $isi_surat, $penanda_tangan, $jabatan_ttd,
+                $edit_id
+            ]);
             $_SESSION['success_msg'] = "Surat Keluar berhasil diperbarui!";
         } catch (PDOException $e) {
             $_SESSION['error_msg'] = "Gagal memperbarui data: " . $e->getMessage();
@@ -386,6 +403,10 @@ if (!function_exists('formatDate')) {
                                                             Lihat
                                                         </a>
                                                     <?php endif; ?>
+                                                    <a href="cetak_surat_keluar.php?id=<?= $doc['id'] ?>" target="_blank"
+                                                       class="px-3 py-1 text-sm bg-teal-100 text-teal-700 rounded-lg hover:bg-teal-200 transition-colors">
+                                                        🖨 Cetak
+                                                    </a>
                                                      <?php if (canUserEditOrDelete('sekretariat')): ?>
                                                          <button onclick="openEditModal(<?php echo htmlspecialchars(json_encode($doc), ENT_QUOTES); ?>)" class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
                                                              Edit
@@ -416,48 +437,108 @@ if (!function_exists('formatDate')) {
             </div>
             <form method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
                 <input type="hidden" name="edit_id" id="edit_id" value="">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Nomor Surat</label>
-                    <input type="text" name="nomor_surat" id="nomor_surat" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+
+                <!-- Baris 1: Nomor, Kategori, Tanggal -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nomor Surat <span class="text-red-500">*</span></label>
+                        <input type="text" name="nomor_surat" id="nomor_surat" required placeholder="xx/DIR-EXT/RS.THB/BLN/THN" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Kategori <span class="text-red-500">*</span></label>
+                        <select name="kategori" id="kategoriSelectKeluar" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                            <?php foreach ($kategoriKeluarAll as $kat): ?>
+                            <option value="<?= htmlspecialchars($kat) ?>"><?= htmlspecialchars($kat) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Surat <span class="text-red-500">*</span></label>
+                        <input type="date" name="tanggal_surat" id="tanggal_surat" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Kategori</label>
-                    <select name="kategori" id="kategoriSelectKeluar" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                        <?php foreach ($kategoriKeluarAll as $kat): ?>
-                        <option value="<?= htmlspecialchars($kat) ?>"><?= htmlspecialchars($kat) ?></option>
-                        <?php endforeach; ?>
-                    </select>
+
+                <!-- Perihal & Lampiran -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Perihal <span class="text-red-500">*</span></label>
+                        <input type="text" name="perihal" id="perihal" required placeholder="Perihal surat" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Lampiran</label>
+                        <input type="text" name="lampiran" id="lampiran" placeholder="Contoh: 1 berkas" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Tujuan / Penerima</label>
-                    <input type="text" name="asal_pengirim" id="asal_pengirim" required placeholder="Contoh: Dinas Kesehatan" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+
+                <!-- Kepada Yth -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tujuan / Nama Penerima <span class="text-red-500">*</span></label>
+                        <input type="text" name="asal_pengirim" id="asal_pengirim" required placeholder="Nama Perusahaan / Bapak / Ibu" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Alamat Tujuan</label>
+                        <input type="text" name="tujuan_alamat" id="tujuan_alamat" placeholder="Alamat penerima" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Perihal</label>
-                    <textarea name="perihal" id="perihal" required rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"></textarea>
+
+                <!-- Up & Ucapan mitra -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Up. (Nama & Jabatan) <span class="text-xs text-gray-400">opsional</span></label>
+                        <input type="text" name="up_nama" id="up_nama" placeholder="Contoh: Bpk. Ahmad – Manager HRD" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Ucapan Terima Kasih Mitra <span class="text-xs text-gray-400">opsional</span></label>
+                        <input type="text" name="ucapan_mitra" id="ucapan_mitra" placeholder="kerjasama yang terjalin" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                    </div>
                 </div>
+
+                <!-- Isi surat -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Status Tindak Lanjut</label>
-                    <select name="status_tindak_lanjut" id="status_tindak_lanjut" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                        <option value="Pending" selected>Pending</option>
-                        <option value="Dalam Proses">Dalam Proses</option>
-                        <option value="Selesai">Selesai</option>
-                    </select>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Isi Surat <span class="text-red-500">*</span></label>
+                    <textarea name="isi_surat" id="isi_surat" rows="5" required placeholder="Tulis isi / badan surat di sini..." class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"></textarea>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Surat</label>
-                    <input type="date" name="tanggal_surat" id="tanggal_surat" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+
+                <!-- Penanda tangan -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nama Penanda Tangan</label>
+                        <input type="text" name="penanda_tangan" id="penanda_tangan" placeholder="Nama lengkap penanda tangan" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Jabatan Penanda Tangan</label>
+                        <input type="text" name="jabatan_ttd" id="jabatan_ttd" placeholder="Jabatan" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Upload File Berkas (PDF)</label>
-                    <input type="file" name="file" id="file" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-xl">
-                    <p class="text-xs text-gray-500 mt-1">Biarkan kosong jika tidak ingin mengubah berkas</p>
+
+                <!-- Status & Upload -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Status Tindak Lanjut</label>
+                        <select name="status_tindak_lanjut" id="status_tindak_lanjut" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                            <option value="Pending" selected>Pending</option>
+                            <option value="Dalam Proses">Dalam Proses</option>
+                            <option value="Selesai">Selesai</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Upload File Berkas</label>
+                        <input type="file" name="file" id="file" accept=".pdf,.doc,.docx" class="w-full px-4 py-2 border border-gray-300 rounded-xl text-sm">
+                        <p class="text-xs text-gray-400 mt-1">Biarkan kosong jika tidak ingin mengubah berkas</p>
+                    </div>
                 </div>
+
+                <!-- Tombol -->
                 <div class="flex gap-3 pt-4">
-                    <button type="button" onclick="closeModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors">
+                    <button type="button" onclick="closeModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors text-sm">
                         Batal
                     </button>
-                    <button type="submit" name="tambah_surat" id="submitBtn" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors">
+                    <button type="button" id="previewBtn" onclick="previewSurat()"
+                            class="px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl font-medium hover:bg-blue-100 transition-colors text-sm flex items-center gap-1.5">
+                        👁 Preview Surat
+                    </button>
+                    <button type="submit" name="tambah_surat" id="submitBtn" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors text-sm">
                         Simpan
                     </button>
                 </div>
@@ -487,6 +568,13 @@ if (!function_exists('formatDate')) {
             document.getElementById('nomor_surat').value = '';
             document.getElementById('asal_pengirim').value = '';
             document.getElementById('perihal').value = '';
+            document.getElementById('lampiran').value = '';
+            document.getElementById('tujuan_alamat').value = '';
+            document.getElementById('up_nama').value = '';
+            document.getElementById('ucapan_mitra').value = '';
+            document.getElementById('isi_surat').value = '';
+            document.getElementById('penanda_tangan').value = '';
+            document.getElementById('jabatan_ttd').value = '';
             document.getElementById('status_tindak_lanjut').value = 'Pending';
             document.getElementById('tanggal_surat').value = '';
             document.getElementById('file').value = '';
@@ -498,6 +586,13 @@ if (!function_exists('formatDate')) {
             document.getElementById('kategoriSelectKeluar').value = doc.kategori || 'Surat Keluar';
             document.getElementById('asal_pengirim').value = doc.asal_pengirim || '';
             document.getElementById('perihal').value = doc.perihal || '';
+            document.getElementById('lampiran').value = doc.lampiran || '';
+            document.getElementById('tujuan_alamat').value = doc.tujuan_alamat || '';
+            document.getElementById('up_nama').value = doc.up_nama || '';
+            document.getElementById('ucapan_mitra').value = doc.ucapan_mitra || '';
+            document.getElementById('isi_surat').value = doc.isi_surat || '';
+            document.getElementById('penanda_tangan').value = doc.penanda_tangan || '';
+            document.getElementById('jabatan_ttd').value = doc.jabatan_ttd || '';
             document.getElementById('status_tindak_lanjut').value = doc.status_tindak_lanjut || 'Pending';
             document.getElementById('tanggal_surat').value = doc.tanggal_surat || '';
             document.getElementById('file').value = '';
@@ -517,6 +612,22 @@ if (!function_exists('formatDate')) {
                 element.classList.add('hidden');
                 element.classList.remove('flex');
             }
+        }
+        function previewSurat() {
+            const params = new URLSearchParams({
+                tanggal_surat:  document.getElementById('tanggal_surat').value,
+                nomor_surat:    document.getElementById('nomor_surat').value,
+                perihal:        document.getElementById('perihal').value,
+                lampiran:       document.getElementById('lampiran').value,
+                tujuan_nama:    document.getElementById('asal_pengirim').value,
+                tujuan_alamat:  document.getElementById('tujuan_alamat').value,
+                up_nama:        document.getElementById('up_nama').value,
+                ucapan_mitra:   document.getElementById('ucapan_mitra').value,
+                isi_surat:      document.getElementById('isi_surat').value,
+                penanda_tangan: document.getElementById('penanda_tangan').value,
+                jabatan_ttd:    document.getElementById('jabatan_ttd').value,
+            });
+            window.open('cetak_surat_keluar.php?' + params.toString(), '_blank');
         }
     </script>
 </body>
