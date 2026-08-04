@@ -119,6 +119,10 @@ function namaHariAgenda($d) {
   <button onclick="openModalAdd()" class="flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-xl font-medium hover:bg-teal-700 transition-colors shadow-sm text-sm">
     <i data-lucide="plus" class="w-4 h-4"></i> Tambah Agenda
   </button>
+  <a href="cetak_daftar_hadir.php" target="_blank"
+     class="flex items-center gap-2 bg-white border border-teal-300 text-teal-700 px-4 py-2 rounded-xl font-medium hover:bg-teal-50 transition-colors shadow-sm text-sm">
+    <i data-lucide="printer" class="w-4 h-4"></i> Cetak Daftar Hadir Kosong
+  </a>
   <?php endif; ?>
 </div>
 
@@ -207,6 +211,10 @@ function namaHariAgenda($d) {
         <!-- Aksi -->
         <?php if (canUserEditOrDelete('sekretariat')): ?>
         <div class="flex items-center gap-2 flex-shrink-0">
+          <a href="cetak_daftar_hadir.php?id=<?= $ag['id'] ?>" target="_blank"
+             class="px-3 py-1.5 text-xs bg-teal-50 text-teal-700 rounded-lg hover:bg-teal-100 font-medium transition-colors flex items-center gap-1">
+            <i data-lucide="printer" class="w-3 h-3"></i> Daftar Hadir
+          </a>
           <button onclick='editAgenda(<?= htmlspecialchars(json_encode($ag), ENT_QUOTES) ?>)'
                   class="px-3 py-1.5 text-xs bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 font-medium transition-colors flex items-center gap-1">
             <i data-lucide="edit-3" class="w-3 h-3"></i> Edit
