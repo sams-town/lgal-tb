@@ -123,6 +123,10 @@ function namaHariAgenda($d) {
      class="flex items-center gap-2 bg-white border border-teal-300 text-teal-700 px-4 py-2 rounded-xl font-medium hover:bg-teal-50 transition-colors shadow-sm text-sm">
     <i data-lucide="printer" class="w-4 h-4"></i> Cetak Daftar Hadir Kosong
   </a>
+  <a href="cetak_notulen.php" target="_blank"
+     class="flex items-center gap-2 bg-white border border-indigo-300 text-indigo-700 px-4 py-2 rounded-xl font-medium hover:bg-indigo-50 transition-colors shadow-sm text-sm">
+    <i data-lucide="file-text" class="w-4 h-4"></i> Cetak Notulen Kosong
+  </a>
   <?php endif; ?>
 </div>
 
@@ -214,6 +218,10 @@ function namaHariAgenda($d) {
           <a href="cetak_daftar_hadir.php?id=<?= $ag['id'] ?>" target="_blank"
              class="px-3 py-1.5 text-xs bg-teal-50 text-teal-700 rounded-lg hover:bg-teal-100 font-medium transition-colors flex items-center gap-1">
             <i data-lucide="printer" class="w-3 h-3"></i> Daftar Hadir
+          </a>
+          <a href="cetak_notulen.php?id=<?= $ag['id'] ?>" target="_blank"
+             class="px-3 py-1.5 text-xs bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 font-medium transition-colors flex items-center gap-1">
+            <i data-lucide="file-text" class="w-3 h-3"></i> Notulen
           </a>
           <button onclick='editAgenda(<?= htmlspecialchars(json_encode($ag), ENT_QUOTES) ?>)'
                   class="px-3 py-1.5 text-xs bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 font-medium transition-colors flex items-center gap-1">
