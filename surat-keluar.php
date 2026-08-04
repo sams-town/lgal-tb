@@ -22,8 +22,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_surat'])) {
         $_SESSION['error_msg'] = "Anda tidak memiliki akses untuk menambah data!";
     } else {
         $nomor_surat = $_POST['nomor_surat'] ?? '';
-        $kategori = 'Surat Keluar';
-        $asal_pengirim = $_POST['asal_pengirim'] ?? ''; // or destination in case of Surat Keluar
+        $kategori = $_POST['kategori'] ?? 'Surat Keluar';
+        $asal_pengirim = $_POST['asal_pengirim'] ?? '';
         $perihal = $_POST['perihal'] ?? '';
         $tanggal_surat = $_POST['tanggal_surat'] ?? '';
         $tanggal_diterima = null; // Surat Keluar doesn't have tanggal_diterima
@@ -69,14 +69,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_surat'])) {
     } else {
         $edit_id = (int)$_POST['edit_id'];
         $nomor_surat = $_POST['nomor_surat'] ?? '';
-        $kategori = 'Surat Keluar';
+        $kategori = $_POST['kategori'] ?? 'Surat Keluar';
         $asal_pengirim = $_POST['asal_pengirim'] ?? '';
         $perihal = $_POST['perihal'] ?? '';
         $tanggal_surat = $_POST['tanggal_surat'] ?? '';
         $status_tindak_lanjut = $_POST['status_tindak_lanjut'] ?? 'Pending';
 
         // Get current file path
-        $stmt = $pdo->prepare("SELECT file_path FROM manajemen_surat WHERE id = ? AND kategori = 'Surat Keluar'");
+        $stmt = $pdo->prepare("SELECT file_path FROM manajemen_surat WHERE id = ?");
         $stmt->execute([$edit_id]);
         $current_doc = $stmt->fetch();
         $file_path = $current_doc['file_path'] ?? null;
@@ -127,7 +127,7 @@ if (isset($_GET['delete'])) {
     }
     $id = (int)$_GET['delete'];
     try {
-        $stmt = $pdo->prepare("SELECT file_path FROM manajemen_surat WHERE id = ? AND kategori = 'Surat Keluar'");
+        $stmt = $pdo->prepare("SELECT file_path FROM manajemen_surat WHERE id = ?");
         $stmt->execute([$id]);
         $doc = $stmt->fetch();
 
@@ -147,10 +147,28 @@ if (isset($_GET['delete'])) {
     exit;
 }
 
+// Kategori surat keluar
+$kategoriKeluarAll = [
+    'Internal Memo','Disposisi','Surat Keluar','Surat Tugas','Surat Keterangan',
+    'Surat Pernyataan','Surat Undangan','Surat Edaran','Surat Kuasa',
+    'Sertifikat','Surat Perintah Kerja (SPK)','Berita Acara',
+    'Perjanjian Kerjasama (PKS)','SPO','Peraturan Direktur (Perdir)'
+];
+$selected_kategori_keluar = $_GET['kategori'] ?? 'Semua';
+if (!in_array($selected_kategori_keluar, array_merge(['Semua'], $kategoriKeluarAll))) {
+    $selected_kategori_keluar = 'Semua';
+}
+
 // Query all Surat Keluar
 try {
-    $stmt = $pdo->prepare("SELECT * FROM manajemen_surat WHERE kategori = 'Surat Keluar' ORDER BY created_at DESC");
-    $stmt->execute();
+    if ($selected_kategori_keluar === 'Semua') {
+        $inList = implode(',', array_fill(0, count($kategoriKeluarAll), '?'));
+        $stmt = $pdo->prepare("SELECT * FROM manajemen_surat WHERE kategori IN ($inList) ORDER BY created_at DESC");
+        $stmt->execute($kategoriKeluarAll);
+    } else {
+        $stmt = $pdo->prepare("SELECT * FROM manajemen_surat WHERE kategori = ? ORDER BY created_at DESC");
+        $stmt->execute([$selected_kategori_keluar]);
+    }
     $documents = $stmt->fetchAll();
 } catch (PDOException $e) {
     $documents = [];
@@ -158,24 +176,25 @@ try {
 
 // Calculate Stats for Surat Keluar
 try {
-    // Total Surat Keluar
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM manajemen_surat WHERE kategori = 'Surat Keluar'");
-    $stmt->execute();
+    $inList = implode(',', array_fill(0, count($kategoriKeluarAll), '?'));
+
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM manajemen_surat WHERE kategori IN ($inList)");
+    $stmt->execute($kategoriKeluarAll);
     $totalSuratKeluar = $stmt->fetchColumn();
 
-    // Selesai
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM manajemen_surat WHERE kategori = 'Surat Keluar' AND status_tindak_lanjut = 'Selesai'");
-    $stmt->execute();
+    $params = array_merge($kategoriKeluarAll, ['Selesai']);
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM manajemen_surat WHERE kategori IN ($inList) AND status_tindak_lanjut = ?");
+    $stmt->execute($params);
     $countSelesai = $stmt->fetchColumn();
 
-    // Dalam Proses
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM manajemen_surat WHERE kategori = 'Surat Keluar' AND status_tindak_lanjut = 'Dalam Proses'");
-    $stmt->execute();
+    $params = array_merge($kategoriKeluarAll, ['Dalam Proses']);
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM manajemen_surat WHERE kategori IN ($inList) AND status_tindak_lanjut = ?");
+    $stmt->execute($params);
     $countProses = $stmt->fetchColumn();
 
-    // Pending
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM manajemen_surat WHERE kategori = 'Surat Keluar' AND status_tindak_lanjut = 'Pending'");
-    $stmt->execute();
+    $params = array_merge($kategoriKeluarAll, ['Pending']);
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM manajemen_surat WHERE kategori IN ($inList) AND status_tindak_lanjut = ?");
+    $stmt->execute($params);
     $countPending = $stmt->fetchColumn();
 } catch (PDOException $e) {
     $totalSuratKeluar = $countSelesai = $countProses = $countPending = 0;
@@ -231,17 +250,25 @@ if (!function_exists('formatDate')) {
         <div class="flex-1 p-8 overflow-y-auto">
             <div class="space-y-6">
                 <!-- Title & Add Button -->
-                <div class="flex justify-between items-start">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
                         <h1 class="text-3xl font-bold text-gray-900">Surat Keluar</h1>
                         <p class="text-gray-600 mt-2">Manajemen surat keluar resmi rumah sakit</p>
                     </div>
-                    <?php if (canUserEditOrDelete('sekretariat')): ?>
-                        <button onclick="openModal()" class="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl font-medium hover:bg-emerald-700 transition-colors shadow-sm">
-                            ➕
-                            <span>Tambah Surat</span>
-                        </button>
-                    <?php endif; ?>
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <?php if (canUserEditOrDelete('sekretariat')): ?>
+                            <button onclick="openModal()" class="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl font-medium hover:bg-emerald-700 transition-colors shadow-sm">
+                                ➕ <span>Tambah Surat</span>
+                            </button>
+                        <?php endif; ?>
+                        <span class="text-sm font-medium text-gray-700">Kategori:</span>
+                        <select onchange="location = this.value;" class="bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm font-medium text-gray-700 shadow-sm focus:ring-2 focus:ring-emerald-500">
+                            <option value="surat-keluar.php?kategori=Semua" <?= $selected_kategori_keluar==='Semua'?'selected':'' ?>>Semua</option>
+                            <?php foreach ($kategoriKeluarAll as $kat): ?>
+                            <option value="surat-keluar.php?kategori=<?= urlencode($kat) ?>" <?= $selected_kategori_keluar===$kat?'selected':'' ?>><?= htmlspecialchars($kat) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                 </div>
 
                 <!-- Session Flash Messages -->
@@ -395,7 +422,11 @@ if (!function_exists('formatDate')) {
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Kategori</label>
-                    <input type="text" value="Surat Keluar" readonly class="w-full px-4 py-2 border border-gray-200 bg-gray-50 rounded-xl text-gray-500 font-medium">
+                    <select name="kategori" id="kategoriSelectKeluar" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        <?php foreach ($kategoriKeluarAll as $kat): ?>
+                        <option value="<?= htmlspecialchars($kat) ?>"><?= htmlspecialchars($kat) ?></option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Tujuan / Penerima</label>
@@ -464,6 +495,7 @@ if (!function_exists('formatDate')) {
         function openEditModal(doc) {
             document.getElementById('edit_id').value = doc.id;
             document.getElementById('nomor_surat').value = doc.nomor_surat || '';
+            document.getElementById('kategoriSelectKeluar').value = doc.kategori || 'Surat Keluar';
             document.getElementById('asal_pengirim').value = doc.asal_pengirim || '';
             document.getElementById('perihal').value = doc.perihal || '';
             document.getElementById('status_tindak_lanjut').value = doc.status_tindak_lanjut || 'Pending';

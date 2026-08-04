@@ -271,6 +271,52 @@ try {
                     $pdo->exec("ALTER TABLE `kpi_karyawan` ADD COLUMN `atasan_id` INT DEFAULT NULL AFTER `user_id`");
                 }
             } catch (Exception $ex) { /* skip */ }
+
+            // ============================================
+            // AUTO CREATE SEKRETARIAT TABLES
+            // ============================================
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS `sekretariat_arsip` (
+                  `id` int(11) NOT NULL AUTO_INCREMENT,
+                  `tanggal` date NOT NULL,
+                  `nama_dokumen` varchar(255) NOT NULL,
+                  `dari_asal` varchar(255) DEFAULT NULL,
+                  `nomor_surat` varchar(100) DEFAULT NULL,
+                  `kategori` varchar(100) NOT NULL DEFAULT 'Dokumen Lainnya',
+                  `keterangan` text DEFAULT NULL,
+                  `file_path` varchar(500) DEFAULT NULL,
+                  `created_by` varchar(100) DEFAULT NULL,
+                  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                  PRIMARY KEY (`id`),
+                  KEY `idx_kategori` (`kategori`),
+                  KEY `idx_tanggal` (`tanggal`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            ");
+
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS `sekretariat_agenda` (
+                  `id` int(11) NOT NULL AUTO_INCREMENT,
+                  `tanggal` date NOT NULL,
+                  `waktu` time DEFAULT NULL,
+                  `judul_agenda` varchar(255) NOT NULL,
+                  `lokasi` varchar(255) DEFAULT NULL,
+                  `peserta` text DEFAULT NULL COMMENT 'JSON array nama/email peserta',
+                  `reminder` text DEFAULT NULL COMMENT 'JSON array pilihan reminder',
+                  `catatan` text DEFAULT NULL,
+                  `created_by` varchar(100) DEFAULT NULL,
+                  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                  PRIMARY KEY (`id`),
+                  KEY `idx_tanggal` (`tanggal`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            ");
+
+            // Pastikan kolom kategori di manajemen_surat cukup panjang untuk nama baru
+            try {
+                $colInfo = $pdo->query("SHOW COLUMNS FROM `manajemen_surat` LIKE 'kategori'")->fetch();
+                if ($colInfo && stripos($colInfo['Type'], 'varchar(50)') !== false) {
+                    $pdo->exec("ALTER TABLE `manajemen_surat` MODIFY COLUMN `kategori` VARCHAR(100) NOT NULL");
+                }
+            } catch (Exception $ex) { /* skip */ }
         } catch (Exception $ex) {
             // Silently continue if table not created yet
         }

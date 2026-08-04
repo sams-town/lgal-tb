@@ -131,10 +131,18 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
             </div>
         <?php endif; ?>
 
-        <!-- Sekretariat -->
-        <?php if (hasPermission('sekretariat_view')): ?>
+        <!-- Sekretariat (gabung dengan Corporate Secretary) -->
+        <?php if (hasPermission('sekretariat_view') || hasPermission('corsec_view')): ?>
             <?php 
-            $is_sekretariat_active = in_array($current_page, ['surat-masuk.php', 'surat-keluar.php']); 
+            $sekretariat_pages = [
+                'sekretariat_dashboard.php',
+                'surat-masuk.php',
+                'surat-keluar.php',
+                'sekretariat_arsip.php',
+                'sekretariat_agenda.php',
+                'corsec.php',
+            ];
+            $is_sekretariat_active = in_array($current_page, $sekretariat_pages); 
             ?>
             <div class="space-y-1">
                 <button onclick="toggleAccordion('sekretariat-submenu', this)" class="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200 <?php echo $is_sekretariat_active ? 'bg-slate-800/60 text-white font-medium' : 'text-slate-300 hover:bg-slate-800 hover:text-white'; ?>">
@@ -145,11 +153,23 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
                     <i data-lucide="chevron-down" class="w-4 h-4 arrow-icon transition-transform duration-300 <?php echo $is_sekretariat_active ? 'rotate-180' : ''; ?>"></i>
                 </button>
                 <div id="sekretariat-submenu" class="<?php echo $is_sekretariat_active ? '' : 'hidden'; ?> space-y-1 py-1 pl-8">
+                    <a href="sekretariat_dashboard.php" class="block px-4 py-2 rounded-lg text-sm font-semibold transition-all <?php echo ($current_page === 'sekretariat_dashboard.php') ? 'bg-teal-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'; ?>">
+                        › Dashboard Sekretariat
+                    </a>
                     <a href="surat-masuk.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'surat-masuk.php') ? 'bg-teal-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white'; ?>">
-                        Surat Masuk
+                        › Surat Masuk
                     </a>
                     <a href="surat-keluar.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'surat-keluar.php') ? 'bg-teal-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white'; ?>">
-                        Surat Keluar
+                        › Surat Keluar
+                    </a>
+                    <a href="sekretariat_arsip.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'sekretariat_arsip.php') ? 'bg-teal-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white'; ?>">
+                        › Arsip Dokumen
+                    </a>
+                    <a href="sekretariat_agenda.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'sekretariat_agenda.php') ? 'bg-teal-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white'; ?>">
+                        › Agenda / Jadwal Rapat
+                    </a>
+                    <a href="corsec.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'corsec.php') ? 'bg-teal-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white'; ?>">
+                        › Corporate Secretary
                     </a>
                 </div>
             </div>
@@ -250,14 +270,6 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
                     </a>
                 </div>
             </div>
-        <?php endif; ?>
-
-        <!-- Corporate Secretary -->
-        <?php if (hasPermission('corsec_view')): ?>
-        <a href="corsec.php" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 <?php echo $current_page === 'corsec.php' ? 'bg-teal-600 text-white font-semibold shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'; ?>">
-            <i data-lucide="building" class="w-5 h-5"></i>
-            <span>Corporate Secretary</span>
-        </a>
         <?php endif; ?>
 
         <!-- Audit Trail -->

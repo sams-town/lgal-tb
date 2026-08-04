@@ -196,15 +196,23 @@ if (isset($_GET['delete'])) {
 }
 
 // Filter and query setup
-$selected_kategori = $_GET['kategori'] ?? 'Surat Masuk';
-$allowed_kategori = ['Semua', 'Surat Masuk', 'Disposisi', 'Notulen', 'Memo'];
+$kategoriMasukAll = [
+    'Surat Masuk','Internal Memo','Surat Tugas','Surat Keterangan',
+    'Surat Pernyataan','Surat Undangan','Surat Edaran','Surat Kuasa',
+    'Sertifikat','Surat Perintah Kerja (SPK)','Berita Acara',
+    'Perjanjian Kerjasama (PKS)','SPO','Peraturan Direktur (Perdir)'
+];
+$selected_kategori = $_GET['kategori'] ?? 'Semua';
+$allowed_kategori  = array_merge(['Semua'], $kategoriMasukAll);
 if (!in_array($selected_kategori, $allowed_kategori)) {
-    $selected_kategori = 'Surat Masuk';
+    $selected_kategori = 'Semua';
 }
 
 try {
     if ($selected_kategori === 'Semua') {
-        $stmt = $pdo->query("SELECT * FROM manajemen_surat WHERE kategori IN ('Surat Masuk', 'Disposisi', 'Notulen', 'Memo') ORDER BY created_at DESC");
+        $inList = implode(',', array_fill(0, count($kategoriMasukAll), '?'));
+        $stmt = $pdo->prepare("SELECT * FROM manajemen_surat WHERE kategori IN ($inList) ORDER BY created_at DESC");
+        $stmt->execute($kategoriMasukAll);
         $documents = $stmt->fetchAll();
     } else {
         $stmt = $pdo->prepare("SELECT * FROM manajemen_surat WHERE kategori = ? ORDER BY created_at DESC");
@@ -218,7 +226,9 @@ try {
 // Calculate Stats for Surat Masuk & Internal
 try {
     // Total Surat Masuk & Internal
-    $stmt = $pdo->query("SELECT COUNT(*) FROM manajemen_surat WHERE kategori IN ('Surat Masuk', 'Disposisi', 'Notulen', 'Memo')");
+    $inList = implode(',', array_fill(0, count($kategoriMasukAll), '?'));
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM manajemen_surat WHERE kategori IN ($inList)");
+    $stmt->execute($kategoriMasukAll);
     $totalSuratMasukInternal = $stmt->fetchColumn();
 
     // Surat Masuk
@@ -226,13 +236,16 @@ try {
     $stmt->execute(['Surat Masuk']);
     $countSuratMasuk = $stmt->fetchColumn();
 
-    // Disposisi
+    // Disposisi / Internal Memo
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM manajemen_surat WHERE kategori = ?");
-    $stmt->execute(['Disposisi']);
+    $stmt->execute(['Internal Memo']);
     $countDisposisi = $stmt->fetchColumn();
 
     // Perlu Tindak Lanjut (Pending / Dalam Proses)
-    $stmt = $pdo->query("SELECT COUNT(*) FROM manajemen_surat WHERE kategori IN ('Surat Masuk', 'Disposisi', 'Notulen', 'Memo') AND status_tindak_lanjut IN ('Pending', 'Dalam Proses')");
+    $inList2 = implode(',', array_fill(0, count($kategoriMasukAll), '?'));
+    $params  = array_merge($kategoriMasukAll, ['Pending','Dalam Proses']);
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM manajemen_surat WHERE kategori IN ($inList2) AND status_tindak_lanjut IN (?,?)");
+    $stmt->execute($params);
     $perluTindakLanjut = $stmt->fetchColumn();
 } catch (PDOException $e) {
     $totalSuratMasukInternal = $countSuratMasuk = $countDisposisi = $perluTindakLanjut = 0;
@@ -319,10 +332,9 @@ if (!function_exists('formatDate')) {
                         <span class="text-sm font-medium text-gray-700">Kategori:</span>
                         <select onchange="location = this.value;" class="bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm font-medium text-gray-700 shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                             <option value="surat-masuk.php?kategori=Semua" <?php echo $selected_kategori === 'Semua' ? 'selected' : ''; ?>>Semua Dokumen</option>
-                            <option value="surat-masuk.php?kategori=Surat Masuk" <?php echo $selected_kategori === 'Surat Masuk' ? 'selected' : ''; ?>>Surat Masuk</option>
-                            <option value="surat-masuk.php?kategori=Disposisi" <?php echo $selected_kategori === 'Disposisi' ? 'selected' : ''; ?>>Disposisi</option>
-                            <option value="surat-masuk.php?kategori=Notulen" <?php echo $selected_kategori === 'Notulen' ? 'selected' : ''; ?>>Notulen</option>
-                            <option value="surat-masuk.php?kategori=Memo" <?php echo $selected_kategori === 'Memo' ? 'selected' : ''; ?>>Memo</option>
+                            <?php foreach ($kategoriMasukAll as $kat): ?>
+                            <option value="surat-masuk.php?kategori=<?= urlencode($kat) ?>" <?php echo $selected_kategori === $kat ? 'selected' : ''; ?>><?= htmlspecialchars($kat) ?></option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
                 </div>
@@ -500,10 +512,10 @@ if (!function_exists('formatDate')) {
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Kategori</label>
                     <select name="kategori" id="kategoriSelect" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                        <option value="Surat Masuk" selected>Surat Masuk</option>
-                        <option value="Disposisi">Disposisi</option>
-                        <option value="Notulen">Notulen</option>
-                        <option value="Memo">Memo</option>
+                        <?php foreach ($kategoriMasukAll as $kat): ?>
+                        <option value="<?= htmlspecialchars($kat) ?>"><?= htmlspecialchars($kat) ?></option>
+                        <?php endforeach; ?>
+                    </select>
                     </select>
                 </div>
                 <div>
