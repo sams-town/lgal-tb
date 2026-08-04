@@ -236,6 +236,41 @@ try {
                   CONSTRAINT `kpi_rkk_karyawan_ibfk_2` FOREIGN KEY (`tugas_id`) REFERENCES `kpi_rkk_tugas` (`id`) ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             ");
+
+            // kpi_penilaian_harian — grid nilai per hari per kriteria
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS `kpi_penilaian_harian` (
+                  `id` int(11) NOT NULL AUTO_INCREMENT,
+                  `karyawan_id` int(11) NOT NULL,
+                  `kriteria_id` int(11) NOT NULL,
+                  `hari` tinyint(2) NOT NULL COMMENT '1-31',
+                  `bulan` tinyint(2) NOT NULL COMMENT '1-12',
+                  `tahun` smallint(4) NOT NULL,
+                  `nilai` varchar(10) DEFAULT NULL,
+                  `created_by` varchar(100) DEFAULT NULL,
+                  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                  PRIMARY KEY (`id`),
+                  UNIQUE KEY `uq_harian` (`karyawan_id`,`kriteria_id`,`hari`,`bulan`,`tahun`),
+                  KEY `idx_karyawan_periode` (`karyawan_id`,`bulan`,`tahun`),
+                  KEY `idx_kriteria` (`kriteria_id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            ");
+
+            // Tambah kolom user_id di kpi_karyawan jika belum ada (link ke akun login)
+            try {
+                $colExists = $pdo->query("SHOW COLUMNS FROM `kpi_karyawan` LIKE 'user_id'")->rowCount();
+                if ($colExists == 0) {
+                    $pdo->exec("ALTER TABLE `kpi_karyawan` ADD COLUMN `user_id` INT DEFAULT NULL AFTER `tenaga_medis_id`");
+                }
+            } catch (Exception $ex) { /* skip */ }
+
+            // Tambah kolom atasan_id di kpi_karyawan jika belum ada
+            try {
+                $colExists = $pdo->query("SHOW COLUMNS FROM `kpi_karyawan` LIKE 'atasan_id'")->rowCount();
+                if ($colExists == 0) {
+                    $pdo->exec("ALTER TABLE `kpi_karyawan` ADD COLUMN `atasan_id` INT DEFAULT NULL AFTER `user_id`");
+                }
+            } catch (Exception $ex) { /* skip */ }
         } catch (Exception $ex) {
             // Silently continue if table not created yet
         }

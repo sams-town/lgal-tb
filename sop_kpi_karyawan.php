@@ -17,26 +17,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     
     if ($action === 'add') {
-        $nik = $_POST['nik'];
-        $nama = $_POST['nama'];
-        $unit = $_POST['unit'];
+        $nik     = $_POST['nik'];
+        $nama    = $_POST['nama'];
+        $unit    = $_POST['unit'];
         $jabatan = $_POST['jabatan'];
-        
-        $stmt = $pdo->prepare("INSERT INTO kpi_karyawan (nik, nama, unit, jabatan) VALUES (?, ?, ?, ?)");
-        $stmt->execute([$nik, $nama, $unit, $jabatan]);
+        $user_id  = !empty($_POST['user_id'])  ? (int)$_POST['user_id']  : null;
+        $atasan_id = !empty($_POST['atasan_id']) ? (int)$_POST['atasan_id'] : null;
+
+        $stmt = $pdo->prepare("INSERT INTO kpi_karyawan (nik, nama, unit, jabatan, user_id, atasan_id) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$nik, $nama, $unit, $jabatan, $user_id, $atasan_id]);
         header("Location: sop_kpi_karyawan.php?success=add");
         exit;
     }
     elseif ($action === 'edit') {
-        $id = $_POST['id'];
-        $nik = $_POST['nik'];
-        $nama = $_POST['nama'];
-        $unit = $_POST['unit'];
+        $id      = $_POST['id'];
+        $nik     = $_POST['nik'];
+        $nama    = $_POST['nama'];
+        $unit    = $_POST['unit'];
         $jabatan = $_POST['jabatan'];
-        $status = $_POST['status'];
-        
-        $stmt = $pdo->prepare("UPDATE kpi_karyawan SET nik=?, nama=?, unit=?, jabatan=?, status=? WHERE id=?");
-        $stmt->execute([$nik, $nama, $unit, $jabatan, $status, $id]);
+        $status  = $_POST['status'];
+        $user_id  = !empty($_POST['user_id'])  ? (int)$_POST['user_id']  : null;
+        $atasan_id = !empty($_POST['atasan_id']) ? (int)$_POST['atasan_id'] : null;
+
+        $stmt = $pdo->prepare("UPDATE kpi_karyawan SET nik=?, nama=?, unit=?, jabatan=?, status=?, user_id=?, atasan_id=? WHERE id=?");
+        $stmt->execute([$nik, $nama, $unit, $jabatan, $status, $user_id, $atasan_id, $id]);
         header("Location: sop_kpi_karyawan.php?success=edit");
         exit;
     }
@@ -91,6 +95,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 }
+
+// Fetch daftar users untuk dropdown link akun
+$usersList = [];
+try {
+    $stmtU = $pdo->query("SELECT id, nama, nama_role FROM users ORDER BY nama ASC");
+    $usersList = $stmtU->fetchAll();
+} catch (Exception $e) { $usersList = []; }
 
 // Fetch all data
 $stmt = $pdo->query("
@@ -193,6 +204,7 @@ foreach ($karyawanList as $k) {
                                     <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Unit / Departemen</th>
                                     <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Jabatan</th>
                                     <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Akun & Atasan</th>
                                     <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Aksi</th>
                                 </tr>
                             </thead>
@@ -210,6 +222,20 @@ foreach ($karyawanList as $k) {
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Aktif</span>
                                         <?php else: ?>
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Nonaktif</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="py-3">
+                                        <?php if (!empty($k['user_id'])): ?>
+                                            <span class="inline-flex items-center gap-1 text-xs text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full font-medium">
+                                                <i data-lucide="link" class="w-3 h-3"></i> Terhubung
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="text-xs text-gray-400">— Belum</span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($k['atasan_id'])): ?>
+                                            <div class="mt-1 text-xs text-blue-600 flex items-center gap-1">
+                                                <i data-lucide="user-check" class="w-3 h-3"></i> Ada atasan
+                                            </div>
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-right py-3">
@@ -320,6 +346,30 @@ foreach ($karyawanList as $k) {
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Jabatan</label>
                         <input type="text" name="jabatan" required class="w-full border border-gray-200 py-2 px-3 rounded-xl focus:ring-teal-500 outline-none">
                     </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Link Akun Login (User)</label>
+                        <select name="user_id" class="w-full border border-gray-200 py-2 px-3 rounded-xl focus:ring-teal-500 outline-none bg-white text-sm">
+                            <option value="">-- Tidak dihubungkan --</option>
+                            <?php foreach ($usersList as $u): ?>
+                            <option value="<?= $u['id'] ?>">
+                                <?= htmlspecialchars($u['nama'] . ' (' . $u['nama_role'] . ')') ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <p class="text-xs text-gray-400 mt-1">Hubungkan agar karyawan bisa melihat nilainya sendiri.</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Atasan (Penilai)</label>
+                        <select name="atasan_id" class="w-full border border-gray-200 py-2 px-3 rounded-xl focus:ring-teal-500 outline-none bg-white text-sm">
+                            <option value="">-- Tidak ada atasan --</option>
+                            <?php foreach ($usersList as $u): ?>
+                            <option value="<?= $u['id'] ?>">
+                                <?= htmlspecialchars($u['nama'] . ' (' . $u['nama_role'] . ')') ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <p class="text-xs text-gray-400 mt-1">Atasan yang berhak mengisi penilaian harian karyawan ini.</p>
+                    </div>
                 </div>
                 <div class="flex justify-end gap-3 mt-6">
                     <button type="button" onclick="closeModal('modalAdd')" class="px-4 py-2 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50">Batal</button>
@@ -359,6 +409,30 @@ foreach ($karyawanList as $k) {
                             <option value="Aktif">Aktif</option>
                             <option value="Nonaktif">Nonaktif</option>
                         </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Link Akun Login (User)</label>
+                        <select name="user_id" id="edit_user_id" class="w-full border border-gray-200 py-2 px-3 rounded-xl focus:ring-teal-500 outline-none bg-white text-sm">
+                            <option value="">-- Tidak dihubungkan --</option>
+                            <?php foreach ($usersList as $u): ?>
+                            <option value="<?= $u['id'] ?>">
+                                <?= htmlspecialchars($u['nama'] . ' (' . $u['nama_role'] . ')') ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <p class="text-xs text-gray-400 mt-1">Hubungkan agar karyawan bisa melihat nilainya sendiri.</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Atasan (Penilai)</label>
+                        <select name="atasan_id" id="edit_atasan_id" class="w-full border border-gray-200 py-2 px-3 rounded-xl focus:ring-teal-500 outline-none bg-white text-sm">
+                            <option value="">-- Tidak ada atasan --</option>
+                            <?php foreach ($usersList as $u): ?>
+                            <option value="<?= $u['id'] ?>">
+                                <?= htmlspecialchars($u['nama'] . ' (' . $u['nama_role'] . ')') ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <p class="text-xs text-gray-400 mt-1">Atasan yang berhak mengisi penilaian harian karyawan ini.</p>
                     </div>
                 </div>
                 <div class="flex justify-end gap-3 mt-6">
@@ -434,12 +508,14 @@ foreach ($karyawanList as $k) {
             document.getElementById(id).classList.remove('flex');
         }
         function editData(data) {
-            document.getElementById('edit_id').value = data.id;
-            document.getElementById('edit_nik').value = data.nik;
-            document.getElementById('edit_nama').value = data.nama;
-            document.getElementById('edit_unit').value = data.unit;
+            document.getElementById('edit_id').value      = data.id;
+            document.getElementById('edit_nik').value     = data.nik;
+            document.getElementById('edit_nama').value    = data.nama;
+            document.getElementById('edit_unit').value    = data.unit;
             document.getElementById('edit_jabatan').value = data.jabatan;
-            document.getElementById('edit_status').value = data.status;
+            document.getElementById('edit_status').value  = data.status;
+            document.getElementById('edit_user_id').value  = data.user_id  || '';
+            document.getElementById('edit_atasan_id').value = data.atasan_id || '';
             openModal('modalEdit');
         }
     </script>
