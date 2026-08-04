@@ -38,33 +38,33 @@ if ($existing > 0) {
 // Nilai bobot dari gambar (dibulatkan ke 1 desimal)
 $indikator = [
     // ATTITUDE
-    ['ATTITUDE', 'Kehadiran',                    'Kehadiran karyawan dalam bekerja',                  5.3],
-    ['ATTITUDE', 'Penampilan',                   'Penampilan dan kerapian saat bertugas',              5.3],
-    ['ATTITUDE', 'Caring',                       'Sikap caring terhadap pasien dan rekan kerja',       2.1],
+    ['ATTITUDE', 'Kehadiran',                    'Kehadiran karyawan dalam bekerja',                   5.3],
+    ['ATTITUDE', 'Penampilan',                   'Penampilan dan kerapian saat bertugas',               5.3],
+    ['ATTITUDE', 'Caring',                       'Sikap caring terhadap pasien dan rekan kerja',        2.1],
 
     // KNOWLEDGE
-    ['KNOWLEDGE', 'Kehadiran Kelas Edukasi',     'Kehadiran dalam kelas edukasi / pelatihan',          3.2],
+    ['KNOWLEDGE', 'Kehadiran Kelas Edukasi',     'Kehadiran dalam kelas edukasi / pelatihan',           3.2],
     ['KNOWLEDGE', 'Pemahaman SPO',               'Pemahaman dan penerapan Standar Prosedur Operasional', 3.2],
-    ['KNOWLEDGE', 'Melakukan Coaching/Mentoring','Aktif melakukan coaching atau mentoring',             5.3],
-    ['KNOWLEDGE', 'Product Knowledge',           'Penguasaan product knowledge rumah sakit',           3.2],
+    ['KNOWLEDGE', 'Coaching/Mentoring',          'Aktif melakukan coaching atau mentoring',              5.3],
+    ['KNOWLEDGE', 'Product Knowledge',           'Penguasaan product knowledge rumah sakit',            3.2],
 
     // SKILL
-    ['SKILL', 'Kesesuaian RKK/Job Des',          'Otomatis dari Log RKK/Job Des',                     21.1],
-    ['SKILL', 'Kemampuan Coaching/Leadership',   'Kemampuan memimpin dan melatih tim',                 5.3],
-    ['SKILL', 'Kemampuan Handling Komplain',     'Kemampuan menangani keluhan pasien/keluarga',        5.3],
-    ['SKILL', 'Pelaksanaan Pelaporan',           'Ketepatan dan kelengkapan pelaporan',                5.3],
+    ['SKILL', 'Kesesuaian RKK/Job Des',          'Otomatis dari Log RKK/Job Des',                      21.1],
+    ['SKILL', 'Coaching/Leadership',             'Kemampuan memimpin dan melatih tim',                   5.3],
+    ['SKILL', 'Handling Komplain',               'Kemampuan menangani keluhan pasien/keluarga',          5.3],
+    ['SKILL', 'Pelaporan',                       'Ketepatan dan kelengkapan pelaporan',                  5.3],
 
     // KOMPLAIN
-    ['KOMPLAIN', 'Keterkaitan YBS dengan Komplain Karyawan', 'Keterlibatan dalam komplain internal',   5.3],
-    ['KOMPLAIN', 'Teguran Lisan/Tertulis',       'Tidak ada teguran lisan maupun tertulis',            5.3],
-    ['KOMPLAIN', 'Adanya Keluhan dari Unit Lain','Tidak ada keluhan dari unit lain',                   2.1],
-    ['KOMPLAIN', 'Terjadinya Insiden karena Kelalaian', 'Tidak terjadi insiden akibat kelalaian',      5.3],
+    ['KOMPLAIN', 'Komplain Karyawan',            'Keterlibatan dalam komplain internal karyawan',        5.3],
+    ['KOMPLAIN', 'Teguran Lisan/Tertulis',       'Tidak ada teguran lisan maupun tertulis',              5.3],
+    ['KOMPLAIN', 'Keluhan Unit Lain',            'Tidak ada keluhan dari unit lain',                     2.1],
+    ['KOMPLAIN', 'Insiden Kelalaian',            'Tidak terjadi insiden akibat kelalaian',               5.3],
 
     // REWARD
-    ['REWARD', 'Pujian Lisan/Tertulis',          'Mendapat pujian lisan atau tertulis',                5.3],
-    ['REWARD', 'Tidak Ada Komplain',             'Tidak ada komplain dalam periode ini',               5.3],
-    ['REWARD', 'Memberikan Ide dan Inovasi',     'Aktif memberikan ide atau inovasi',                  5.3],
-    ['REWARD', 'Loyalitas',                      'Loyalitas terhadap institusi',                       2.1],
+    ['REWARD', 'Pujian Lisan/Tertulis',          'Mendapat pujian lisan atau tertulis',                  5.3],
+    ['REWARD', 'Tidak Ada Komplain',             'Tidak ada komplain dalam periode ini',                 5.3],
+    ['REWARD', 'Ide & Inovasi',                  'Aktif memberikan ide atau inovasi',                    5.3],
+    ['REWARD', 'Loyalitas',                      'Loyalitas terhadap institusi',                         2.1],
 ];
 
 try {
