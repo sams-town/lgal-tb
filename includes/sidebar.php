@@ -177,7 +177,8 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
             $sop_kpi_pages = [
                 'sop_kpi_dashboard.php', 
                 'sop_kpi_karyawan.php', 
-                'sop_kpi_penilaian.php', 
+                'sop_kpi_penilaian.php',
+                'sop_kpi_penilaian_harian.php',
                 'sop_kpi_rkk.php', 
                 'sop_kpi_template_rkk.php', 
                 'sop_kpi_laporan.php', 
@@ -204,6 +205,9 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
                     </a>
                     <a href="sop_kpi_penilaian.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'sop_kpi_penilaian.php') ? 'bg-teal-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white'; ?>">
                         › Log Penilaian
+                    </a>
+                    <a href="sop_kpi_penilaian_harian.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'sop_kpi_penilaian_harian.php') ? 'bg-teal-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white'; ?>">
+                        › Penilaian Harian
                     </a>
                     <a href="sop_kpi_rkk.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'sop_kpi_rkk.php') ? 'bg-teal-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white'; ?>">
                         › Log RKK / Job Des
