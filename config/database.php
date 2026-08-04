@@ -327,6 +327,8 @@ try {
                 'isi_surat'       => "TEXT DEFAULT NULL AFTER ucapan_mitra",
                 'penanda_tangan'  => "VARCHAR(255) DEFAULT NULL AFTER isi_surat",
                 'jabatan_ttd'     => "VARCHAR(255) DEFAULT NULL AFTER penanda_tangan",
+                'dari'            => "VARCHAR(255) DEFAULT NULL AFTER asal_pengirim",
+                'tembusan'        => "TEXT DEFAULT NULL AFTER jabatan_ttd",
             ];
             foreach ($suratCols as $col => $def) {
                 try {

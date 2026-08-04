@@ -37,6 +37,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_surat'])) {
         $jabatan_ttd          = $_POST['jabatan_ttd'] ?? null;
         $file_path            = null;
 
+        // Untuk Internal Memo: pakai field khusus memo
+        if ($kategori === 'Internal Memo') {
+            $asal_pengirim = $_POST['asal_pengirim_memo'] ?? $asal_pengirim;
+            $perihal       = !empty($_POST['perihal_memo']) ? $_POST['perihal_memo'] : $perihal;
+            $isi_surat     = !empty($_POST['isi_surat_memo']) ? $_POST['isi_surat_memo'] : $isi_surat;
+            $penanda_tangan= !empty($_POST['penanda_tangan_memo']) ? $_POST['penanda_tangan_memo'] : $penanda_tangan;
+            $jabatan_ttd   = !empty($_POST['jabatan_ttd_memo']) ? $_POST['jabatan_ttd_memo'] : $jabatan_ttd;
+        }
+        $dari      = $_POST['dari'] ?? null;
+        $tembusan  = !empty($_POST['tembusan_raw'])
+                     ? json_encode(array_values(array_filter(array_map('trim', explode("\n", $_POST['tembusan_raw'])))))
+                     : null;
+
         // Handle file upload
         if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
             $uploadDir = 'uploads/sekretariat/';
@@ -54,10 +67,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_surat'])) {
 
         try {
             $stmt = $pdo->prepare("
-                INSERT INTO manajemen_surat (nomor_surat, kategori, asal_pengirim, perihal, tanggal_surat, tanggal_diterima, status_tindak_lanjut, file_path, lampiran, tujuan_alamat, up_nama, ucapan_mitra, isi_surat, penanda_tangan, jabatan_ttd)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO manajemen_surat (nomor_surat, kategori, asal_pengirim, perihal, tanggal_surat, tanggal_diterima, status_tindak_lanjut, file_path, lampiran, tujuan_alamat, up_nama, ucapan_mitra, isi_surat, penanda_tangan, jabatan_ttd, dari, tembusan)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
-            $stmt->execute([$nomor_surat, $kategori, $asal_pengirim, $perihal, $tanggal_surat, $tanggal_diterima, $status_tindak_lanjut, $file_path, $lampiran, $tujuan_alamat, $up_nama, $ucapan_mitra, $isi_surat, $penanda_tangan, $jabatan_ttd]);
+            $stmt->execute([$nomor_surat, $kategori, $asal_pengirim, $perihal, $tanggal_surat, $tanggal_diterima, $status_tindak_lanjut, $file_path, $lampiran, $tujuan_alamat, $up_nama, $ucapan_mitra, $isi_surat, $penanda_tangan, $jabatan_ttd, $dari, $tembusan]);
 
             $_SESSION['success_msg'] = "Surat Keluar berhasil ditambahkan!";
         } catch (PDOException $e) {
@@ -89,6 +102,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_surat'])) {
         $penanda_tangan       = $_POST['penanda_tangan'] ?? null;
         $jabatan_ttd          = $_POST['jabatan_ttd'] ?? null;
 
+        // Untuk Internal Memo: pakai field khusus memo
+        if ($kategori === 'Internal Memo') {
+            $asal_pengirim = $_POST['asal_pengirim_memo'] ?? $asal_pengirim;
+            $perihal       = !empty($_POST['perihal_memo']) ? $_POST['perihal_memo'] : $perihal;
+            $isi_surat     = !empty($_POST['isi_surat_memo']) ? $_POST['isi_surat_memo'] : $isi_surat;
+            $penanda_tangan= !empty($_POST['penanda_tangan_memo']) ? $_POST['penanda_tangan_memo'] : $penanda_tangan;
+            $jabatan_ttd   = !empty($_POST['jabatan_ttd_memo']) ? $_POST['jabatan_ttd_memo'] : $jabatan_ttd;
+        }
+        $dari     = $_POST['dari'] ?? null;
+        $tembusan = !empty($_POST['tembusan_raw'])
+                    ? json_encode(array_values(array_filter(array_map('trim', explode("\n", $_POST['tembusan_raw'])))))
+                    : null;
+
         // Get current file path
         $stmt = $pdo->prepare("SELECT file_path FROM manajemen_surat WHERE id = ?");
         $stmt->execute([$edit_id]);
@@ -115,14 +141,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_surat'])) {
                 SET nomor_surat=?, kategori=?, asal_pengirim=?, perihal=?, tanggal_surat=?,
                     status_tindak_lanjut=?, file_path=?,
                     lampiran=?, tujuan_alamat=?, up_nama=?, ucapan_mitra=?,
-                    isi_surat=?, penanda_tangan=?, jabatan_ttd=?
+                    isi_surat=?, penanda_tangan=?, jabatan_ttd=?, dari=?, tembusan=?
                 WHERE id=?
             ");
             $stmt->execute([
                 $nomor_surat, $kategori, $asal_pengirim, $perihal, $tanggal_surat,
                 $status_tindak_lanjut, $file_path,
                 $lampiran, $tujuan_alamat, $up_nama, $ucapan_mitra,
-                $isi_surat, $penanda_tangan, $jabatan_ttd,
+                $isi_surat, $penanda_tangan, $jabatan_ttd, $dari, $tembusan,
                 $edit_id
             ]);
             $_SESSION['success_msg'] = "Surat Keluar berhasil diperbarui!";
@@ -403,10 +429,17 @@ if (!function_exists('formatDate')) {
                                                             Lihat
                                                         </a>
                                                     <?php endif; ?>
+                                                    <?php if ($doc['kategori'] === 'Internal Memo'): ?>
+                                                    <a href="cetak_internal_memo.php?id=<?= $doc['id'] ?>" target="_blank"
+                                                       class="px-3 py-1 text-sm bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors">
+                                                        🖨 Memo
+                                                    </a>
+                                                    <?php else: ?>
                                                     <a href="cetak_surat_keluar.php?id=<?= $doc['id'] ?>" target="_blank"
                                                        class="px-3 py-1 text-sm bg-teal-100 text-teal-700 rounded-lg hover:bg-teal-200 transition-colors">
                                                         🖨 Cetak
                                                     </a>
+                                                    <?php endif; ?>
                                                      <?php if (canUserEditOrDelete('sekretariat')): ?>
                                                          <button onclick="openEditModal(<?php echo htmlspecialchars(json_encode($doc), ENT_QUOTES); ?>)" class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
                                                              Edit
@@ -446,7 +479,7 @@ if (!function_exists('formatDate')) {
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Kategori <span class="text-red-500">*</span></label>
-                        <select name="kategori" id="kategoriSelectKeluar" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                        <select name="kategori" id="kategoriSelectKeluar" required onchange="toggleMemoFields(this.value)" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
                             <?php foreach ($kategoriKeluarAll as $kat): ?>
                             <option value="<?= htmlspecialchars($kat) ?>"><?= htmlspecialchars($kat) ?></option>
                             <?php endforeach; ?>
@@ -458,57 +491,88 @@ if (!function_exists('formatDate')) {
                     </div>
                 </div>
 
-                <!-- Perihal & Lampiran -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="md:col-span-2">
+                <!-- === FORM INTERNAL MEMO === -->
+                <div id="fieldsMemo" class="hidden space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Kepada Yth <span class="text-red-500">*</span></label>
+                            <input type="text" name="asal_pengirim" id="asal_pengirim_memo" placeholder="Nama penerima / unit" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Dari <span class="text-red-500">*</span></label>
+                            <input type="text" name="dari" id="dari" placeholder="Nama pengirim / unit" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                    </div>
+                    <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Perihal <span class="text-red-500">*</span></label>
-                        <input type="text" name="perihal" id="perihal" required placeholder="Perihal surat" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                        <input type="text" name="perihal" id="perihal_memo" placeholder="Perihal memo" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Lampiran</label>
-                        <input type="text" name="lampiran" id="lampiran" placeholder="Contoh: 1 berkas" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Isi Memo <span class="text-red-500">*</span></label>
+                        <textarea name="isi_surat" id="isi_surat_memo" rows="4" placeholder="Tulis isi internal memo..." class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm"></textarea>
                     </div>
-                </div>
-
-                <!-- Kepada Yth -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Tujuan / Nama Penerima <span class="text-red-500">*</span></label>
-                        <input type="text" name="asal_pengirim" id="asal_pengirim" required placeholder="Nama Perusahaan / Bapak / Ibu" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Alamat Tujuan</label>
-                        <input type="text" name="tujuan_alamat" id="tujuan_alamat" placeholder="Alamat penerima" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
-                    </div>
-                </div>
-
-                <!-- Up & Ucapan mitra -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Up. (Nama & Jabatan) <span class="text-xs text-gray-400">opsional</span></label>
-                        <input type="text" name="up_nama" id="up_nama" placeholder="Contoh: Bpk. Ahmad – Manager HRD" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nama Penanda Tangan</label>
+                            <input type="text" name="penanda_tangan" id="penanda_tangan_memo" placeholder="Nama lengkap" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Jabatan</label>
+                            <input type="text" name="jabatan_ttd" id="jabatan_ttd_memo" placeholder="Jabatan penanda tangan" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Ucapan Terima Kasih Mitra <span class="text-xs text-gray-400">opsional</span></label>
-                        <input type="text" name="ucapan_mitra" id="ucapan_mitra" placeholder="kerjasama yang terjalin" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tembusan <span class="text-xs text-gray-400">opsional — satu per baris</span></label>
+                        <textarea name="tembusan_raw" id="tembusan_raw" rows="3" placeholder="Contoh:&#10;Direktur Utama&#10;Kepala Unit Terkait" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm"></textarea>
                     </div>
                 </div>
 
-                <!-- Isi surat -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Isi Surat <span class="text-red-500">*</span></label>
-                    <textarea name="isi_surat" id="isi_surat" rows="5" required placeholder="Tulis isi / badan surat di sini..." class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"></textarea>
-                </div>
-
-                <!-- Penanda tangan -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Nama Penanda Tangan</label>
-                        <input type="text" name="penanda_tangan" id="penanda_tangan" placeholder="Nama lengkap penanda tangan" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                <!-- === FORM SURAT KELUAR BIASA === -->
+                <div id="fieldsSurat" class="space-y-4">
+                    <!-- Perihal & Lampiran -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Perihal <span class="text-red-500">*</span></label>
+                            <input type="text" name="perihal" id="perihal" placeholder="Perihal surat" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Lampiran</label>
+                            <input type="text" name="lampiran" id="lampiran" placeholder="Contoh: 1 berkas" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Tujuan / Nama Penerima <span class="text-red-500">*</span></label>
+                            <input type="text" name="asal_pengirim" id="asal_pengirim" placeholder="Nama Perusahaan / Bapak / Ibu" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Alamat Tujuan</label>
+                            <input type="text" name="tujuan_alamat" id="tujuan_alamat" placeholder="Alamat penerima" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Up. (Nama & Jabatan) <span class="text-xs text-gray-400">opsional</span></label>
+                            <input type="text" name="up_nama" id="up_nama" placeholder="Contoh: Bpk. Ahmad – Manager HRD" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Ucapan Terima Kasih Mitra <span class="text-xs text-gray-400">opsional</span></label>
+                            <input type="text" name="ucapan_mitra" id="ucapan_mitra" placeholder="kerjasama yang terjalin" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Jabatan Penanda Tangan</label>
-                        <input type="text" name="jabatan_ttd" id="jabatan_ttd" placeholder="Jabatan" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Isi Surat <span class="text-red-500">*</span></label>
+                        <textarea name="isi_surat" id="isi_surat" rows="5" placeholder="Tulis isi / badan surat di sini..." class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm"></textarea>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nama Penanda Tangan</label>
+                            <input type="text" name="penanda_tangan" id="penanda_tangan" placeholder="Nama lengkap penanda tangan" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Jabatan Penanda Tangan</label>
+                            <input type="text" name="jabatan_ttd" id="jabatan_ttd" placeholder="Jabatan" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
                     </div>
                 </div>
 
@@ -547,7 +611,24 @@ if (!function_exists('formatDate')) {
     </div>
 
     <script>
-        // Override window.openModal to reset form when adding new
+        // ── Toggle form berdasarkan kategori ──────────────────
+        function toggleMemoFields(kategori) {
+            const isMemo = (kategori === 'Internal Memo');
+            document.getElementById('fieldsMemo').classList.toggle('hidden', !isMemo);
+            document.getElementById('fieldsSurat').classList.toggle('hidden', isMemo);
+            document.getElementById('previewBtn').textContent = isMemo ? '👁 Preview Memo' : '👁 Preview Surat';
+
+            // Sync nama field yang sama antara memo dan surat biasa
+            if (isMemo) {
+                // Kosongkan field surat biasa agar tidak double-POST
+                ['perihal','asal_pengirim','isi_surat','penanda_tangan','jabatan_ttd'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = '';
+                });
+            }
+        }
+
+        // ── Override openModal ────────────────────────────────
         const originalOpenModal = window.openModal;
         window.openModal = function(modalId) {
             if (modalId === 'modal' || !modalId) {
@@ -555,79 +636,121 @@ if (!function_exists('formatDate')) {
                 document.getElementById('submitBtn').name = 'tambah_surat';
                 document.getElementById('submitBtn').textContent = 'Simpan';
                 document.getElementById('modal-title').textContent = 'Tambah Surat Keluar';
+                toggleMemoFields('Surat Keluar');
             }
             const modal = document.getElementById(modalId || 'modal');
-            if (modal) {
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-            }
+            if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
         };
 
+        // ── Reset form ────────────────────────────────────────
         function resetForm() {
-            document.getElementById('edit_id').value = '';
-            document.getElementById('nomor_surat').value = '';
-            document.getElementById('asal_pengirim').value = '';
-            document.getElementById('perihal').value = '';
-            document.getElementById('lampiran').value = '';
-            document.getElementById('tujuan_alamat').value = '';
-            document.getElementById('up_nama').value = '';
-            document.getElementById('ucapan_mitra').value = '';
-            document.getElementById('isi_surat').value = '';
-            document.getElementById('penanda_tangan').value = '';
-            document.getElementById('jabatan_ttd').value = '';
+            document.getElementById('edit_id').value           = '';
+            document.getElementById('nomor_surat').value       = '';
+            document.getElementById('tanggal_surat').value     = '';
             document.getElementById('status_tindak_lanjut').value = 'Pending';
-            document.getElementById('tanggal_surat').value = '';
-            document.getElementById('file').value = '';
+            document.getElementById('file').value              = '';
+            // surat biasa
+            document.getElementById('asal_pengirim').value     = '';
+            document.getElementById('perihal').value           = '';
+            document.getElementById('lampiran').value          = '';
+            document.getElementById('tujuan_alamat').value     = '';
+            document.getElementById('up_nama').value           = '';
+            document.getElementById('ucapan_mitra').value      = '';
+            document.getElementById('isi_surat').value         = '';
+            document.getElementById('penanda_tangan').value    = '';
+            document.getElementById('jabatan_ttd').value       = '';
+            // memo
+            document.getElementById('asal_pengirim_memo').value= '';
+            document.getElementById('dari').value              = '';
+            document.getElementById('perihal_memo').value      = '';
+            document.getElementById('isi_surat_memo').value    = '';
+            document.getElementById('penanda_tangan_memo').value= '';
+            document.getElementById('jabatan_ttd_memo').value  = '';
+            document.getElementById('tembusan_raw').value      = '';
         }
 
+        // ── Edit modal ────────────────────────────────────────
         function openEditModal(doc) {
-            document.getElementById('edit_id').value = doc.id;
-            document.getElementById('nomor_surat').value = doc.nomor_surat || '';
-            document.getElementById('kategoriSelectKeluar').value = doc.kategori || 'Surat Keluar';
-            document.getElementById('asal_pengirim').value = doc.asal_pengirim || '';
-            document.getElementById('perihal').value = doc.perihal || '';
-            document.getElementById('lampiran').value = doc.lampiran || '';
-            document.getElementById('tujuan_alamat').value = doc.tujuan_alamat || '';
-            document.getElementById('up_nama').value = doc.up_nama || '';
-            document.getElementById('ucapan_mitra').value = doc.ucapan_mitra || '';
-            document.getElementById('isi_surat').value = doc.isi_surat || '';
-            document.getElementById('penanda_tangan').value = doc.penanda_tangan || '';
-            document.getElementById('jabatan_ttd').value = doc.jabatan_ttd || '';
+            resetForm();
+            const kat = doc.kategori || 'Surat Keluar';
+            document.getElementById('edit_id').value          = doc.id;
+            document.getElementById('nomor_surat').value      = doc.nomor_surat || '';
+            document.getElementById('tanggal_surat').value    = doc.tanggal_surat || '';
+            document.getElementById('kategoriSelectKeluar').value = kat;
             document.getElementById('status_tindak_lanjut').value = doc.status_tindak_lanjut || 'Pending';
-            document.getElementById('tanggal_surat').value = doc.tanggal_surat || '';
-            document.getElementById('file').value = '';
-            
+
+            toggleMemoFields(kat);
+
+            if (kat === 'Internal Memo') {
+                document.getElementById('asal_pengirim_memo').value = doc.asal_pengirim || '';
+                document.getElementById('dari').value               = doc.dari          || '';
+                document.getElementById('perihal_memo').value       = doc.perihal       || '';
+                document.getElementById('isi_surat_memo').value     = doc.isi_surat     || '';
+                document.getElementById('penanda_tangan_memo').value= doc.penanda_tangan || '';
+                document.getElementById('jabatan_ttd_memo').value   = doc.jabatan_ttd   || '';
+                // tembusan
+                let tArr = [];
+                try { tArr = doc.tembusan ? JSON.parse(doc.tembusan) : []; } catch(e){}
+                document.getElementById('tembusan_raw').value = tArr.join('\n');
+            } else {
+                document.getElementById('asal_pengirim').value  = doc.asal_pengirim  || '';
+                document.getElementById('perihal').value        = doc.perihal        || '';
+                document.getElementById('lampiran').value       = doc.lampiran       || '';
+                document.getElementById('tujuan_alamat').value  = doc.tujuan_alamat  || '';
+                document.getElementById('up_nama').value        = doc.up_nama        || '';
+                document.getElementById('ucapan_mitra').value   = doc.ucapan_mitra   || '';
+                document.getElementById('isi_surat').value      = doc.isi_surat      || '';
+                document.getElementById('penanda_tangan').value = doc.penanda_tangan || '';
+                document.getElementById('jabatan_ttd').value    = doc.jabatan_ttd    || '';
+            }
+
             document.getElementById('submitBtn').name = 'edit_surat';
             document.getElementById('submitBtn').textContent = 'Simpan Perubahan';
-            document.getElementById('modal-title').textContent = 'Edit Surat Keluar';
-            
+            document.getElementById('modal-title').textContent = 'Edit ' + kat;
+
             const modal = document.getElementById('modal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
         }
 
+        // ── Close modal ───────────────────────────────────────
         function closeModal(modalId = 'modal') {
-            const element = document.getElementById(modalId);
-            if (element) {
-                element.classList.add('hidden');
-                element.classList.remove('flex');
-            }
+            const el = document.getElementById(modalId);
+            if (el) { el.classList.add('hidden'); el.classList.remove('flex'); }
         }
+
+        // ── Preview ───────────────────────────────────────────
         function previewSurat() {
-            const params = new URLSearchParams({
-                tanggal_surat:  document.getElementById('tanggal_surat').value,
-                nomor_surat:    document.getElementById('nomor_surat').value,
-                perihal:        document.getElementById('perihal').value,
-                lampiran:       document.getElementById('lampiran').value,
-                tujuan_nama:    document.getElementById('asal_pengirim').value,
-                tujuan_alamat:  document.getElementById('tujuan_alamat').value,
-                up_nama:        document.getElementById('up_nama').value,
-                ucapan_mitra:   document.getElementById('ucapan_mitra').value,
-                isi_surat:      document.getElementById('isi_surat').value,
-                penanda_tangan: document.getElementById('penanda_tangan').value,
-                jabatan_ttd:    document.getElementById('jabatan_ttd').value,
-            });
-            window.open('cetak_surat_keluar.php?' + params.toString(), '_blank');
+            const kat = document.getElementById('kategoriSelectKeluar').value;
+            if (kat === 'Internal Memo') {
+                const p = new URLSearchParams({
+                    no_memo:     document.getElementById('nomor_surat').value,
+                    kepada:      document.getElementById('asal_pengirim_memo').value,
+                    dari:        document.getElementById('dari').value,
+                    perihal:     document.getElementById('perihal_memo').value,
+                    tanggal:     document.getElementById('tanggal_surat').value,
+                    isi:         document.getElementById('isi_surat_memo').value,
+                    nama_ttd:    document.getElementById('penanda_tangan_memo').value,
+                    jabatan_ttd: document.getElementById('jabatan_ttd_memo').value,
+                    tembusan:    document.getElementById('tembusan_raw').value,
+                });
+                window.open('cetak_internal_memo.php?' + p.toString(), '_blank');
+            } else {
+                const p = new URLSearchParams({
+                    tanggal_surat:  document.getElementById('tanggal_surat').value,
+                    nomor_surat:    document.getElementById('nomor_surat').value,
+                    perihal:        document.getElementById('perihal').value,
+                    lampiran:       document.getElementById('lampiran').value,
+                    tujuan_nama:    document.getElementById('asal_pengirim').value,
+                    tujuan_alamat:  document.getElementById('tujuan_alamat').value,
+                    up_nama:        document.getElementById('up_nama').value,
+                    ucapan_mitra:   document.getElementById('ucapan_mitra').value,
+                    isi_surat:      document.getElementById('isi_surat').value,
+                    penanda_tangan: document.getElementById('penanda_tangan').value,
+                    jabatan_ttd:    document.getElementById('jabatan_ttd').value,
+                });
+                window.open('cetak_surat_keluar.php?' + p.toString(), '_blank');
+            }
         }
     </script>
 </body>
