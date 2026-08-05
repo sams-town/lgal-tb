@@ -454,6 +454,11 @@ if (!function_exists('formatDate')) {
                                                        class="px-3 py-1 text-sm bg-sky-100 text-sky-700 rounded-lg hover:bg-sky-200 transition-colors">
                                                         🖨 Undangan
                                                     </a>
+                                                    <?php elseif ($doc['kategori'] === 'SPO'): ?>
+                                                    <a href="cetak_spo.php?judul=<?= urlencode($doc['perihal'] ?? '') ?>" target="_blank"
+                                                       class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
+                                                        🖨 SPO
+                                                    </a>
                                                     <?php else: ?>
                                                     <a href="cetak_surat_keluar.php?id=<?= $doc['id'] ?>" target="_blank"
                                                        class="px-3 py-1 text-sm bg-teal-100 text-teal-700 rounded-lg hover:bg-teal-200 transition-colors">
@@ -792,6 +797,59 @@ if (!function_exists('formatDate')) {
                     </div>
                 </div>
 
+                <!-- ═══ FORM SPO ═══ -->
+                <div id="fieldsSpo" class="hidden space-y-4">
+                    <div class="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2 text-xs text-blue-700 font-medium">
+                        📄 Form SPO (Standar Prosedur Operasional)
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">No. Dokumen</label>
+                            <input type="text" name="no_dokumen_spo" id="no_dokumen_spo" placeholder="SPO/001/2024" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">No. Revisi</label>
+                            <input type="text" name="no_revisi_spo" id="no_revisi_spo" placeholder="00" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Halaman</label>
+                            <input type="text" name="halaman_spo" id="halaman_spo" value="1/1" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Judul / Nama SPO <span class="text-red-500">*</span></label>
+                            <input type="text" name="perihal" id="judul_spo" placeholder="Nama SPO" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Terbit</label>
+                            <input type="date" name="tgl_terbit_spo" id="tgl_terbit_spo" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Unit Pembuat</label>
+                            <input type="text" name="unit_pembuat_spo" id="unit_pembuat_spo" placeholder="Instalasi Rawat Inap" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Unit Terkait</label>
+                            <input type="text" name="unit_terkait_spo" id="unit_terkait_spo" placeholder="Semua unit" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                    </div>
+                    <div><label class="block text-sm font-medium text-gray-700 mb-1">Pengertian</label>
+                        <textarea name="pengertian_spo" id="pengertian_spo" rows="2" placeholder="Pengertian / definisi..." class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm"></textarea>
+                    </div>
+                    <div><label class="block text-sm font-medium text-gray-700 mb-1">Tujuan</label>
+                        <textarea name="tujuan_spo" id="tujuan_spo" rows="2" placeholder="Tujuan SPO..." class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm"></textarea>
+                    </div>
+                    <div><label class="block text-sm font-medium text-gray-700 mb-1">Kebijakan</label>
+                        <textarea name="kebijakan_spo" id="kebijakan_spo" rows="2" placeholder="Dasar kebijakan..." class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm"></textarea>
+                    </div>
+                    <div><label class="block text-sm font-medium text-gray-700 mb-1">Prosedur <span class="text-red-500">*</span></label>
+                        <textarea name="prosedur_spo" id="prosedur_spo" rows="4" placeholder="Langkah-langkah prosedur..." class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm"></textarea>
+                    </div>
+                </div>
+
                 <!-- Status & Upload -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -834,18 +892,17 @@ if (!function_exists('formatDate')) {
             const isPernyataan = (kategori === 'Surat Pernyataan');
             const isTugas      = (kategori === 'Surat Tugas');
             const isUndangan   = (kategori === 'Surat Undangan');
-            const isBiasa      = !isMemo && !isEdaran && !isPernyataan && !isTugas && !isUndangan;
+            const isSpo        = (kategori === 'SPO');
+            const isBiasa      = !isMemo && !isEdaran && !isPernyataan && !isTugas && !isUndangan && !isSpo;
 
-            const toggle = (id, show) => {
-                const el = document.getElementById(id);
-                if (el) el.classList.toggle('hidden', !show);
-            };
+            const toggle = (id, show) => { const el=document.getElementById(id); if(el) el.classList.toggle('hidden',!show); };
             toggle('fieldsMemo',       isMemo);
             toggle('fieldsSurat',      isBiasa);
             toggle('fieldsEdaran',     isEdaran);
             toggle('fieldsPernyataan', isPernyataan);
             toggle('fieldsTugas',      isTugas);
             toggle('fieldsUndangan',   isUndangan);
+            toggle('fieldsSpo',        isSpo);
 
             const pb = document.getElementById('previewBtn');
             if (pb) {
@@ -854,6 +911,7 @@ if (!function_exists('formatDate')) {
                 else if (isPernyataan)pb.textContent = '👁 Preview Pernyataan';
                 else if (isTugas)     pb.textContent = '👁 Preview Tugas';
                 else if (isUndangan)  pb.textContent = '👁 Preview Undangan';
+                else if (isSpo)       pb.textContent = '👁 Preview SPO';
                 else                  pb.textContent = '👁 Preview Surat';
             }
             if (!isBiasa) {
@@ -909,6 +967,12 @@ if (!function_exists('formatDate')) {
              'penanda_undangan','jabatan_undangan'
             ].forEach(id => s(id));
             s('perihal_undangan','UNDANGAN');
+            // SPO
+            ['no_dokumen_spo','no_revisi_spo','judul_spo','tgl_terbit_spo',
+             'unit_pembuat_spo','unit_terkait_spo','pengertian_spo',
+             'tujuan_spo','kebijakan_spo','prosedur_spo'
+            ].forEach(id => s(id));
+            s('halaman_spo','1/1');
         }
 
         // ── Edit modal ────────────────────────────────────────
@@ -1065,6 +1129,21 @@ if (!function_exists('formatDate')) {
                     jabatan_ttd:   document.getElementById('jabatan_undangan').value,
                 });
                 window.open('cetak_surat_undangan.php?' + p.toString(), '_blank');
+            } else if (kat === 'SPO') {
+                const p = new URLSearchParams({
+                    judul:        document.getElementById('judul_spo').value,
+                    no_dokumen:   document.getElementById('no_dokumen_spo').value,
+                    no_revisi:    document.getElementById('no_revisi_spo').value,
+                    halaman:      document.getElementById('halaman_spo').value,
+                    tgl_terbit:   document.getElementById('tgl_terbit_spo').value,
+                    pengertian:   document.getElementById('pengertian_spo').value,
+                    tujuan:       document.getElementById('tujuan_spo').value,
+                    kebijakan:    document.getElementById('kebijakan_spo').value,
+                    prosedur:     document.getElementById('prosedur_spo').value,
+                    unit_terkait: document.getElementById('unit_terkait_spo').value,
+                    unit_pembuat: document.getElementById('unit_pembuat_spo').value,
+                });
+                window.open('cetak_spo.php?' + p.toString(), '_blank');
             } else {
                 const p = new URLSearchParams({
                     tanggal_surat:  document.getElementById('tanggal_surat').value,
