@@ -658,6 +658,65 @@ if (!function_exists('formatDate')) {
                         <input type="file" name="file" id="file_edaran_masuk" accept=".pdf,.doc,.docx" class="w-full px-4 py-2 border border-gray-300 rounded-xl text-sm">
                     </div>
                 </div>
+                <!-- ═══ FORM SURAT KUASA ═══ -->
+                <div id="fieldsKuasaMasuk" class="hidden space-y-4">
+                    <div class="bg-purple-50 border border-purple-200 rounded-xl px-4 py-2 text-xs text-purple-700 font-medium">
+                        📋 Form Surat Kuasa
+                    </div>
+                    <!-- Pemberi Kuasa -->
+                    <div class="border border-gray-200 rounded-xl p-4 space-y-3">
+                        <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">Pemberi Kuasa</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Nama</label>
+                                <input type="text" name="pemberi_nama" id="pemberi_nama_masuk" placeholder="Nama pemberi kuasa" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Jabatan</label>
+                                <input type="text" name="penanda_tangan" id="pemberi_jabatan_masuk" placeholder="Jabatan pemberi kuasa" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Penerima Kuasa -->
+                    <div class="border border-gray-200 rounded-xl p-4 space-y-3">
+                        <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">Penerima Kuasa</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Nama</label>
+                                <input type="text" name="penerima_nama" id="penerima_nama_masuk" placeholder="Nama penerima kuasa" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">No. KTP</label>
+                                <input type="text" name="penerima_ktp" id="penerima_ktp_masuk" placeholder="Nomor KTP" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Alamat</label>
+                            <input type="text" name="penerima_alamat" id="penerima_alamat_masuk" placeholder="Alamat lengkap penerima kuasa" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                    </div>
+                    <!-- Untuk & Detail -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Untuk (Tujuan Kuasa)</label>
+                        <input type="text" name="untuk_kuasa" id="untuk_kuasa_masuk" placeholder="Contoh: mengurus perpanjangan izin RS" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Detail Kuasa</label>
+                        <textarea name="isi_surat" id="detail_kuasa_masuk" rows="3" placeholder="Detail tugas/wewenang yang dikuasakan (satu per baris)..." class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm"></textarea>
+                    </div>
+                    <!-- TTD -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="border border-gray-200 rounded-xl p-3 space-y-2">
+                            <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">Yang Menerima Kuasa (Kiri)</p>
+                            <input type="text" name="nama_ttd_kiri" id="nama_kiri_masuk" placeholder="Nama" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                            <input type="text" name="jabatan_kiri" id="jabatan_kiri_masuk" placeholder="Jabatan" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                        <div class="border border-gray-200 rounded-xl p-3 space-y-2">
+                            <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">Yang Memberi Kuasa (Kanan)</p>
+                            <input type="text" name="jabatan_ttd" id="jabatan_kanan_masuk" placeholder="Jabatan pemberi kuasa" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                    </div>
+                </div>
                 <!-- ═══ FORM SURAT PERNYATAAN ═══ -->
                 <div id="fieldsPernyataanMasuk" class="hidden space-y-4">
                     <div class="bg-rose-50 border border-rose-200 rounded-xl px-4 py-2 text-xs text-rose-700 font-medium">
