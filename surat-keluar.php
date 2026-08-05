@@ -444,6 +444,11 @@ if (!function_exists('formatDate')) {
                                                        class="px-3 py-1 text-sm bg-rose-100 text-rose-700 rounded-lg hover:bg-rose-200 transition-colors">
                                                         🖨 Pernyataan
                                                     </a>
+                                                    <?php elseif ($doc['kategori'] === 'Surat Tugas'): ?>
+                                                    <a href="cetak_surat_tugas.php?id=<?= $doc['id'] ?>" target="_blank"
+                                                       class="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors">
+                                                        🖨 Tugas
+                                                    </a>
                                                     <?php else: ?>
                                                     <a href="cetak_surat_keluar.php?id=<?= $doc['id'] ?>" target="_blank"
                                                        class="px-3 py-1 text-sm bg-teal-100 text-teal-700 rounded-lg hover:bg-teal-200 transition-colors">
@@ -639,6 +644,72 @@ if (!function_exists('formatDate')) {
                     </div>
                 </div>
 
+                <!-- ═══ FORM SURAT TUGAS ═══ -->
+                <div id="fieldsTugas" class="hidden space-y-4">
+                    <div class="bg-green-50 border border-green-200 rounded-xl px-4 py-2 text-xs text-green-700 font-medium">
+                        📋 Form Surat Tugas
+                    </div>
+                    <div class="border border-gray-200 rounded-xl p-4 space-y-3">
+                        <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">Pemberi Tugas</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Nama</label>
+                                <input type="text" name="penanda_tangan" id="pemberi_tugas_nama"
+                                       value="dr. Andara Dwike, MARS, M.H., FISQua"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Jabatan</label>
+                                <input type="text" name="jabatan_ttd" id="pemberi_tugas_jabatan"
+                                       value="Direktur Utama Rumah Sakit Taman Harapan Baru"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="border border-gray-200 rounded-xl p-4 space-y-3">
+                        <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">Penerima Tugas</p>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Nama <span class="text-red-500">*</span></label>
+                                <input type="text" name="penerima_nama" id="penerima_tugas_nama" placeholder="Nama lengkap" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">NIK</label>
+                                <input type="text" name="penerima_ktp" id="penerima_tugas_nik" placeholder="NIK / ID Karyawan" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Jabatan</label>
+                                <input type="text" name="jabatan_kiri" id="penerima_tugas_jabatan" placeholder="Jabatan" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="border border-gray-200 rounded-xl p-4 space-y-3">
+                        <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">Detail Kegiatan</p>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Undangan Dari <span class="text-red-500">*</span></label>
+                            <input type="text" name="untuk_kuasa" id="undangan_dari" placeholder="Nama instansi penyelenggara" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Nama Kegiatan / Perihal <span class="text-red-500">*</span></label>
+                            <input type="text" name="perihal" id="nama_kegiatan" placeholder="Nama kegiatan" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Hari, Tanggal</label>
+                                <input type="text" name="hari_tanggal" id="hari_tanggal" placeholder="Senin, 1 Januari 2025" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Waktu</label>
+                                <input type="text" name="waktu_acara" id="waktu_acara" placeholder="09.00 – 12.00 WIB" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Tempat</label>
+                                <input type="text" name="tujuan_alamat" id="tempat_tugas" placeholder="Nama gedung / ruangan" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Status & Upload -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -679,18 +750,21 @@ if (!function_exists('formatDate')) {
             const isMemo       = (kategori === 'Internal Memo');
             const isEdaran     = (kategori === 'Surat Edaran');
             const isPernyataan = (kategori === 'Surat Pernyataan');
-            const isBiasa      = !isMemo && !isEdaran && !isPernyataan;
+            const isTugas      = (kategori === 'Surat Tugas');
+            const isBiasa      = !isMemo && !isEdaran && !isPernyataan && !isTugas;
 
             document.getElementById('fieldsMemo').classList.toggle('hidden',       !isMemo);
             document.getElementById('fieldsSurat').classList.toggle('hidden',      !isBiasa);
             document.getElementById('fieldsEdaran').classList.toggle('hidden',     !isEdaran);
             document.getElementById('fieldsPernyataan').classList.toggle('hidden', !isPernyataan);
+            document.getElementById('fieldsTugas').classList.toggle('hidden',      !isTugas);
 
             const pb = document.getElementById('previewBtn');
             if (pb) {
                 if (isMemo)           pb.textContent = '👁 Preview Memo';
                 else if (isEdaran)    pb.textContent = '👁 Preview Edaran';
                 else if (isPernyataan)pb.textContent = '👁 Preview Pernyataan';
+                else if (isTugas)     pb.textContent = '👁 Preview Tugas';
                 else                  pb.textContent = '👁 Preview Surat';
             }
 
@@ -750,6 +824,12 @@ if (!function_exists('formatDate')) {
             try { document.getElementById('isi_surat_pernyataan').value = ''; } catch(e){}
             try { document.getElementById('penanda_pernyataan').value   = 'dr. Andara Dwike, MARS, M.H., FISQua'; } catch(e){}
             try { document.getElementById('jabatan_pernyataan').value   = 'Direktur Utama Rumah Sakit Taman Harapan Baru'; } catch(e){}
+            // tugas
+            ['penerima_tugas_nama','penerima_tugas_nik','penerima_tugas_jabatan',
+             'undangan_dari','nama_kegiatan','hari_tanggal','waktu_acara','tempat_tugas'
+            ].forEach(id => { try { document.getElementById(id).value = ''; } catch(e){} });
+            try { document.getElementById('pemberi_tugas_nama').value    = 'dr. Andara Dwike, MARS, M.H., FISQua'; } catch(e){}
+            try { document.getElementById('pemberi_tugas_jabatan').value = 'Direktur Utama Rumah Sakit Taman Harapan Baru'; } catch(e){}
         }
 
         // ── Edit modal ────────────────────────────────────────
@@ -783,6 +863,17 @@ if (!function_exists('formatDate')) {
                 document.getElementById('isi_surat_pernyataan').value = doc.isi_surat      || '';
                 document.getElementById('penanda_pernyataan').value   = doc.penanda_tangan || 'dr. Andara Dwike, MARS, M.H., FISQua';
                 document.getElementById('jabatan_pernyataan').value   = doc.jabatan_ttd    || 'Direktur Utama Rumah Sakit Taman Harapan Baru';
+            } else if (kat === 'Surat Tugas') {
+                document.getElementById('pemberi_tugas_nama').value    = doc.penanda_tangan || 'dr. Andara Dwike, MARS, M.H., FISQua';
+                document.getElementById('pemberi_tugas_jabatan').value = doc.jabatan_ttd    || 'Direktur Utama Rumah Sakit Taman Harapan Baru';
+                document.getElementById('penerima_tugas_nama').value   = doc.penerima_nama  || '';
+                document.getElementById('penerima_tugas_nik').value    = doc.penerima_ktp   || '';
+                document.getElementById('penerima_tugas_jabatan').value= doc.jabatan_kiri   || '';
+                document.getElementById('undangan_dari').value         = doc.untuk_kuasa    || '';
+                document.getElementById('nama_kegiatan').value         = doc.perihal        || '';
+                document.getElementById('hari_tanggal').value          = doc.hari_tanggal   || '';
+                document.getElementById('waktu_acara').value           = doc.waktu_acara    || '';
+                document.getElementById('tempat_tugas').value          = doc.tujuan_alamat  || '';
             } else {
                 document.getElementById('asal_pengirim').value  = doc.asal_pengirim  || '';
                 document.getElementById('perihal').value        = doc.perihal        || '';
@@ -845,6 +936,22 @@ if (!function_exists('formatDate')) {
                     jabatan_ttd: document.getElementById('jabatan_pernyataan').value,
                 });
                 window.open('cetak_surat_pernyataan.php?' + p.toString(), '_blank');
+            } else if (kat === 'Surat Tugas') {
+                const p = new URLSearchParams({
+                    no_st:            document.getElementById('nomor_surat').value,
+                    tanggal:          document.getElementById('tanggal_surat').value,
+                    pemberi_nama:     document.getElementById('pemberi_tugas_nama').value,
+                    pemberi_jabatan:  document.getElementById('pemberi_tugas_jabatan').value,
+                    penerima_nama:    document.getElementById('penerima_tugas_nama').value,
+                    penerima_nik:     document.getElementById('penerima_tugas_nik').value,
+                    penerima_jabatan: document.getElementById('penerima_tugas_jabatan').value,
+                    undangan_dari:    document.getElementById('undangan_dari').value,
+                    nama_kegiatan:    document.getElementById('nama_kegiatan').value,
+                    hari_tanggal:     document.getElementById('hari_tanggal').value,
+                    waktu_acara:      document.getElementById('waktu_acara').value,
+                    tempat:           document.getElementById('tempat_tugas').value,
+                });
+                window.open('cetak_surat_tugas.php?' + p.toString(), '_blank');
             } else {
                 const p = new URLSearchParams({
                     tanggal_surat:  document.getElementById('tanggal_surat').value,

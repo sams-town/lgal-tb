@@ -337,6 +337,9 @@ try {
                 'untuk_kuasa'     => "TEXT DEFAULT NULL AFTER penerima_alamat",
                 'nama_ttd_kiri'   => "VARCHAR(255) DEFAULT NULL AFTER untuk_kuasa",
                 'jabatan_kiri'    => "VARCHAR(255) DEFAULT NULL AFTER nama_ttd_kiri",
+                // Surat Tugas
+                'hari_tanggal'    => "VARCHAR(255) DEFAULT NULL AFTER jabatan_kiri",
+                'waktu_acara'     => "VARCHAR(100) DEFAULT NULL AFTER hari_tanggal",
             ];
             foreach ($suratCols as $col => $def) {
                 try {
