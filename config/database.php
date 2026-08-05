@@ -329,6 +329,14 @@ try {
                 'jabatan_ttd'     => "VARCHAR(255) DEFAULT NULL AFTER penanda_tangan",
                 'dari'            => "VARCHAR(255) DEFAULT NULL AFTER asal_pengirim",
                 'tembusan'        => "TEXT DEFAULT NULL AFTER jabatan_ttd",
+                // Surat Kuasa
+                'pemberi_nama'    => "VARCHAR(255) DEFAULT NULL AFTER tembusan",
+                'penerima_nama'   => "VARCHAR(255) DEFAULT NULL AFTER pemberi_nama",
+                'penerima_ktp'    => "VARCHAR(100) DEFAULT NULL AFTER penerima_nama",
+                'penerima_alamat' => "VARCHAR(500) DEFAULT NULL AFTER penerima_ktp",
+                'untuk_kuasa'     => "TEXT DEFAULT NULL AFTER penerima_alamat",
+                'nama_ttd_kiri'   => "VARCHAR(255) DEFAULT NULL AFTER untuk_kuasa",
+                'jabatan_kiri'    => "VARCHAR(255) DEFAULT NULL AFTER nama_ttd_kiri",
             ];
             foreach ($suratCols as $col => $def) {
                 try {

@@ -491,6 +491,10 @@ if (!function_exists('formatDate')) {
                                                         <a href="cetak_surat_edaran.php?id=<?= $doc['id'] ?>" target="_blank" class="px-3 py-1 text-sm bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors">
                                                             🖨 Edaran
                                                         </a>
+                                                    <?php elseif ($doc['kategori'] === 'Surat Kuasa'): ?>
+                                                        <a href="cetak_surat_kuasa.php?id=<?= $doc['id'] ?>" target="_blank" class="px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors">
+                                                            🖨 Kuasa
+                                                        </a>
                                                     <?php endif; ?>
                                                     <?php if (canUserEditOrDelete('sekretariat')): ?>
                                                         <button onclick="openEditModal(<?php echo htmlspecialchars(json_encode($doc), ENT_QUOTES); ?>)" class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
@@ -642,8 +646,6 @@ if (!function_exists('formatDate')) {
                         <input type="file" name="file" id="file_edaran_masuk" accept=".pdf,.doc,.docx" class="w-full px-4 py-2 border border-gray-300 rounded-xl text-sm">
                     </div>
                 </div>
-
-                <!-- Tombol -->
                 <div class="flex gap-3 pt-4">
                     <button type="button" onclick="closeModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors text-sm">
                         Batal
@@ -656,6 +658,10 @@ if (!function_exists('formatDate')) {
                             class="hidden px-4 py-2 bg-amber-50 text-amber-700 border border-amber-200 rounded-xl font-medium hover:bg-amber-100 transition-colors text-sm">
                         👁 Preview Edaran
                     </button>
+                    <button type="button" id="previewKuasaBtn" onclick="previewKuasaMasuk()"
+                            class="hidden px-4 py-2 bg-purple-50 text-purple-700 border border-purple-200 rounded-xl font-medium hover:bg-purple-100 transition-colors text-sm">
+                        👁 Preview Kuasa
+                    </button>
                     <button type="submit" name="tambah_surat" id="submitBtn" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors text-sm">
                         Simpan
                     </button>
@@ -667,17 +673,24 @@ if (!function_exists('formatDate')) {
         function toggleMemoFieldsMasuk(kat) {
             const isMemo   = (kat === 'Internal Memo');
             const isEdaran = (kat === 'Surat Edaran');
-            const isBiasa  = !isMemo && !isEdaran;
+            const isKuasa  = (kat === 'Surat Kuasa');
+            const isBiasa  = !isMemo && !isEdaran && !isKuasa;
 
-            document.getElementById('fieldsMemoMasuk').classList.toggle('hidden',   !isMemo);
-            document.getElementById('fieldsSuratMasuk').classList.toggle('hidden',  !isBiasa);
-            document.getElementById('fileUploadMemo').classList.toggle('hidden',    !isMemo);
-            document.getElementById('fieldsEdaranMasuk').classList.toggle('hidden', !isEdaran);
+            document.getElementById('fieldsMemoMasuk').classList.toggle('hidden',    !isMemo);
+            document.getElementById('fieldsSuratMasuk').classList.toggle('hidden',   !isBiasa);
+            document.getElementById('fileUploadMemo').classList.toggle('hidden',     !isMemo);
+            document.getElementById('fieldsEdaranMasuk').classList.toggle('hidden',  !isEdaran);
+            document.getElementById('fieldsKuasaMasuk').classList.toggle('hidden',   !isKuasa);
 
-            const prevMemo   = document.getElementById('previewMemoBtn');
-            const prevEdaran = document.getElementById('previewEdaranBtn');
-            if (prevMemo)   prevMemo.classList.toggle('hidden',   !isMemo);
-            if (prevEdaran) prevEdaran.classList.toggle('hidden', !isEdaran);
+            const btns = {
+                previewMemoBtn:   isMemo,
+                previewEdaranBtn: isEdaran,
+                previewKuasaBtn:  isKuasa,
+            };
+            Object.entries(btns).forEach(([id, show]) => {
+                const el = document.getElementById(id);
+                if (el) el.classList.toggle('hidden', !show);
+            });
         }
 
         // ── Override openModal ──────────────────────────────────
@@ -717,6 +730,11 @@ if (!function_exists('formatDate')) {
             document.getElementById('isi_edaran_masuk').value      = '';
             document.getElementById('penanda_edaran_masuk').value  = '';
             document.getElementById('jabatan_edaran_masuk').value  = '';
+            // kuasa
+            const kuasaIds = ['pemberi_nama_masuk','pemberi_jabatan_masuk','penerima_nama_masuk',
+                              'penerima_ktp_masuk','penerima_alamat_masuk','untuk_kuasa_masuk',
+                              'detail_kuasa_masuk','nama_kiri_masuk','jabatan_kiri_masuk','jabatan_kanan_masuk'];
+            kuasaIds.forEach(id => { try { document.getElementById(id).value = ''; } catch(e){} });
         }
 
         // ── Edit Modal ──────────────────────────────────────────
@@ -791,6 +809,24 @@ if (!function_exists('formatDate')) {
             });
             window.open('cetak_surat_edaran.php?' + p.toString(), '_blank');
         }
-    </script>
+
+        // ── Preview Surat Kuasa ─────────────────────────────────
+        function previewKuasaMasuk() {
+            const p = new URLSearchParams({
+                no_kuasa:        document.getElementById('nomor_surat').value,
+                tanggal:         document.getElementById('tanggal_surat').value,
+                pemberi_nama:    document.getElementById('pemberi_nama_masuk').value,
+                pemberi_jabatan: document.getElementById('pemberi_jabatan_masuk').value,
+                penerima_nama:   document.getElementById('penerima_nama_masuk').value,
+                penerima_ktp:    document.getElementById('penerima_ktp_masuk').value,
+                penerima_alamat: document.getElementById('penerima_alamat_masuk').value,
+                untuk:           document.getElementById('untuk_kuasa_masuk').value,
+                detail:          document.getElementById('detail_kuasa_masuk').value,
+                nama_ttd_kiri:   document.getElementById('nama_kiri_masuk').value,
+                jabatan_kiri:    document.getElementById('jabatan_kiri_masuk').value,
+                jabatan_kanan:   document.getElementById('jabatan_kanan_masuk').value,
+            });
+            window.open('cetak_surat_kuasa.php?' + p.toString(), '_blank');
+        }    </script>
 </body>
 </html>
