@@ -58,6 +58,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_surat'])) {
         $kepada = isset($_POST['kepada']) ? json_encode($_POST['kepada']) : null;
         $cc = isset($_POST['cc']) ? json_encode($_POST['cc']) : null;
 
+        // Field khusus Internal Memo
+        $dari           = $_POST['dari'] ?? null;
+        $isi_surat      = $_POST['isi_surat'] ?? null;
+        $penanda_tangan = $_POST['penanda_tangan'] ?? null;
+        $jabatan_ttd    = $_POST['jabatan_ttd'] ?? null;
+        $tembusan       = !empty($_POST['tembusan_raw'])
+                          ? json_encode(array_values(array_filter(array_map('trim', explode("\n", $_POST['tembusan_raw'])))))
+                          : null;
         // Handle file upload
         if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
             $uploadDir = 'uploads/sekretariat/';
@@ -75,10 +83,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_surat'])) {
 
         try {
             $stmt = $pdo->prepare("
-                INSERT INTO manajemen_surat (nomor_surat, kategori, asal_pengirim, perihal, tanggal_surat, tanggal_diterima, status_tindak_lanjut, file_path, kepada, cc)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO manajemen_surat (nomor_surat, kategori, asal_pengirim, perihal, tanggal_surat, tanggal_diterima, status_tindak_lanjut, file_path, kepada, cc, dari, isi_surat, penanda_tangan, jabatan_ttd, tembusan)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
-            $stmt->execute([$nomor_surat, $kategori, $asal_pengirim, $perihal, $tanggal_surat, $tanggal_diterima, $status_tindak_lanjut, $file_path, $kepada, $cc]);
+            $stmt->execute([$nomor_surat, $kategori, $asal_pengirim, $perihal, $tanggal_surat, $tanggal_diterima, $status_tindak_lanjut, $file_path, $kepada, $cc, $dari, $isi_surat, $penanda_tangan, $jabatan_ttd, $tembusan]);
             
             // Send notifications
             $penerima = [];
@@ -475,6 +483,11 @@ if (!function_exists('formatDate')) {
                                                             Lihat
                                                         </a>
                                                     <?php endif; ?>
+                                                    <?php if ($doc['kategori'] === 'Internal Memo'): ?>
+                                                        <a href="cetak_internal_memo.php?id=<?= $doc['id'] ?>" target="_blank" class="px-3 py-1 text-sm bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors">
+                                                            🖨 Memo
+                                                        </a>
+                                                    <?php endif; ?>
                                                     <?php if (canUserEditOrDelete('sekretariat')): ?>
                                                         <button onclick="openEditModal(<?php echo htmlspecialchars(json_encode($doc), ENT_QUOTES); ?>)" class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
                                                             Edit
@@ -496,7 +509,7 @@ if (!function_exists('formatDate')) {
         </div>
     </main>
 
-    <!-- Modal Form (Id modal) -->
+    <!-- Modal Form -->
     <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
         <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div class="p-6 border-b border-gray-100 flex items-center justify-between">
@@ -505,202 +518,212 @@ if (!function_exists('formatDate')) {
             </div>
             <form method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
                 <input type="hidden" name="edit_id" id="edit_id" value="">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Nomor Surat</label>
-                    <input type="text" name="nomor_surat" id="nomor_surat" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Kategori</label>
-                    <select name="kategori" id="kategoriSelect" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                        <?php foreach ($kategoriMasukAll as $kat): ?>
-                        <option value="<?= htmlspecialchars($kat) ?>"><?= htmlspecialchars($kat) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Asal / Pengirim</label>
-                    <input type="text" name="asal_pengirim" id="asal_pengirim" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Perihal / Ringkasan</label>
-                    <textarea name="perihal" id="perihal" required rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"></textarea>
-                </div>
-                
-                <!-- Memo-specific fields -->
-                <div id="memoFields" class="hidden space-y-4">
+
+                <!-- Nomor, Kategori, Tanggal -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">KEPADA</label>
-                        <div class="space-y-2 border border-gray-300 rounded-xl p-4 max-h-48 overflow-y-auto">
-                            <?php
-                            $recipients = [
-                                'Direktur Utama', 'Direktur Keuangan', 'Direktur Umum & SDM',
-                                'Kepala Komite Mutu', 'Kepala Bagian Medis', 'Kepala Bagian Keperawatan',
-                                'Kepala Bagian Keuangan', 'Kepala Bagian Umum', 'Kepala Bagian SDM'
-                            ];
-                            foreach ($recipients as $recipient):
-                            ?>
-                                <label class="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" name="kepada[]" id="kepada_<?php echo md5($recipient); ?>" value="<?php echo htmlspecialchars($recipient); ?>" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500">
-                                    <span class="text-sm text-gray-700"><?php echo htmlspecialchars($recipient); ?></span>
-                                </label>
-                            <?php endforeach; ?>
-                        </div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nomor Surat</label>
+                        <input type="text" name="nomor_surat" id="nomor_surat" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">CC (Tembusan)</label>
-                        <div class="space-y-2 border border-gray-300 rounded-xl p-4 max-h-48 overflow-y-auto">
-                            <?php foreach ($recipients as $recipient): ?>
-                                <label class="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" name="cc[]" id="cc_<?php echo md5($recipient); ?>" value="<?php echo htmlspecialchars($recipient); ?>" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500">
-                                    <span class="text-sm text-gray-700"><?php echo htmlspecialchars($recipient); ?></span>
-                                </label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Kategori</label>
+                        <select name="kategori" id="kategoriSelect" required onchange="toggleMemoFieldsMasuk(this.value)"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                            <?php foreach ($kategoriMasukAll as $kat): ?>
+                            <option value="<?= htmlspecialchars($kat) ?>"><?= htmlspecialchars($kat) ?></option>
                             <?php endforeach; ?>
-                        </div>
+                        </select>
                     </div>
-                </div>
-                
-                <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Surat</label>
-                        <input type="date" name="tanggal_surat" id="tanggal_surat" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        <input type="date" name="tanggal_surat" id="tanggal_surat" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                    </div>
+                </div>
+
+                <!-- ═══ FORM INTERNAL MEMO ═══ -->
+                <div id="fieldsMemoMasuk" class="hidden space-y-4">
+                    <div class="bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-2 text-xs text-indigo-700 font-medium">
+                        ✉ Form Internal Memo
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Kepada Yth <span class="text-red-500">*</span></label>
+                            <input type="text" name="asal_pengirim" id="asal_pengirim_memo_masuk" placeholder="Nama penerima / unit" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Dari <span class="text-red-500">*</span></label>
+                            <input type="text" name="dari" id="dari_masuk" placeholder="Nama pengirim / unit" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Diterima</label>
-                        <input type="date" name="tanggal_diterima" id="tanggal_diterima" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Perihal <span class="text-red-500">*</span></label>
+                        <input type="text" name="perihal" id="perihal_memo_masuk" placeholder="Perihal memo" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Isi Memo</label>
+                        <textarea name="isi_surat" id="isi_memo_masuk" rows="4" placeholder="Tulis isi internal memo..."
+                                  class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm"></textarea>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nama Penanda Tangan</label>
+                            <input type="text" name="penanda_tangan" id="penanda_memo_masuk" placeholder="Nama lengkap" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Jabatan</label>
+                            <input type="text" name="jabatan_ttd" id="jabatan_memo_masuk" placeholder="Jabatan" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tembusan <span class="text-xs text-gray-400">opsional — satu per baris</span></label>
+                        <textarea name="tembusan_raw" id="tembusan_masuk" rows="2"
+                                  placeholder="Direktur Utama&#10;Kepala Unit Terkait"
+                                  class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm"></textarea>
                     </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Upload File Berkas (PDF)</label>
-                    <input type="file" name="file" id="file" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-xl">
-                    <p class="text-xs text-gray-500 mt-1">Biarkan kosong jika tidak ingin mengubah berkas</p>
+
+                <!-- ═══ FORM SURAT BIASA ═══ -->
+                <div id="fieldsSuratMasuk" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Asal / Pengirim</label>
+                        <input type="text" name="asal_pengirim" id="asal_pengirim" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Perihal / Ringkasan</label>
+                        <textarea name="perihal" id="perihal" required rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"></textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Diterima</label>
+                            <input type="date" name="tanggal_diterima" id="tanggal_diterima" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Upload File Berkas (PDF)</label>
+                            <input type="file" name="file" id="file" accept=".pdf,.doc,.docx" class="w-full px-4 py-2 border border-gray-300 rounded-xl text-sm">
+                            <p class="text-xs text-gray-500 mt-1">Biarkan kosong jika tidak ingin mengubah berkas</p>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- Upload juga untuk memo -->
+                <div id="fileUploadMemo" class="hidden">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Upload File Berkas</label>
+                    <input type="file" name="file" id="file_memo" accept=".pdf,.doc,.docx" class="w-full px-4 py-2 border border-gray-300 rounded-xl text-sm">
+                </div>
+
+                <!-- Tombol -->
                 <div class="flex gap-3 pt-4">
-                    <button type="button" onclick="closeModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors">
+                    <button type="button" onclick="closeModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors text-sm">
                         Batal
                     </button>
-                    <button type="submit" name="tambah_surat" id="submitBtn" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors">
+                    <button type="button" id="previewMemoBtn" onclick="previewMemoMasuk()"
+                            class="hidden px-4 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-xl font-medium hover:bg-indigo-100 transition-colors text-sm">
+                        👁 Preview Memo
+                    </button>
+                    <button type="submit" name="tambah_surat" id="submitBtn" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors text-sm">
                         Simpan
                     </button>
                 </div>
             </form>
         </div>
-    </div>
-
     <script>
-        const recipients = [
-            'Direktur Utama', 'Direktur Keuangan', 'Direktur Umum & SDM',
-            'Kepala Komite Mutu', 'Kepala Bagian Medis', 'Kepala Bagian Keperawatan',
-            'Kepala Bagian Keuangan', 'Kepala Bagian Umum', 'Kepala Bagian SDM'
-        ];
+        // ── Toggle form memo / surat biasa ──────────────────────
+        function toggleMemoFieldsMasuk(kat) {
+            const isMemo = (kat === 'Internal Memo');
+            document.getElementById('fieldsMemoMasuk').classList.toggle('hidden', !isMemo);
+            document.getElementById('fieldsSuratMasuk').classList.toggle('hidden',  isMemo);
+            document.getElementById('fileUploadMemo').classList.toggle('hidden',   !isMemo);
+            const prevBtn = document.getElementById('previewMemoBtn');
+            if (prevBtn) prevBtn.classList.toggle('hidden', !isMemo);
+        }
 
-        document.addEventListener('DOMContentLoaded', function() {
-            const kategoriSelect = document.getElementById('kategoriSelect');
-            const memoFields = document.getElementById('memoFields');
-            
-            if (kategoriSelect && memoFields) {
-                kategoriSelect.addEventListener('change', function() {
-                    if (this.value === 'Memo') {
-                        memoFields.classList.remove('hidden');
-                    } else {
-                        memoFields.classList.add('hidden');
-                    }
-                });
-            }
-        });
-
-        // Override openModal to reset form when adding new
-        const originalOpenModal = window.openModal;
+        // ── Override openModal ──────────────────────────────────
         window.openModal = function(modalId) {
             if (modalId === 'modal' || !modalId) {
-                resetForm();
+                resetFormMasuk();
                 document.getElementById('submitBtn').name = 'tambah_surat';
                 document.getElementById('submitBtn').textContent = 'Simpan';
                 document.getElementById('modal-title').textContent = 'Tambah Surat / Berkas';
+                toggleMemoFieldsMasuk('Surat Masuk');
             }
             const modal = document.getElementById(modalId || 'modal');
-            if (modal) {
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-            }
+            if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
         };
 
-        function resetForm() {
-            document.getElementById('edit_id').value = '';
-            document.getElementById('nomor_surat').value = '';
-            document.getElementById('kategoriSelect').value = 'Surat Masuk';
-            document.getElementById('asal_pengirim').value = '';
-            document.getElementById('perihal').value = '';
-            document.getElementById('tanggal_surat').value = '';
-            document.getElementById('tanggal_diterima').value = '';
-            document.getElementById('file').value = '';
-            
-            // Clear memo checkboxes
-            recipients.forEach(recipient => {
-                const kepadaCheckbox = document.getElementById('kepada_' + md5(recipient));
-                const ccCheckbox = document.getElementById('cc_' + md5(recipient));
-                if (kepadaCheckbox) kepadaCheckbox.checked = false;
-                if (ccCheckbox) ccCheckbox.checked = false;
-            });
-            
-            // Hide memo fields
-            const memoFields = document.getElementById('memoFields');
-            if (memoFields) memoFields.classList.add('hidden');
+        // ── Reset ───────────────────────────────────────────────
+        function resetFormMasuk() {
+            document.getElementById('edit_id').value              = '';
+            document.getElementById('nomor_surat').value          = '';
+            document.getElementById('tanggal_surat').value        = '';
+            document.getElementById('kategoriSelect').value       = 'Surat Masuk';
+            // surat biasa
+            document.getElementById('asal_pengirim').value        = '';
+            document.getElementById('perihal').value              = '';
+            document.getElementById('tanggal_diterima').value     = '';
+            document.getElementById('file').value                 = '';
+            // memo
+            document.getElementById('asal_pengirim_memo_masuk').value = '';
+            document.getElementById('dari_masuk').value               = '';
+            document.getElementById('perihal_memo_masuk').value       = '';
+            document.getElementById('isi_memo_masuk').value           = '';
+            document.getElementById('penanda_memo_masuk').value       = '';
+            document.getElementById('jabatan_memo_masuk').value       = '';
+            document.getElementById('tembusan_masuk').value           = '';
         }
 
+        // ── Edit Modal ──────────────────────────────────────────
         function openEditModal(doc) {
-            document.getElementById('edit_id').value = doc.id;
-            document.getElementById('nomor_surat').value = doc.nomor_surat || '';
-            document.getElementById('kategoriSelect').value = doc.kategori || 'Surat Masuk';
-            document.getElementById('asal_pengirim').value = doc.asal_pengirim || '';
-            document.getElementById('perihal').value = doc.perihal || '';
-            document.getElementById('tanggal_surat').value = doc.tanggal_surat || '';
-            document.getElementById('tanggal_diterima').value = doc.tanggal_diterima || '';
-            document.getElementById('file').value = '';
-            
-            // Handle memo recipients
-            const memoFields = document.getElementById('memoFields');
-            if (doc.kategori === 'Memo' && memoFields) {
-                memoFields.classList.remove('hidden');
-                const kepada = doc.kepada ? JSON.parse(doc.kepada) : [];
-                const cc = doc.cc ? JSON.parse(doc.cc) : [];
-                
-                recipients.forEach(recipient => {
-                    const kepadaCheckbox = document.getElementById('kepada_' + md5(recipient));
-                    const ccCheckbox = document.getElementById('cc_' + md5(recipient));
-                    if (kepadaCheckbox) kepadaCheckbox.checked = kepada.includes(recipient);
-                    if (ccCheckbox) ccCheckbox.checked = cc.includes(recipient);
-                });
-            } else if (memoFields) {
-                memoFields.classList.add('hidden');
+            resetFormMasuk();
+            const kat = doc.kategori || 'Surat Masuk';
+            document.getElementById('edit_id').value        = doc.id;
+            document.getElementById('nomor_surat').value    = doc.nomor_surat || '';
+            document.getElementById('tanggal_surat').value  = doc.tanggal_surat || '';
+            document.getElementById('kategoriSelect').value = kat;
+            toggleMemoFieldsMasuk(kat);
+
+            if (kat === 'Internal Memo') {
+                document.getElementById('asal_pengirim_memo_masuk').value = doc.asal_pengirim  || '';
+                document.getElementById('dari_masuk').value               = doc.dari           || '';
+                document.getElementById('perihal_memo_masuk').value       = doc.perihal        || '';
+                document.getElementById('isi_memo_masuk').value           = doc.isi_surat      || '';
+                document.getElementById('penanda_memo_masuk').value       = doc.penanda_tangan || '';
+                document.getElementById('jabatan_memo_masuk').value       = doc.jabatan_ttd    || '';
+                let tArr = [];
+                try { tArr = doc.tembusan ? JSON.parse(doc.tembusan) : []; } catch(e){}
+                document.getElementById('tembusan_masuk').value = tArr.join('\n');
+            } else {
+                document.getElementById('asal_pengirim').value    = doc.asal_pengirim    || '';
+                document.getElementById('perihal').value          = doc.perihal          || '';
+                document.getElementById('tanggal_diterima').value = doc.tanggal_diterima || '';
             }
-            
+
             document.getElementById('submitBtn').name = 'edit_surat';
             document.getElementById('submitBtn').textContent = 'Simpan Perubahan';
-            document.getElementById('modal-title').textContent = 'Edit Surat / Berkas';
-            
+            document.getElementById('modal-title').textContent = 'Edit ' + kat;
             const modal = document.getElementById('modal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
+            modal.classList.remove('hidden'); modal.classList.add('flex');
         }
 
+        // ── Close ───────────────────────────────────────────────
         function closeModal(modalId = 'modal') {
-            const element = document.getElementById(modalId);
-            if (element) {
-                element.classList.add('hidden');
-                element.classList.remove('flex');
-            }
+            const el = document.getElementById(modalId);
+            if (el) { el.classList.add('hidden'); el.classList.remove('flex'); }
         }
 
-        function md5(string) {
-            // Simple MD5 implementation for the purpose of this demo
-            let hash = 0;
-            for (let i = 0; i < string.length; i++) {
-                let chr = string.charCodeAt(i);
-                hash = ((hash << 5) - hash) + chr;
-                hash |= 0; // Convert to 32bit integer
-            }
-            return hash.toString(16).replace(/-/g, '');
+        // ── Preview Internal Memo ───────────────────────────────
+        function previewMemoMasuk() {
+            const p = new URLSearchParams({
+                no_memo:     document.getElementById('nomor_surat').value,
+                kepada:      document.getElementById('asal_pengirim_memo_masuk').value,
+                dari:        document.getElementById('dari_masuk').value,
+                perihal:     document.getElementById('perihal_memo_masuk').value,
+                tanggal:     document.getElementById('tanggal_surat').value,
+                isi:         document.getElementById('isi_memo_masuk').value,
+                nama_ttd:    document.getElementById('penanda_memo_masuk').value,
+                jabatan_ttd: document.getElementById('jabatan_memo_masuk').value,
+                tembusan:    document.getElementById('tembusan_masuk').value,
+            });
+            window.open('cetak_internal_memo.php?' + p.toString(), '_blank');
         }
     </script>
 </body>
