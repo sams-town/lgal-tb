@@ -646,6 +646,63 @@ if (!function_exists('formatDate')) {
                         <input type="file" name="file" id="file_edaran_masuk" accept=".pdf,.doc,.docx" class="w-full px-4 py-2 border border-gray-300 rounded-xl text-sm">
                     </div>
                 </div>
+
+                <!-- ═══ FORM SURAT KUASA ═══ -->
+                <div id="fieldsKuasaMasuk" class="hidden space-y-4">
+                    <div class="bg-purple-50 border border-purple-200 rounded-xl px-4 py-2 text-xs text-purple-700 font-medium">
+                        📋 Form Surat Kuasa
+                    </div>
+                    <div class="border border-gray-200 rounded-xl p-4 space-y-3">
+                        <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">Pemberi Kuasa</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Nama</label>
+                                <input type="text" name="pemberi_nama" id="pemberi_nama_masuk" placeholder="Nama pemberi kuasa" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Jabatan</label>
+                                <input type="text" name="penanda_tangan" id="pemberi_jabatan_masuk" placeholder="Jabatan pemberi kuasa" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="border border-gray-200 rounded-xl p-4 space-y-3">
+                        <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">Penerima Kuasa</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Nama</label>
+                                <input type="text" name="penerima_nama" id="penerima_nama_masuk" placeholder="Nama penerima kuasa" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">No. KTP</label>
+                                <input type="text" name="penerima_ktp" id="penerima_ktp_masuk" placeholder="Nomor KTP" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Alamat</label>
+                            <input type="text" name="penerima_alamat" id="penerima_alamat_masuk" placeholder="Alamat lengkap" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Untuk (Tujuan Kuasa)</label>
+                        <input type="text" name="untuk_kuasa" id="untuk_kuasa_masuk" placeholder="Contoh: mengurus perpanjangan izin RS" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Detail Kuasa</label>
+                        <textarea name="isi_surat" id="detail_kuasa_masuk" rows="3" placeholder="Detail tugas yang dikuasakan (satu per baris)..." class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm"></textarea>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="border border-gray-200 rounded-xl p-3 space-y-2">
+                            <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">Yang Menerima Kuasa (Kiri)</p>
+                            <input type="text" name="nama_ttd_kiri" id="nama_kiri_masuk" placeholder="Nama" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                            <input type="text" name="jabatan_kiri" id="jabatan_kiri_masuk" placeholder="Jabatan" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                        <div class="border border-gray-200 rounded-xl p-3 space-y-2">
+                            <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">Yang Memberi Kuasa (Kanan)</p>
+                            <input type="text" name="jabatan_ttd" id="jabatan_kanan_masuk" placeholder="Jabatan pemberi kuasa" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                    </div>
+                </div>
+
                 <div class="flex gap-3 pt-4">
                     <button type="button" onclick="closeModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors text-sm">
                         Batal
@@ -676,21 +733,18 @@ if (!function_exists('formatDate')) {
             const isKuasa  = (kat === 'Surat Kuasa');
             const isBiasa  = !isMemo && !isEdaran && !isKuasa;
 
-            document.getElementById('fieldsMemoMasuk').classList.toggle('hidden',    !isMemo);
-            document.getElementById('fieldsSuratMasuk').classList.toggle('hidden',   !isBiasa);
-            document.getElementById('fileUploadMemo').classList.toggle('hidden',     !isMemo);
-            document.getElementById('fieldsEdaranMasuk').classList.toggle('hidden',  !isEdaran);
-            document.getElementById('fieldsKuasaMasuk').classList.toggle('hidden',   !isKuasa);
-
-            const btns = {
-                previewMemoBtn:   isMemo,
-                previewEdaranBtn: isEdaran,
-                previewKuasaBtn:  isKuasa,
-            };
-            Object.entries(btns).forEach(([id, show]) => {
+            const tog = (id, show) => {
                 const el = document.getElementById(id);
                 if (el) el.classList.toggle('hidden', !show);
-            });
+            };
+            tog('fieldsMemoMasuk',   isMemo);
+            tog('fieldsSuratMasuk',  isBiasa);
+            tog('fileUploadMemo',    isMemo);
+            tog('fieldsEdaranMasuk', isEdaran);
+            tog('fieldsKuasaMasuk',  isKuasa);
+            tog('previewMemoBtn',    isMemo);
+            tog('previewEdaranBtn',  isEdaran);
+            tog('previewKuasaBtn',   isKuasa);
         }
 
         // ── Override openModal ──────────────────────────────────
@@ -708,33 +762,34 @@ if (!function_exists('formatDate')) {
 
         // ── Reset ───────────────────────────────────────────────
         function resetFormMasuk() {
-            document.getElementById('edit_id').value              = '';
-            document.getElementById('nomor_surat').value          = '';
-            document.getElementById('tanggal_surat').value        = '';
-            document.getElementById('kategoriSelect').value       = 'Surat Masuk';
+            const setVal = (id, v='') => { const e = document.getElementById(id); if(e) e.value = v; };
+            setVal('edit_id');
+            setVal('nomor_surat');
+            setVal('tanggal_surat');
+            setVal('kategoriSelect','Surat Masuk');
             // surat biasa
-            document.getElementById('asal_pengirim').value        = '';
-            document.getElementById('perihal').value              = '';
-            document.getElementById('tanggal_diterima').value     = '';
-            document.getElementById('file').value                 = '';
+            setVal('asal_pengirim');
+            setVal('perihal');
+            setVal('tanggal_diterima');
+            setVal('file');
             // memo
-            document.getElementById('asal_pengirim_memo_masuk').value = '';
-            document.getElementById('dari_masuk').value               = '';
-            document.getElementById('perihal_memo_masuk').value       = '';
-            document.getElementById('isi_memo_masuk').value           = '';
-            document.getElementById('penanda_memo_masuk').value       = '';
-            document.getElementById('jabatan_memo_masuk').value       = '';
-            document.getElementById('tembusan_masuk').value           = '';
+            setVal('asal_pengirim_memo_masuk');
+            setVal('dari_masuk');
+            setVal('perihal_memo_masuk');
+            setVal('isi_memo_masuk');
+            setVal('penanda_memo_masuk');
+            setVal('jabatan_memo_masuk');
+            setVal('tembusan_masuk');
             // edaran
-            document.getElementById('perihal_edaran_masuk').value  = '';
-            document.getElementById('isi_edaran_masuk').value      = '';
-            document.getElementById('penanda_edaran_masuk').value  = '';
-            document.getElementById('jabatan_edaran_masuk').value  = '';
+            setVal('perihal_edaran_masuk');
+            setVal('isi_edaran_masuk');
+            setVal('penanda_edaran_masuk');
+            setVal('jabatan_edaran_masuk');
             // kuasa
-            const kuasaIds = ['pemberi_nama_masuk','pemberi_jabatan_masuk','penerima_nama_masuk',
-                              'penerima_ktp_masuk','penerima_alamat_masuk','untuk_kuasa_masuk',
-                              'detail_kuasa_masuk','nama_kiri_masuk','jabatan_kiri_masuk','jabatan_kanan_masuk'];
-            kuasaIds.forEach(id => { try { document.getElementById(id).value = ''; } catch(e){} });
+            ['pemberi_nama_masuk','pemberi_jabatan_masuk','penerima_nama_masuk',
+             'penerima_ktp_masuk','penerima_alamat_masuk','untuk_kuasa_masuk',
+             'detail_kuasa_masuk','nama_kiri_masuk','jabatan_kiri_masuk','jabatan_kanan_masuk'
+            ].forEach(id => setVal(id));
         }
 
         // ── Edit Modal ──────────────────────────────────────────
