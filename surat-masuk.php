@@ -895,27 +895,24 @@ if (!function_exists('formatDate')) {
             const isUndangan   = (kat === 'Surat Undangan');
             const isBiasa      = !isMemo && !isEdaran && !isKuasa && !isPernyataan && !isTugas && !isUndangan;
 
-            document.getElementById('fieldsMemoMasuk').classList.toggle('hidden',        !isMemo);
-            document.getElementById('fieldsSuratMasuk').classList.toggle('hidden',       !isBiasa);
-            document.getElementById('fileUploadMemo').classList.toggle('hidden',         !isMemo);
-            document.getElementById('fieldsEdaranMasuk').classList.toggle('hidden',      !isEdaran);
-            document.getElementById('fieldsKuasaMasuk').classList.toggle('hidden',       !isKuasa);
-            document.getElementById('fieldsPernyataanMasuk').classList.toggle('hidden',  !isPernyataan);
-            document.getElementById('fieldsTugasMasuk').classList.toggle('hidden',       !isTugas);
-            document.getElementById('fieldsUndanganMasuk').classList.toggle('hidden',    !isUndangan);
-
-            const btns = {
-                previewMemoBtn:       isMemo,
-                previewEdaranBtn:     isEdaran,
-                previewKuasaBtn:      isKuasa,
-                previewPernyataanBtn: isPernyataan,
-                previewTugasBtn:      isTugas,
-                previewUndanganBtn:   isUndangan,
-            };
-            Object.entries(btns).forEach(([id, show]) => {
+            const toggle = (id, show) => {
                 const el = document.getElementById(id);
                 if (el) el.classList.toggle('hidden', !show);
-            });
+            };
+            toggle('fieldsMemoMasuk',       isMemo);
+            toggle('fieldsSuratMasuk',      isBiasa);
+            toggle('fileUploadMemo',        isMemo);
+            toggle('fieldsEdaranMasuk',     isEdaran);
+            toggle('fieldsKuasaMasuk',      isKuasa);
+            toggle('fieldsPernyataanMasuk', isPernyataan);
+            toggle('fieldsTugasMasuk',      isTugas);
+            toggle('fieldsUndanganMasuk',   isUndangan);
+            toggle('previewMemoBtn',        isMemo);
+            toggle('previewEdaranBtn',      isEdaran);
+            toggle('previewKuasaBtn',       isKuasa);
+            toggle('previewPernyataanBtn',  isPernyataan);
+            toggle('previewTugasBtn',       isTugas);
+            toggle('previewUndanganBtn',    isUndangan);
         }
 
         // ── Override openModal ──────────────────────────────────
@@ -933,51 +930,51 @@ if (!function_exists('formatDate')) {
 
         // ── Reset ───────────────────────────────────────────────
         function resetFormMasuk() {
-            document.getElementById('edit_id').value              = '';
-            document.getElementById('nomor_surat').value          = '';
-            document.getElementById('tanggal_surat').value        = '';
-            document.getElementById('kategoriSelect').value       = 'Surat Masuk';
+            try { document.getElementById('edit_id').value              = ''; } catch(e){}
+            try { document.getElementById('nomor_surat').value          = ''; } catch(e){}
+            try { document.getElementById('tanggal_surat').value        = ''; } catch(e){}
+            try { document.getElementById('kategoriSelect').value       = 'Surat Masuk'; } catch(e){}
             // surat biasa
-            document.getElementById('asal_pengirim').value        = '';
-            document.getElementById('perihal').value              = '';
-            document.getElementById('tanggal_diterima').value     = '';
-            document.getElementById('file').value                 = '';
+            try { document.getElementById('asal_pengirim').value        = ''; } catch(e){}
+            try { document.getElementById('perihal').value              = ''; } catch(e){}
+            try { document.getElementById('tanggal_diterima').value     = ''; } catch(e){}
+            try { document.getElementById('file').value                 = ''; } catch(e){}
             // memo
-            document.getElementById('asal_pengirim_memo_masuk').value = '';
-            document.getElementById('dari_masuk').value               = '';
-            document.getElementById('perihal_memo_masuk').value       = '';
-            document.getElementById('isi_memo_masuk').value           = '';
-            document.getElementById('penanda_memo_masuk').value       = '';
-            document.getElementById('jabatan_memo_masuk').value       = '';
-            document.getElementById('tembusan_masuk').value           = '';
+            try { document.getElementById('asal_pengirim_memo_masuk').value = ''; } catch(e){}
+            try { document.getElementById('dari_masuk').value               = ''; } catch(e){}
+            try { document.getElementById('perihal_memo_masuk').value       = ''; } catch(e){}
+            try { document.getElementById('isi_memo_masuk').value           = ''; } catch(e){}
+            try { document.getElementById('penanda_memo_masuk').value       = ''; } catch(e){}
+            try { document.getElementById('jabatan_memo_masuk').value       = ''; } catch(e){}
+            try { document.getElementById('tembusan_masuk').value           = ''; } catch(e){}
             // edaran
-            document.getElementById('perihal_edaran_masuk').value  = '';
-            document.getElementById('isi_edaran_masuk').value      = '';
-            document.getElementById('penanda_edaran_masuk').value  = '';
-            document.getElementById('jabatan_edaran_masuk').value  = '';
+            try { document.getElementById('perihal_edaran_masuk').value  = ''; } catch(e){}
+            try { document.getElementById('isi_edaran_masuk').value      = ''; } catch(e){}
+            try { document.getElementById('penanda_edaran_masuk').value  = ''; } catch(e){}
+            try { document.getElementById('jabatan_edaran_masuk').value  = ''; } catch(e){}
             // kuasa
-            const kuasaIds = ['pemberi_nama_masuk','pemberi_jabatan_masuk','penerima_nama_masuk',
-                              'penerima_ktp_masuk','penerima_alamat_masuk','untuk_kuasa_masuk',
-                              'detail_kuasa_masuk','nama_kiri_masuk','jabatan_kiri_masuk','jabatan_kanan_masuk'];
-            kuasaIds.forEach(id => { try { document.getElementById(id).value = ''; } catch(e){} });
+            ['pemberi_nama_masuk','pemberi_jabatan_masuk','penerima_nama_masuk',
+             'penerima_ktp_masuk','penerima_alamat_masuk','untuk_kuasa_masuk',
+             'detail_kuasa_masuk','nama_kiri_masuk','jabatan_kiri_masuk','jabatan_kanan_masuk'
+            ].forEach(id => { try { document.getElementById(id).value = ''; } catch(e){} });
             // pernyataan
             try { document.getElementById('isi_pernyataan_masuk').value     = ''; } catch(e){}
             try { document.getElementById('penanda_pernyataan_masuk').value = 'dr. Andara Dwike, MARS, M.H., FISQua'; } catch(e){}
             try { document.getElementById('jabatan_pernyataan_masuk').value = 'Direktur Utama Rumah Sakit Taman Harapan Baru'; } catch(e){}
             // tugas
-            const tugasIds = ['penerima_tugas_nama_masuk','penerima_tugas_nik_masuk','penerima_tugas_jabatan_masuk',
-                              'undangan_dari_masuk','nama_kegiatan_masuk','hari_tanggal_masuk',
-                              'waktu_acara_masuk','tempat_tugas_masuk'];
-            tugasIds.forEach(id => { try { document.getElementById(id).value = ''; } catch(e){} });
+            ['penerima_tugas_nama_masuk','penerima_tugas_nik_masuk','penerima_tugas_jabatan_masuk',
+             'undangan_dari_masuk','nama_kegiatan_masuk','hari_tanggal_masuk',
+             'waktu_acara_masuk','tempat_tugas_masuk'
+            ].forEach(id => { try { document.getElementById(id).value = ''; } catch(e){} });
             try { document.getElementById('pemberi_tugas_nama_masuk').value    = 'dr. Andara Dwike, MARS, M.H., FISQua'; } catch(e){}
             try { document.getElementById('pemberi_tugas_jabatan_masuk').value = 'Direktur Utama Rumah Sakit Taman Harapan Baru'; } catch(e){}
             // undangan
-            const undIds=['perihal_undangan_masuk','lampiran_undangan_masuk','tujuan_nama_undangan_masuk',
-                          'tujuan_alamat_undangan_masuk','up_undangan_masuk','diundang_masuk',
-                          'agenda_undangan_masuk','hari_tanggal_undangan_masuk','tempat_undangan_masuk',
-                          'waktu_mulai_undangan_masuk','waktu_selesai_undangan_masuk',
-                          'penanda_undangan_masuk','jabatan_undangan_masuk'];
-            undIds.forEach(id => { try { document.getElementById(id).value=''; } catch(e){} });
+            ['perihal_undangan_masuk','lampiran_undangan_masuk','tujuan_nama_undangan_masuk',
+             'tujuan_alamat_undangan_masuk','up_undangan_masuk','diundang_masuk',
+             'agenda_undangan_masuk','hari_tanggal_undangan_masuk','tempat_undangan_masuk',
+             'waktu_mulai_undangan_masuk','waktu_selesai_undangan_masuk',
+             'penanda_undangan_masuk','jabatan_undangan_masuk'
+            ].forEach(id => { try { document.getElementById(id).value=''; } catch(e){} });
             try { document.getElementById('perihal_undangan_masuk').value = 'UNDANGAN'; } catch(e){}
         }
 

@@ -833,13 +833,19 @@ if (!function_exists('formatDate')) {
             const isEdaran     = (kategori === 'Surat Edaran');
             const isPernyataan = (kategori === 'Surat Pernyataan');
             const isTugas      = (kategori === 'Surat Tugas');
-            const isBiasa      = !isMemo && !isEdaran && !isPernyataan && !isTugas;
+            const isUndangan   = (kategori === 'Surat Undangan');
+            const isBiasa      = !isMemo && !isEdaran && !isPernyataan && !isTugas && !isUndangan;
 
-            document.getElementById('fieldsMemo').classList.toggle('hidden',       !isMemo);
-            document.getElementById('fieldsSurat').classList.toggle('hidden',      !isBiasa);
-            document.getElementById('fieldsEdaran').classList.toggle('hidden',     !isEdaran);
-            document.getElementById('fieldsPernyataan').classList.toggle('hidden', !isPernyataan);
-            document.getElementById('fieldsTugas').classList.toggle('hidden',      !isTugas);
+            const toggle = (id, show) => {
+                const el = document.getElementById(id);
+                if (el) el.classList.toggle('hidden', !show);
+            };
+            toggle('fieldsMemo',       isMemo);
+            toggle('fieldsSurat',      isBiasa);
+            toggle('fieldsEdaran',     isEdaran);
+            toggle('fieldsPernyataan', isPernyataan);
+            toggle('fieldsTugas',      isTugas);
+            toggle('fieldsUndangan',   isUndangan);
 
             const pb = document.getElementById('previewBtn');
             if (pb) {
@@ -847,9 +853,9 @@ if (!function_exists('formatDate')) {
                 else if (isEdaran)    pb.textContent = '👁 Preview Edaran';
                 else if (isPernyataan)pb.textContent = '👁 Preview Pernyataan';
                 else if (isTugas)     pb.textContent = '👁 Preview Tugas';
+                else if (isUndangan)  pb.textContent = '👁 Preview Undangan';
                 else                  pb.textContent = '👁 Preview Surat';
             }
-
             if (!isBiasa) {
                 ['perihal','asal_pengirim','isi_surat','penanda_tangan','jabatan_ttd'].forEach(id => {
                     const el = document.getElementById(id);
@@ -874,51 +880,35 @@ if (!function_exists('formatDate')) {
 
         // ── Reset form ────────────────────────────────────────
         function resetForm() {
-            document.getElementById('edit_id').value           = '';
-            document.getElementById('nomor_surat').value       = '';
-            document.getElementById('tanggal_surat').value     = '';
-            document.getElementById('status_tindak_lanjut').value = 'Pending';
-            document.getElementById('file').value              = '';
+            const s = (id, val='') => { try { const el=document.getElementById(id); if(el) el.value=val; } catch(e){} };
+            s('edit_id'); s('nomor_surat'); s('tanggal_surat');
+            s('status_tindak_lanjut','Pending'); s('file');
             // surat biasa
-            document.getElementById('asal_pengirim').value     = '';
-            document.getElementById('perihal').value           = '';
-            document.getElementById('lampiran').value          = '';
-            document.getElementById('tujuan_alamat').value     = '';
-            document.getElementById('up_nama').value           = '';
-            document.getElementById('ucapan_mitra').value      = '';
-            document.getElementById('isi_surat').value         = '';
-            document.getElementById('penanda_tangan').value    = '';
-            document.getElementById('jabatan_ttd').value       = '';
+            s('asal_pengirim'); s('perihal'); s('lampiran');
+            s('tujuan_alamat'); s('up_nama'); s('ucapan_mitra');
+            s('isi_surat'); s('penanda_tangan'); s('jabatan_ttd');
             // memo
-            document.getElementById('asal_pengirim_memo').value= '';
-            document.getElementById('dari').value              = '';
-            document.getElementById('perihal_memo').value      = '';
-            document.getElementById('isi_surat_memo').value    = '';
-            document.getElementById('penanda_tangan_memo').value= '';
-            document.getElementById('jabatan_ttd_memo').value  = '';
-            document.getElementById('tembusan_raw').value      = '';
+            s('asal_pengirim_memo'); s('dari'); s('perihal_memo');
+            s('isi_surat_memo'); s('penanda_tangan_memo'); s('jabatan_ttd_memo'); s('tembusan_raw');
             // edaran
-            try { document.getElementById('perihal_edaran').value  = ''; } catch(e){}
-            try { document.getElementById('isi_surat_edaran').value= ''; } catch(e){}
-            try { document.getElementById('penanda_edaran').value  = ''; } catch(e){}
-            try { document.getElementById('jabatan_edaran').value  = ''; } catch(e){}
+            s('perihal_edaran'); s('isi_surat_edaran'); s('penanda_edaran'); s('jabatan_edaran');
             // pernyataan
-            try { document.getElementById('isi_surat_pernyataan').value = ''; } catch(e){}
-            try { document.getElementById('penanda_pernyataan').value   = 'dr. Andara Dwike, MARS, M.H., FISQua'; } catch(e){}
-            try { document.getElementById('jabatan_pernyataan').value   = 'Direktur Utama Rumah Sakit Taman Harapan Baru'; } catch(e){}
+            s('isi_surat_pernyataan');
+            s('penanda_pernyataan','dr. Andara Dwike, MARS, M.H., FISQua');
+            s('jabatan_pernyataan','Direktur Utama Rumah Sakit Taman Harapan Baru');
             // tugas
             ['penerima_tugas_nama','penerima_tugas_nik','penerima_tugas_jabatan',
              'undangan_dari','nama_kegiatan','hari_tanggal','waktu_acara','tempat_tugas'
-            ].forEach(id => { try { document.getElementById(id).value = ''; } catch(e){} });
-            try { document.getElementById('pemberi_tugas_nama').value    = 'dr. Andara Dwike, MARS, M.H., FISQua'; } catch(e){}
-            try { document.getElementById('pemberi_tugas_jabatan').value = 'Direktur Utama Rumah Sakit Taman Harapan Baru'; } catch(e){}
+            ].forEach(id => s(id));
+            s('pemberi_tugas_nama','dr. Andara Dwike, MARS, M.H., FISQua');
+            s('pemberi_tugas_jabatan','Direktur Utama Rumah Sakit Taman Harapan Baru');
             // undangan
             ['perihal_undangan','lampiran_undangan','tujuan_nama_undangan','tujuan_alamat_undangan',
              'up_undangan','diundang_keluar','agenda_undangan','hari_tanggal_undangan',
              'tempat_undangan','waktu_mulai_undangan','waktu_selesai_undangan',
              'penanda_undangan','jabatan_undangan'
-            ].forEach(id => { try { document.getElementById(id).value=''; } catch(e){} });
-            try { document.getElementById('perihal_undangan').value = 'UNDANGAN'; } catch(e){}
+            ].forEach(id => s(id));
+            s('perihal_undangan','UNDANGAN');
         }
 
         // ── Edit modal ────────────────────────────────────────
