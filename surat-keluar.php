@@ -449,6 +449,11 @@ if (!function_exists('formatDate')) {
                                                        class="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors">
                                                         🖨 Tugas
                                                     </a>
+                                                    <?php elseif ($doc['kategori'] === 'Surat Undangan'): ?>
+                                                    <a href="cetak_surat_undangan.php?id=<?= $doc['id'] ?>" target="_blank"
+                                                       class="px-3 py-1 text-sm bg-sky-100 text-sky-700 rounded-lg hover:bg-sky-200 transition-colors">
+                                                        🖨 Undangan
+                                                    </a>
                                                     <?php else: ?>
                                                     <a href="cetak_surat_keluar.php?id=<?= $doc['id'] ?>" target="_blank"
                                                        class="px-3 py-1 text-sm bg-teal-100 text-teal-700 rounded-lg hover:bg-teal-200 transition-colors">
@@ -710,6 +715,83 @@ if (!function_exists('formatDate')) {
                     </div>
                 </div>
 
+                <!-- ═══ FORM SURAT UNDANGAN ═══ -->
+                <div id="fieldsUndangan" class="hidden space-y-4">
+                    <div class="bg-sky-50 border border-sky-200 rounded-xl px-4 py-2 text-xs text-sky-700 font-medium">
+                        📨 Form Surat Undangan
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Perihal <span class="text-red-500">*</span></label>
+                            <input type="text" name="perihal" id="perihal_undangan" value="UNDANGAN" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Lampiran</label>
+                            <input type="text" name="lampiran" id="lampiran_undangan" placeholder="Contoh: 1 berkas" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                    </div>
+                    <div class="border border-gray-200 rounded-xl p-4 space-y-3">
+                        <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">Kepada Yth.</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Nama / Perusahaan <span class="text-red-500">*</span></label>
+                                <input type="text" name="asal_pengirim" id="tujuan_nama_undangan" placeholder="Nama Bapak/Ibu/Instansi" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Alamat</label>
+                                <input type="text" name="tujuan_alamat" id="tujuan_alamat_undangan" placeholder="Alamat penerima" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Up. (Nama & Jabatan) <span class="text-xs text-gray-400">opsional</span></label>
+                            <input type="text" name="up_nama" id="up_undangan" placeholder="Contoh: Bpk. Ahmad – Manager HRD" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Yang Diundang <span class="text-red-500">*</span></label>
+                            <input type="text" name="untuk_kuasa" id="diundang_keluar" placeholder="Nama/jabatan yang diundang" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Nama Acara / Agenda <span class="text-red-500">*</span></label>
+                            <input type="text" name="isi_surat" id="agenda_undangan" placeholder="Nama kegiatan / rapat" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                    </div>
+                    <div class="border border-gray-200 rounded-xl p-4 space-y-3">
+                        <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">Detail Acara</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Hari, Tanggal</label>
+                                <input type="text" name="hari_tanggal" id="hari_tanggal_undangan" placeholder="Senin, 1 Januari 2025" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Tempat</label>
+                                <input type="text" name="tujuan_alamat" id="tempat_undangan" placeholder="Ruang rapat / lokasi" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Pukul Mulai</label>
+                                <input type="text" name="waktu_acara" id="waktu_mulai_undangan" placeholder="09.00 WIB" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Pukul Selesai</label>
+                                <input type="text" name="waktu_selesai" id="waktu_selesai_undangan" placeholder="12.00 WIB" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Nama Penanda Tangan</label>
+                            <input type="text" name="penanda_tangan" id="penanda_undangan" placeholder="Nama lengkap" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Jabatan</label>
+                            <input type="text" name="jabatan_ttd" id="jabatan_undangan" placeholder="Jabatan" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Status & Upload -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -830,6 +912,13 @@ if (!function_exists('formatDate')) {
             ].forEach(id => { try { document.getElementById(id).value = ''; } catch(e){} });
             try { document.getElementById('pemberi_tugas_nama').value    = 'dr. Andara Dwike, MARS, M.H., FISQua'; } catch(e){}
             try { document.getElementById('pemberi_tugas_jabatan').value = 'Direktur Utama Rumah Sakit Taman Harapan Baru'; } catch(e){}
+            // undangan
+            ['perihal_undangan','lampiran_undangan','tujuan_nama_undangan','tujuan_alamat_undangan',
+             'up_undangan','diundang_keluar','agenda_undangan','hari_tanggal_undangan',
+             'tempat_undangan','waktu_mulai_undangan','waktu_selesai_undangan',
+             'penanda_undangan','jabatan_undangan'
+            ].forEach(id => { try { document.getElementById(id).value=''; } catch(e){} });
+            try { document.getElementById('perihal_undangan').value = 'UNDANGAN'; } catch(e){}
         }
 
         // ── Edit modal ────────────────────────────────────────
@@ -874,6 +963,20 @@ if (!function_exists('formatDate')) {
                 document.getElementById('hari_tanggal').value          = doc.hari_tanggal   || '';
                 document.getElementById('waktu_acara').value           = doc.waktu_acara    || '';
                 document.getElementById('tempat_tugas').value          = doc.tujuan_alamat  || '';
+            } else if (kat === 'Surat Undangan') {
+                document.getElementById('perihal_undangan').value        = doc.perihal       || 'UNDANGAN';
+                document.getElementById('lampiran_undangan').value       = doc.lampiran      || '';
+                document.getElementById('tujuan_nama_undangan').value    = doc.asal_pengirim || '';
+                document.getElementById('tujuan_alamat_undangan').value  = doc.tujuan_alamat || '';
+                document.getElementById('up_undangan').value             = doc.up_nama       || '';
+                document.getElementById('diundang_keluar').value         = doc.untuk_kuasa   || '';
+                document.getElementById('agenda_undangan').value         = doc.isi_surat     || '';
+                document.getElementById('hari_tanggal_undangan').value   = doc.hari_tanggal  || '';
+                document.getElementById('waktu_mulai_undangan').value    = doc.waktu_acara   || '';
+                document.getElementById('waktu_selesai_undangan').value  = doc.waktu_selesai || '';
+                document.getElementById('tempat_undangan').value         = doc.tujuan_alamat || '';
+                document.getElementById('penanda_undangan').value        = doc.penanda_tangan|| '';
+                document.getElementById('jabatan_undangan').value        = doc.jabatan_ttd   || '';
             } else {
                 document.getElementById('asal_pengirim').value  = doc.asal_pengirim  || '';
                 document.getElementById('perihal').value        = doc.perihal        || '';
@@ -952,6 +1055,26 @@ if (!function_exists('formatDate')) {
                     tempat:           document.getElementById('tempat_tugas').value,
                 });
                 window.open('cetak_surat_tugas.php?' + p.toString(), '_blank');
+            } else if (kat === 'Surat Undangan') {
+                const p = new URLSearchParams({
+                    no_undangan:   document.getElementById('nomor_surat').value,
+                    tanggal:       document.getElementById('tanggal_surat').value,
+                    perihal:       document.getElementById('perihal_undangan').value,
+                    lampiran:      document.getElementById('lampiran_undangan').value,
+                    tujuan_nama:   document.getElementById('tujuan_nama_undangan').value,
+                    tujuan_alamat: document.getElementById('tujuan_alamat_undangan').value,
+                    up_nama:       document.getElementById('up_undangan').value,
+                    diundang:      document.getElementById('diundang_keluar').value,
+                    acara:         document.getElementById('agenda_undangan').value,
+                    hari_tanggal:  document.getElementById('hari_tanggal_undangan').value,
+                    tempat:        document.getElementById('tempat_undangan').value,
+                    waktu_mulai:   document.getElementById('waktu_mulai_undangan').value,
+                    waktu_selesai: document.getElementById('waktu_selesai_undangan').value,
+                    agenda:        document.getElementById('agenda_undangan').value,
+                    nama_ttd:      document.getElementById('penanda_undangan').value,
+                    jabatan_ttd:   document.getElementById('jabatan_undangan').value,
+                });
+                window.open('cetak_surat_undangan.php?' + p.toString(), '_blank');
             } else {
                 const p = new URLSearchParams({
                     tanggal_surat:  document.getElementById('tanggal_surat').value,
