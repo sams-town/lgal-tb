@@ -434,6 +434,11 @@ if (!function_exists('formatDate')) {
                                                        class="px-3 py-1 text-sm bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors">
                                                         🖨 Memo
                                                     </a>
+                                                    <?php elseif ($doc['kategori'] === 'Surat Edaran'): ?>
+                                                    <a href="cetak_surat_edaran.php?id=<?= $doc['id'] ?>" target="_blank"
+                                                       class="px-3 py-1 text-sm bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors">
+                                                        🖨 Edaran
+                                                    </a>
                                                     <?php else: ?>
                                                     <a href="cetak_surat_keluar.php?id=<?= $doc['id'] ?>" target="_blank"
                                                        class="px-3 py-1 text-sm bg-teal-100 text-teal-700 rounded-lg hover:bg-teal-200 transition-colors">
@@ -576,6 +581,31 @@ if (!function_exists('formatDate')) {
                     </div>
                 </div>
 
+                <!-- ═══ FORM SURAT EDARAN ═══ -->
+                <div id="fieldsEdaran" class="hidden space-y-4">
+                    <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-2 text-xs text-amber-700 font-medium">
+                        📢 Form Surat Edaran
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tentang / Perihal <span class="text-red-500">*</span></label>
+                        <input type="text" name="perihal" id="perihal_edaran" placeholder="Judul / subjek surat edaran" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Isi Surat Edaran <span class="text-red-500">*</span></label>
+                        <textarea name="isi_surat" id="isi_surat_edaran" rows="5" placeholder="Tulis isi surat edaran..." class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm"></textarea>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nama Penanda Tangan</label>
+                            <input type="text" name="penanda_tangan" id="penanda_edaran" placeholder="Nama lengkap" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Jabatan</label>
+                            <input type="text" name="jabatan_ttd" id="jabatan_edaran" placeholder="Jabatan penanda tangan" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Status & Upload -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -613,14 +643,23 @@ if (!function_exists('formatDate')) {
     <script>
         // ── Toggle form berdasarkan kategori ──────────────────
         function toggleMemoFields(kategori) {
-            const isMemo = (kategori === 'Internal Memo');
-            document.getElementById('fieldsMemo').classList.toggle('hidden', !isMemo);
-            document.getElementById('fieldsSurat').classList.toggle('hidden', isMemo);
-            document.getElementById('previewBtn').textContent = isMemo ? '👁 Preview Memo' : '👁 Preview Surat';
+            const isMemo   = (kategori === 'Internal Memo');
+            const isEdaran = (kategori === 'Surat Edaran');
+            const isBiasa  = !isMemo && !isEdaran;
 
-            // Sync nama field yang sama antara memo dan surat biasa
-            if (isMemo) {
-                // Kosongkan field surat biasa agar tidak double-POST
+            document.getElementById('fieldsMemo').classList.toggle('hidden',   !isMemo);
+            document.getElementById('fieldsSurat').classList.toggle('hidden',  !isBiasa);
+            document.getElementById('fieldsEdaran').classList.toggle('hidden', !isEdaran);
+
+            const pb = document.getElementById('previewBtn');
+            if (pb) {
+                if (isMemo)   pb.textContent = '👁 Preview Memo';
+                else if (isEdaran) pb.textContent = '👁 Preview Edaran';
+                else          pb.textContent = '👁 Preview Surat';
+            }
+
+            // Kosongkan field surat biasa agar tidak double-POST saat bukan surat biasa
+            if (!isBiasa) {
                 ['perihal','asal_pengirim','isi_surat','penanda_tangan','jabatan_ttd'].forEach(id => {
                     const el = document.getElementById(id);
                     if (el) el.value = '';
@@ -667,6 +706,11 @@ if (!function_exists('formatDate')) {
             document.getElementById('penanda_tangan_memo').value= '';
             document.getElementById('jabatan_ttd_memo').value  = '';
             document.getElementById('tembusan_raw').value      = '';
+            // edaran
+            try { document.getElementById('perihal_edaran').value  = ''; } catch(e){}
+            try { document.getElementById('isi_surat_edaran').value= ''; } catch(e){}
+            try { document.getElementById('penanda_edaran').value  = ''; } catch(e){}
+            try { document.getElementById('jabatan_edaran').value  = ''; } catch(e){}
         }
 
         // ── Edit modal ────────────────────────────────────────
@@ -688,10 +732,14 @@ if (!function_exists('formatDate')) {
                 document.getElementById('isi_surat_memo').value     = doc.isi_surat     || '';
                 document.getElementById('penanda_tangan_memo').value= doc.penanda_tangan || '';
                 document.getElementById('jabatan_ttd_memo').value   = doc.jabatan_ttd   || '';
-                // tembusan
                 let tArr = [];
                 try { tArr = doc.tembusan ? JSON.parse(doc.tembusan) : []; } catch(e){}
                 document.getElementById('tembusan_raw').value = tArr.join('\n');
+            } else if (kat === 'Surat Edaran') {
+                document.getElementById('perihal_edaran').value  = doc.perihal        || '';
+                document.getElementById('isi_surat_edaran').value= doc.isi_surat      || '';
+                document.getElementById('penanda_edaran').value  = doc.penanda_tangan || '';
+                document.getElementById('jabatan_edaran').value  = doc.jabatan_ttd    || '';
             } else {
                 document.getElementById('asal_pengirim').value  = doc.asal_pengirim  || '';
                 document.getElementById('perihal').value        = doc.perihal        || '';
@@ -735,6 +783,16 @@ if (!function_exists('formatDate')) {
                     tembusan:    document.getElementById('tembusan_raw').value,
                 });
                 window.open('cetak_internal_memo.php?' + p.toString(), '_blank');
+            } else if (kat === 'Surat Edaran') {
+                const p = new URLSearchParams({
+                    no_edaran:   document.getElementById('nomor_surat').value,
+                    tentang:     document.getElementById('perihal_edaran').value,
+                    tanggal:     document.getElementById('tanggal_surat').value,
+                    isi:         document.getElementById('isi_surat_edaran').value,
+                    nama_ttd:    document.getElementById('penanda_edaran').value,
+                    jabatan_ttd: document.getElementById('jabatan_edaran').value,
+                });
+                window.open('cetak_surat_edaran.php?' + p.toString(), '_blank');
             } else {
                 const p = new URLSearchParams({
                     tanggal_surat:  document.getElementById('tanggal_surat').value,

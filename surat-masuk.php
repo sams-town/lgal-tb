@@ -487,6 +487,10 @@ if (!function_exists('formatDate')) {
                                                         <a href="cetak_internal_memo.php?id=<?= $doc['id'] ?>" target="_blank" class="px-3 py-1 text-sm bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors">
                                                             🖨 Memo
                                                         </a>
+                                                    <?php elseif ($doc['kategori'] === 'Surat Edaran'): ?>
+                                                        <a href="cetak_surat_edaran.php?id=<?= $doc['id'] ?>" target="_blank" class="px-3 py-1 text-sm bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors">
+                                                            🖨 Edaran
+                                                        </a>
                                                     <?php endif; ?>
                                                     <?php if (canUserEditOrDelete('sekretariat')): ?>
                                                         <button onclick="openEditModal(<?php echo htmlspecialchars(json_encode($doc), ENT_QUOTES); ?>)" class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
@@ -544,8 +548,7 @@ if (!function_exists('formatDate')) {
                 <div id="fieldsMemoMasuk" class="hidden space-y-4">
                     <div class="bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-2 text-xs text-indigo-700 font-medium">
                         ✉ Form Internal Memo
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    </div>                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Kepada Yth <span class="text-red-500">*</span></label>
                             <input type="text" name="asal_pengirim" id="asal_pengirim_memo_masuk" placeholder="Nama penerima / unit" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
@@ -605,10 +608,39 @@ if (!function_exists('formatDate')) {
                     </div>
                 </div>
 
-                <!-- Upload juga untuk memo -->
+                <!-- Upload juga untuk memo/edaran -->
                 <div id="fileUploadMemo" class="hidden">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Upload File Berkas</label>
                     <input type="file" name="file" id="file_memo" accept=".pdf,.doc,.docx" class="w-full px-4 py-2 border border-gray-300 rounded-xl text-sm">
+                </div>
+
+                <!-- ═══ FORM SURAT EDARAN ═══ -->
+                <div id="fieldsEdaranMasuk" class="hidden space-y-4">
+                    <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-2 text-xs text-amber-700 font-medium">
+                        📢 Form Surat Edaran
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tentang / Perihal <span class="text-red-500">*</span></label>
+                        <input type="text" name="perihal" id="perihal_edaran_masuk" placeholder="Judul / subjek surat edaran" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Isi Surat Edaran <span class="text-red-500">*</span></label>
+                        <textarea name="isi_surat" id="isi_edaran_masuk" rows="5" placeholder="Tulis isi surat edaran..." class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm"></textarea>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nama Penanda Tangan</label>
+                            <input type="text" name="penanda_tangan" id="penanda_edaran_masuk" placeholder="Nama lengkap" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Jabatan</label>
+                            <input type="text" name="jabatan_ttd" id="jabatan_edaran_masuk" placeholder="Jabatan penanda tangan" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Upload File Berkas</label>
+                        <input type="file" name="file" id="file_edaran_masuk" accept=".pdf,.doc,.docx" class="w-full px-4 py-2 border border-gray-300 rounded-xl text-sm">
+                    </div>
                 </div>
 
                 <!-- Tombol -->
@@ -620,6 +652,10 @@ if (!function_exists('formatDate')) {
                             class="hidden px-4 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-xl font-medium hover:bg-indigo-100 transition-colors text-sm">
                         👁 Preview Memo
                     </button>
+                    <button type="button" id="previewEdaranBtn" onclick="previewEdaranMasuk()"
+                            class="hidden px-4 py-2 bg-amber-50 text-amber-700 border border-amber-200 rounded-xl font-medium hover:bg-amber-100 transition-colors text-sm">
+                        👁 Preview Edaran
+                    </button>
                     <button type="submit" name="tambah_surat" id="submitBtn" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors text-sm">
                         Simpan
                     </button>
@@ -629,12 +665,19 @@ if (!function_exists('formatDate')) {
     <script>
         // ── Toggle form memo / surat biasa ──────────────────────
         function toggleMemoFieldsMasuk(kat) {
-            const isMemo = (kat === 'Internal Memo');
-            document.getElementById('fieldsMemoMasuk').classList.toggle('hidden', !isMemo);
-            document.getElementById('fieldsSuratMasuk').classList.toggle('hidden',  isMemo);
-            document.getElementById('fileUploadMemo').classList.toggle('hidden',   !isMemo);
-            const prevBtn = document.getElementById('previewMemoBtn');
-            if (prevBtn) prevBtn.classList.toggle('hidden', !isMemo);
+            const isMemo   = (kat === 'Internal Memo');
+            const isEdaran = (kat === 'Surat Edaran');
+            const isBiasa  = !isMemo && !isEdaran;
+
+            document.getElementById('fieldsMemoMasuk').classList.toggle('hidden',   !isMemo);
+            document.getElementById('fieldsSuratMasuk').classList.toggle('hidden',  !isBiasa);
+            document.getElementById('fileUploadMemo').classList.toggle('hidden',    !isMemo);
+            document.getElementById('fieldsEdaranMasuk').classList.toggle('hidden', !isEdaran);
+
+            const prevMemo   = document.getElementById('previewMemoBtn');
+            const prevEdaran = document.getElementById('previewEdaranBtn');
+            if (prevMemo)   prevMemo.classList.toggle('hidden',   !isMemo);
+            if (prevEdaran) prevEdaran.classList.toggle('hidden', !isEdaran);
         }
 
         // ── Override openModal ──────────────────────────────────
@@ -669,6 +712,11 @@ if (!function_exists('formatDate')) {
             document.getElementById('penanda_memo_masuk').value       = '';
             document.getElementById('jabatan_memo_masuk').value       = '';
             document.getElementById('tembusan_masuk').value           = '';
+            // edaran
+            document.getElementById('perihal_edaran_masuk').value  = '';
+            document.getElementById('isi_edaran_masuk').value      = '';
+            document.getElementById('penanda_edaran_masuk').value  = '';
+            document.getElementById('jabatan_edaran_masuk').value  = '';
         }
 
         // ── Edit Modal ──────────────────────────────────────────
@@ -691,6 +739,11 @@ if (!function_exists('formatDate')) {
                 let tArr = [];
                 try { tArr = doc.tembusan ? JSON.parse(doc.tembusan) : []; } catch(e){}
                 document.getElementById('tembusan_masuk').value = tArr.join('\n');
+            } else if (kat === 'Surat Edaran') {
+                document.getElementById('perihal_edaran_masuk').value = doc.perihal        || '';
+                document.getElementById('isi_edaran_masuk').value     = doc.isi_surat      || '';
+                document.getElementById('penanda_edaran_masuk').value = doc.penanda_tangan || '';
+                document.getElementById('jabatan_edaran_masuk').value = doc.jabatan_ttd    || '';
             } else {
                 document.getElementById('asal_pengirim').value    = doc.asal_pengirim    || '';
                 document.getElementById('perihal').value          = doc.perihal          || '';
@@ -724,6 +777,19 @@ if (!function_exists('formatDate')) {
                 tembusan:    document.getElementById('tembusan_masuk').value,
             });
             window.open('cetak_internal_memo.php?' + p.toString(), '_blank');
+        }
+
+        // ── Preview Surat Edaran ────────────────────────────────
+        function previewEdaranMasuk() {
+            const p = new URLSearchParams({
+                no_edaran:   document.getElementById('nomor_surat').value,
+                tentang:     document.getElementById('perihal_edaran_masuk').value,
+                tanggal:     document.getElementById('tanggal_surat').value,
+                isi:         document.getElementById('isi_edaran_masuk').value,
+                nama_ttd:    document.getElementById('penanda_edaran_masuk').value,
+                jabatan_ttd: document.getElementById('jabatan_edaran_masuk').value,
+            });
+            window.open('cetak_surat_edaran.php?' + p.toString(), '_blank');
         }
     </script>
 </body>
