@@ -495,6 +495,10 @@ if (!function_exists('formatDate')) {
                                                         <a href="cetak_surat_kuasa.php?id=<?= $doc['id'] ?>" target="_blank" class="px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors">
                                                             🖨 Kuasa
                                                         </a>
+                                                    <?php elseif ($doc['kategori'] === 'Surat Pernyataan'): ?>
+                                                        <a href="cetak_surat_pernyataan.php?id=<?= $doc['id'] ?>" target="_blank" class="px-3 py-1 text-sm bg-rose-100 text-rose-700 rounded-lg hover:bg-rose-200 transition-colors">
+                                                            🖨 Pernyataan
+                                                        </a>
                                                     <?php endif; ?>
                                                     <?php if (canUserEditOrDelete('sekretariat')): ?>
                                                         <button onclick="openEditModal(<?php echo htmlspecialchars(json_encode($doc), ENT_QUOTES); ?>)" class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
@@ -646,59 +650,30 @@ if (!function_exists('formatDate')) {
                         <input type="file" name="file" id="file_edaran_masuk" accept=".pdf,.doc,.docx" class="w-full px-4 py-2 border border-gray-300 rounded-xl text-sm">
                     </div>
                 </div>
-
-                <!-- ═══ FORM SURAT KUASA ═══ -->
-                <div id="fieldsKuasaMasuk" class="hidden space-y-4">
-                    <div class="bg-purple-50 border border-purple-200 rounded-xl px-4 py-2 text-xs text-purple-700 font-medium">
-                        📋 Form Surat Kuasa
-                    </div>
-                    <div class="border border-gray-200 rounded-xl p-4 space-y-3">
-                        <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">Pemberi Kuasa</p>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Nama</label>
-                                <input type="text" name="pemberi_nama" id="pemberi_nama_masuk" placeholder="Nama pemberi kuasa" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Jabatan</label>
-                                <input type="text" name="penanda_tangan" id="pemberi_jabatan_masuk" placeholder="Jabatan pemberi kuasa" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="border border-gray-200 rounded-xl p-4 space-y-3">
-                        <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">Penerima Kuasa</p>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Nama</label>
-                                <input type="text" name="penerima_nama" id="penerima_nama_masuk" placeholder="Nama penerima kuasa" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">No. KTP</label>
-                                <input type="text" name="penerima_ktp" id="penerima_ktp_masuk" placeholder="Nomor KTP" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Alamat</label>
-                            <input type="text" name="penerima_alamat" id="penerima_alamat_masuk" placeholder="Alamat lengkap" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
-                        </div>
+                <!-- ═══ FORM SURAT PERNYATAAN ═══ -->
+                <div id="fieldsPernyataanMasuk" class="hidden space-y-4">
+                    <div class="bg-rose-50 border border-rose-200 rounded-xl px-4 py-2 text-xs text-rose-700 font-medium">
+                        📝 Form Surat Pernyataan
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Untuk (Tujuan Kuasa)</label>
-                        <input type="text" name="untuk_kuasa" id="untuk_kuasa_masuk" placeholder="Contoh: mengurus perpanjangan izin RS" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Detail Kuasa</label>
-                        <textarea name="isi_surat" id="detail_kuasa_masuk" rows="3" placeholder="Detail tugas yang dikuasakan (satu per baris)..." class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm"></textarea>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Isi Pernyataan <span class="text-red-500">*</span></label>
+                        <textarea name="isi_surat" id="isi_pernyataan_masuk" rows="5"
+                                  placeholder="Tulis isi pernyataan setelah 'Dengan ini menyatakan bahwa...'"
+                                  class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm"></textarea>
+                        <p class="text-xs text-gray-400 mt-1">Teks dilanjutkan setelah "Dengan ini menyatakan bahwa..."</p>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="border border-gray-200 rounded-xl p-3 space-y-2">
-                            <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">Yang Menerima Kuasa (Kiri)</p>
-                            <input type="text" name="nama_ttd_kiri" id="nama_kiri_masuk" placeholder="Nama" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
-                            <input type="text" name="jabatan_kiri" id="jabatan_kiri_masuk" placeholder="Jabatan" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nama Penanda Tangan</label>
+                            <input type="text" name="penanda_tangan" id="penanda_pernyataan_masuk"
+                                   value="dr. Andara Dwike, MARS, M.H., FISQua"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
                         </div>
-                        <div class="border border-gray-200 rounded-xl p-3 space-y-2">
-                            <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">Yang Memberi Kuasa (Kanan)</p>
-                            <input type="text" name="jabatan_ttd" id="jabatan_kanan_masuk" placeholder="Jabatan pemberi kuasa" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Jabatan</label>
+                            <input type="text" name="jabatan_ttd" id="jabatan_pernyataan_masuk"
+                                   value="Direktur Utama Rumah Sakit Taman Harapan Baru"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
                         </div>
                     </div>
                 </div>
@@ -719,6 +694,10 @@ if (!function_exists('formatDate')) {
                             class="hidden px-4 py-2 bg-purple-50 text-purple-700 border border-purple-200 rounded-xl font-medium hover:bg-purple-100 transition-colors text-sm">
                         👁 Preview Kuasa
                     </button>
+                    <button type="button" id="previewPernyataanBtn" onclick="previewPernyataanMasuk()"
+                            class="hidden px-4 py-2 bg-rose-50 text-rose-700 border border-rose-200 rounded-xl font-medium hover:bg-rose-100 transition-colors text-sm">
+                        👁 Preview Pernyataan
+                    </button>
                     <button type="submit" name="tambah_surat" id="submitBtn" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors text-sm">
                         Simpan
                     </button>
@@ -728,23 +707,29 @@ if (!function_exists('formatDate')) {
     <script>
         // ── Toggle form memo / surat biasa ──────────────────────
         function toggleMemoFieldsMasuk(kat) {
-            const isMemo   = (kat === 'Internal Memo');
-            const isEdaran = (kat === 'Surat Edaran');
-            const isKuasa  = (kat === 'Surat Kuasa');
-            const isBiasa  = !isMemo && !isEdaran && !isKuasa;
+            const isMemo       = (kat === 'Internal Memo');
+            const isEdaran     = (kat === 'Surat Edaran');
+            const isKuasa      = (kat === 'Surat Kuasa');
+            const isPernyataan = (kat === 'Surat Pernyataan');
+            const isBiasa      = !isMemo && !isEdaran && !isKuasa && !isPernyataan;
 
-            const tog = (id, show) => {
+            document.getElementById('fieldsMemoMasuk').classList.toggle('hidden',        !isMemo);
+            document.getElementById('fieldsSuratMasuk').classList.toggle('hidden',       !isBiasa);
+            document.getElementById('fileUploadMemo').classList.toggle('hidden',         !isMemo);
+            document.getElementById('fieldsEdaranMasuk').classList.toggle('hidden',      !isEdaran);
+            document.getElementById('fieldsKuasaMasuk').classList.toggle('hidden',       !isKuasa);
+            document.getElementById('fieldsPernyataanMasuk').classList.toggle('hidden',  !isPernyataan);
+
+            const btns = {
+                previewMemoBtn:       isMemo,
+                previewEdaranBtn:     isEdaran,
+                previewKuasaBtn:      isKuasa,
+                previewPernyataanBtn: isPernyataan,
+            };
+            Object.entries(btns).forEach(([id, show]) => {
                 const el = document.getElementById(id);
                 if (el) el.classList.toggle('hidden', !show);
-            };
-            tog('fieldsMemoMasuk',   isMemo);
-            tog('fieldsSuratMasuk',  isBiasa);
-            tog('fileUploadMemo',    isMemo);
-            tog('fieldsEdaranMasuk', isEdaran);
-            tog('fieldsKuasaMasuk',  isKuasa);
-            tog('previewMemoBtn',    isMemo);
-            tog('previewEdaranBtn',  isEdaran);
-            tog('previewKuasaBtn',   isKuasa);
+            });
         }
 
         // ── Override openModal ──────────────────────────────────
@@ -762,34 +747,37 @@ if (!function_exists('formatDate')) {
 
         // ── Reset ───────────────────────────────────────────────
         function resetFormMasuk() {
-            const setVal = (id, v='') => { const e = document.getElementById(id); if(e) e.value = v; };
-            setVal('edit_id');
-            setVal('nomor_surat');
-            setVal('tanggal_surat');
-            setVal('kategoriSelect','Surat Masuk');
+            document.getElementById('edit_id').value              = '';
+            document.getElementById('nomor_surat').value          = '';
+            document.getElementById('tanggal_surat').value        = '';
+            document.getElementById('kategoriSelect').value       = 'Surat Masuk';
             // surat biasa
-            setVal('asal_pengirim');
-            setVal('perihal');
-            setVal('tanggal_diterima');
-            setVal('file');
+            document.getElementById('asal_pengirim').value        = '';
+            document.getElementById('perihal').value              = '';
+            document.getElementById('tanggal_diterima').value     = '';
+            document.getElementById('file').value                 = '';
             // memo
-            setVal('asal_pengirim_memo_masuk');
-            setVal('dari_masuk');
-            setVal('perihal_memo_masuk');
-            setVal('isi_memo_masuk');
-            setVal('penanda_memo_masuk');
-            setVal('jabatan_memo_masuk');
-            setVal('tembusan_masuk');
+            document.getElementById('asal_pengirim_memo_masuk').value = '';
+            document.getElementById('dari_masuk').value               = '';
+            document.getElementById('perihal_memo_masuk').value       = '';
+            document.getElementById('isi_memo_masuk').value           = '';
+            document.getElementById('penanda_memo_masuk').value       = '';
+            document.getElementById('jabatan_memo_masuk').value       = '';
+            document.getElementById('tembusan_masuk').value           = '';
             // edaran
-            setVal('perihal_edaran_masuk');
-            setVal('isi_edaran_masuk');
-            setVal('penanda_edaran_masuk');
-            setVal('jabatan_edaran_masuk');
+            document.getElementById('perihal_edaran_masuk').value  = '';
+            document.getElementById('isi_edaran_masuk').value      = '';
+            document.getElementById('penanda_edaran_masuk').value  = '';
+            document.getElementById('jabatan_edaran_masuk').value  = '';
             // kuasa
-            ['pemberi_nama_masuk','pemberi_jabatan_masuk','penerima_nama_masuk',
-             'penerima_ktp_masuk','penerima_alamat_masuk','untuk_kuasa_masuk',
-             'detail_kuasa_masuk','nama_kiri_masuk','jabatan_kiri_masuk','jabatan_kanan_masuk'
-            ].forEach(id => setVal(id));
+            const kuasaIds = ['pemberi_nama_masuk','pemberi_jabatan_masuk','penerima_nama_masuk',
+                              'penerima_ktp_masuk','penerima_alamat_masuk','untuk_kuasa_masuk',
+                              'detail_kuasa_masuk','nama_kiri_masuk','jabatan_kiri_masuk','jabatan_kanan_masuk'];
+            kuasaIds.forEach(id => { try { document.getElementById(id).value = ''; } catch(e){} });
+            // pernyataan
+            try { document.getElementById('isi_pernyataan_masuk').value     = ''; } catch(e){}
+            try { document.getElementById('penanda_pernyataan_masuk').value = 'dr. Andara Dwike, MARS, M.H., FISQua'; } catch(e){}
+            try { document.getElementById('jabatan_pernyataan_masuk').value = 'Direktur Utama Rumah Sakit Taman Harapan Baru'; } catch(e){}
         }
 
         // ── Edit Modal ──────────────────────────────────────────
@@ -817,6 +805,10 @@ if (!function_exists('formatDate')) {
                 document.getElementById('isi_edaran_masuk').value     = doc.isi_surat      || '';
                 document.getElementById('penanda_edaran_masuk').value = doc.penanda_tangan || '';
                 document.getElementById('jabatan_edaran_masuk').value = doc.jabatan_ttd    || '';
+            } else if (kat === 'Surat Pernyataan') {
+                document.getElementById('isi_pernyataan_masuk').value     = doc.isi_surat      || '';
+                document.getElementById('penanda_pernyataan_masuk').value = doc.penanda_tangan || 'dr. Andara Dwike, MARS, M.H., FISQua';
+                document.getElementById('jabatan_pernyataan_masuk').value = doc.jabatan_ttd    || 'Direktur Utama Rumah Sakit Taman Harapan Baru';
             } else {
                 document.getElementById('asal_pengirim').value    = doc.asal_pengirim    || '';
                 document.getElementById('perihal').value          = doc.perihal          || '';
@@ -882,6 +874,17 @@ if (!function_exists('formatDate')) {
                 jabatan_kanan:   document.getElementById('jabatan_kanan_masuk').value,
             });
             window.open('cetak_surat_kuasa.php?' + p.toString(), '_blank');
-        }    </script>
+        }        // ── Preview Surat Pernyataan ────────────────────────────
+        function previewPernyataanMasuk() {
+            const p = new URLSearchParams({
+                no_sp:       document.getElementById('nomor_surat').value,
+                tanggal:     document.getElementById('tanggal_surat').value,
+                isi:         document.getElementById('isi_pernyataan_masuk').value,
+                nama_ttd:    document.getElementById('penanda_pernyataan_masuk').value,
+                jabatan_ttd: document.getElementById('jabatan_pernyataan_masuk').value,
+            });
+            window.open('cetak_surat_pernyataan.php?' + p.toString(), '_blank');
+        }
+    </script>
 </body>
 </html>

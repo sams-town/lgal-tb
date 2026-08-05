@@ -439,6 +439,11 @@ if (!function_exists('formatDate')) {
                                                        class="px-3 py-1 text-sm bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors">
                                                         🖨 Edaran
                                                     </a>
+                                                    <?php elseif ($doc['kategori'] === 'Surat Pernyataan'): ?>
+                                                    <a href="cetak_surat_pernyataan.php?id=<?= $doc['id'] ?>" target="_blank"
+                                                       class="px-3 py-1 text-sm bg-rose-100 text-rose-700 rounded-lg hover:bg-rose-200 transition-colors">
+                                                        🖨 Pernyataan
+                                                    </a>
                                                     <?php else: ?>
                                                     <a href="cetak_surat_keluar.php?id=<?= $doc['id'] ?>" target="_blank"
                                                        class="px-3 py-1 text-sm bg-teal-100 text-teal-700 rounded-lg hover:bg-teal-200 transition-colors">
@@ -606,6 +611,34 @@ if (!function_exists('formatDate')) {
                     </div>
                 </div>
 
+                <!-- ═══ FORM SURAT PERNYATAAN ═══ -->
+                <div id="fieldsPernyataan" class="hidden space-y-4">
+                    <div class="bg-rose-50 border border-rose-200 rounded-xl px-4 py-2 text-xs text-rose-700 font-medium">
+                        📝 Form Surat Pernyataan
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Isi Pernyataan <span class="text-red-500">*</span></label>
+                        <textarea name="isi_surat" id="isi_surat_pernyataan" rows="5"
+                                  placeholder="Tulis isi pernyataan setelah 'Dengan ini menyatakan bahwa...'"
+                                  class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm"></textarea>
+                        <p class="text-xs text-gray-400 mt-1">Teks dilanjutkan setelah "Dengan ini menyatakan bahwa..."</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nama Penanda Tangan</label>
+                            <input type="text" name="penanda_tangan" id="penanda_pernyataan"
+                                   value="dr. Andara Dwike, MARS, M.H., FISQua"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Jabatan</label>
+                            <input type="text" name="jabatan_ttd" id="jabatan_pernyataan"
+                                   value="Direktur Utama Rumah Sakit Taman Harapan Baru"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Status & Upload -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -643,22 +676,24 @@ if (!function_exists('formatDate')) {
     <script>
         // ── Toggle form berdasarkan kategori ──────────────────
         function toggleMemoFields(kategori) {
-            const isMemo   = (kategori === 'Internal Memo');
-            const isEdaran = (kategori === 'Surat Edaran');
-            const isBiasa  = !isMemo && !isEdaran;
+            const isMemo       = (kategori === 'Internal Memo');
+            const isEdaran     = (kategori === 'Surat Edaran');
+            const isPernyataan = (kategori === 'Surat Pernyataan');
+            const isBiasa      = !isMemo && !isEdaran && !isPernyataan;
 
-            document.getElementById('fieldsMemo').classList.toggle('hidden',   !isMemo);
-            document.getElementById('fieldsSurat').classList.toggle('hidden',  !isBiasa);
-            document.getElementById('fieldsEdaran').classList.toggle('hidden', !isEdaran);
+            document.getElementById('fieldsMemo').classList.toggle('hidden',       !isMemo);
+            document.getElementById('fieldsSurat').classList.toggle('hidden',      !isBiasa);
+            document.getElementById('fieldsEdaran').classList.toggle('hidden',     !isEdaran);
+            document.getElementById('fieldsPernyataan').classList.toggle('hidden', !isPernyataan);
 
             const pb = document.getElementById('previewBtn');
             if (pb) {
-                if (isMemo)   pb.textContent = '👁 Preview Memo';
-                else if (isEdaran) pb.textContent = '👁 Preview Edaran';
-                else          pb.textContent = '👁 Preview Surat';
+                if (isMemo)           pb.textContent = '👁 Preview Memo';
+                else if (isEdaran)    pb.textContent = '👁 Preview Edaran';
+                else if (isPernyataan)pb.textContent = '👁 Preview Pernyataan';
+                else                  pb.textContent = '👁 Preview Surat';
             }
 
-            // Kosongkan field surat biasa agar tidak double-POST saat bukan surat biasa
             if (!isBiasa) {
                 ['perihal','asal_pengirim','isi_surat','penanda_tangan','jabatan_ttd'].forEach(id => {
                     const el = document.getElementById(id);
@@ -711,6 +746,10 @@ if (!function_exists('formatDate')) {
             try { document.getElementById('isi_surat_edaran').value= ''; } catch(e){}
             try { document.getElementById('penanda_edaran').value  = ''; } catch(e){}
             try { document.getElementById('jabatan_edaran').value  = ''; } catch(e){}
+            // pernyataan
+            try { document.getElementById('isi_surat_pernyataan').value = ''; } catch(e){}
+            try { document.getElementById('penanda_pernyataan').value   = 'dr. Andara Dwike, MARS, M.H., FISQua'; } catch(e){}
+            try { document.getElementById('jabatan_pernyataan').value   = 'Direktur Utama Rumah Sakit Taman Harapan Baru'; } catch(e){}
         }
 
         // ── Edit modal ────────────────────────────────────────
@@ -740,6 +779,10 @@ if (!function_exists('formatDate')) {
                 document.getElementById('isi_surat_edaran').value= doc.isi_surat      || '';
                 document.getElementById('penanda_edaran').value  = doc.penanda_tangan || '';
                 document.getElementById('jabatan_edaran').value  = doc.jabatan_ttd    || '';
+            } else if (kat === 'Surat Pernyataan') {
+                document.getElementById('isi_surat_pernyataan').value = doc.isi_surat      || '';
+                document.getElementById('penanda_pernyataan').value   = doc.penanda_tangan || 'dr. Andara Dwike, MARS, M.H., FISQua';
+                document.getElementById('jabatan_pernyataan').value   = doc.jabatan_ttd    || 'Direktur Utama Rumah Sakit Taman Harapan Baru';
             } else {
                 document.getElementById('asal_pengirim').value  = doc.asal_pengirim  || '';
                 document.getElementById('perihal').value        = doc.perihal        || '';
@@ -793,6 +836,15 @@ if (!function_exists('formatDate')) {
                     jabatan_ttd: document.getElementById('jabatan_edaran').value,
                 });
                 window.open('cetak_surat_edaran.php?' + p.toString(), '_blank');
+            } else if (kat === 'Surat Pernyataan') {
+                const p = new URLSearchParams({
+                    no_sp:       document.getElementById('nomor_surat').value,
+                    tanggal:     document.getElementById('tanggal_surat').value,
+                    isi:         document.getElementById('isi_surat_pernyataan').value,
+                    nama_ttd:    document.getElementById('penanda_pernyataan').value,
+                    jabatan_ttd: document.getElementById('jabatan_pernyataan').value,
+                });
+                window.open('cetak_surat_pernyataan.php?' + p.toString(), '_blank');
             } else {
                 const p = new URLSearchParams({
                     tanggal_surat:  document.getElementById('tanggal_surat').value,
