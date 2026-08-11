@@ -547,7 +547,6 @@ try {
                         <option value="Peraturan Direktur">Peraturan Direktur</option>
                         <option value="Keputusan Direktur">Keputusan Direktur</option>
                         <option value="SPO">SPO</option>
-                        <option value="Kebijakan Mutu">Kebijakan Mutu</option>
                     </select>
                 </div>
 
