@@ -27,9 +27,9 @@ function getLegalArsipStatus($tanggalBerakhir) {
     $invert = $today->diff($berakhir)->invert;
 
     if ($invert == 1) {
-        return ['text' => 'Expired / Kadaluarsa', 'class' => 'bg-red-600 text-white border-red-700'];
+        return ['text' => 'Berakhir', 'class' => 'bg-red-600 text-white border-red-700'];
     } elseif ($diff <= 60) {
-        return ['text' => 'Mendekati Kadaluarsa', 'class' => 'bg-amber-100 text-amber-800 border-amber-200'];
+        return ['text' => 'Akan Berakhir', 'class' => 'bg-amber-100 text-amber-800 border-amber-200'];
     } else {
         return ['text' => 'Aktif', 'class' => 'bg-emerald-100 text-emerald-800 border-emerald-200'];
     }
@@ -219,28 +219,33 @@ try {
     $documents = [];
 }
 
-// Calculate stats for Arsip
+// Calculate stats for Arsip — mengikuti filter tipe yang dipilih
 try {
-    $stmt = $pdo->query("SELECT COUNT(*) FROM dokumen_arsip_legal");
-    $totalDocs = $stmt->fetchColumn();
+    $whereClause = !empty($filter_tipe) ? "WHERE tipe_kontrak = " . $pdo->quote($filter_tipe) : "";
+    $whereAnd    = !empty($filter_tipe) ? "AND tipe_kontrak = " . $pdo->quote($filter_tipe) : "";
+
+    $totalDocs = (int)$pdo->query("SELECT COUNT(*) FROM dokumen_arsip_legal $whereClause")->fetchColumn();
 
     $today = new DateTime();
     $sixtyDaysFromNow = (clone $today)->add(new DateInterval('P60D'));
 
     // Aktif
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM dokumen_arsip_legal WHERE tanggal_berakhir > ? OR tanggal_berakhir IS NULL");
-    $stmt->execute([$sixtyDaysFromNow->format('Y-m-d')]);
-    $aktif = $stmt->fetchColumn();
+    $aktif = (int)$pdo->prepare("SELECT COUNT(*) FROM dokumen_arsip_legal WHERE (tanggal_berakhir > ? OR tanggal_berakhir IS NULL) $whereAnd")
+        ->execute([$sixtyDaysFromNow->format('Y-m-d')]) ? 
+        $pdo->prepare("SELECT COUNT(*) FROM dokumen_arsip_legal WHERE (tanggal_berakhir > :d OR tanggal_berakhir IS NULL) $whereAnd")->execute([':d'=>$sixtyDaysFromNow->format('Y-m-d')]) : 0;
+    $stmtA = $pdo->prepare("SELECT COUNT(*) FROM dokumen_arsip_legal WHERE (tanggal_berakhir > ? OR tanggal_berakhir IS NULL) $whereAnd");
+    $stmtA->execute([$sixtyDaysFromNow->format('Y-m-d')]);
+    $aktif = (int)$stmtA->fetchColumn();
 
-    // Mendekati kadaluarsa
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM dokumen_arsip_legal WHERE tanggal_berakhir BETWEEN ? AND ?");
-    $stmt->execute([$today->format('Y-m-d'), $sixtyDaysFromNow->format('Y-m-d')]);
-    $mendekati = $stmt->fetchColumn();
+    // Akan Berakhir (dulu: Mendekati Kadaluarsa)
+    $stmtM = $pdo->prepare("SELECT COUNT(*) FROM dokumen_arsip_legal WHERE tanggal_berakhir BETWEEN ? AND ? $whereAnd");
+    $stmtM->execute([$today->format('Y-m-d'), $sixtyDaysFromNow->format('Y-m-d')]);
+    $mendekati = (int)$stmtM->fetchColumn();
 
-    // Kadaluarsa
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM dokumen_arsip_legal WHERE tanggal_berakhir < ?");
-    $stmt->execute([$today->format('Y-m-d')]);
-    $kadaluarsa = $stmt->fetchColumn();
+    // Berakhir (dulu: Kadaluarsa)
+    $stmtK = $pdo->prepare("SELECT COUNT(*) FROM dokumen_arsip_legal WHERE tanggal_berakhir < ? $whereAnd");
+    $stmtK->execute([$today->format('Y-m-d')]);
+    $kadaluarsa = (int)$stmtK->fetchColumn();
 } catch (PDOException $e) {
     $totalDocs = 0;
     $aktif = 0;
@@ -338,7 +343,7 @@ try {
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                         <div class="flex items-start justify-between">
                             <div>
-                                <p class="text-sm text-gray-500 mb-1">Mendekati Kadaluarsa</p>
+                                <p class="text-sm text-gray-500 mb-1">Akan Berakhir</p>
                                 <h3 class="text-3xl font-bold text-blue-600"><?php echo $mendekati; ?></h3>
                             </div>
                             <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center text-3xl">⚠️</div>
@@ -347,7 +352,7 @@ try {
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                         <div class="flex items-start justify-between">
                             <div>
-                                <p class="text-sm text-gray-500 mb-1">Kadaluarsa</p>
+                                <p class="text-sm text-gray-500 mb-1">Berakhir</p>
                                 <h3 class="text-3xl font-bold text-red-600"><?php echo $kadaluarsa; ?></h3>
                             </div>
                             <div class="w-16 h-16 bg-gradient-to-br from-red-550 to-red-600 rounded-2xl flex items-center justify-center text-3xl">❌</div>

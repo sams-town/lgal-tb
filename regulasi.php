@@ -211,21 +211,21 @@ try {
     $totalDocs = $stmt->fetchColumn();
 
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM dokumen_regulasi WHERE kategori_regulasi = ?");
-    $stmt->execute(['SPO']);
-    $spo = $stmt->fetchColumn();
-
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM dokumen_regulasi WHERE kategori_regulasi = ?");
     $stmt->execute(['Peraturan Direktur']);
     $perdir = $stmt->fetchColumn();
 
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM dokumen_regulasi WHERE kategori_regulasi = ?");
-    $stmt->execute(['Kebijakan Mutu']);
-    $kebijakan = $stmt->fetchColumn();
+    $stmt->execute(['Keputusan Direktur']);
+    $kepdir = $stmt->fetchColumn();
+
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM dokumen_regulasi WHERE kategori_regulasi = ?");
+    $stmt->execute(['SPO']);
+    $spo = $stmt->fetchColumn();
 } catch (PDOException $e) {
     $totalDocs = 0;
-    $spo = 0;
     $perdir = 0;
-    $kebijakan = 0;
+    $kepdir = 0;
+    $spo = 0;
 }
 ?>
 <!DOCTYPE html>
@@ -306,21 +306,10 @@ try {
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                         <div class="flex items-start justify-between">
                             <div>
-                                <p class="text-sm text-gray-500 mb-1">
-                                    Total Regulasi
-                                </p>
+                                <p class="text-sm text-gray-500 mb-1">Total Regulasi</p>
                                 <h3 class="text-3xl font-bold text-gray-900"><?php echo $totalDocs; ?></h3>
                             </div>
                             <div class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center text-3xl">📄</div>
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                        <div class="flex items-start justify-between">
-                            <div>
-                                <p class="text-sm text-gray-500 mb-1">SPO</p>
-                                <h3 class="text-3xl font-bold text-emerald-600"><?php echo $spo; ?></h3>
-                            </div>
-                            <div class="w-16 h-16 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl flex items-center justify-center text-3xl">📝</div>
                         </div>
                     </div>
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -335,10 +324,19 @@ try {
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                         <div class="flex items-start justify-between">
                             <div>
-                                <p class="text-sm text-gray-500 mb-1">Kebijakan Mutu</p>
-                                <h3 class="text-3xl font-bold text-purple-600"><?php echo $kebijakan; ?></h3>
+                                <p class="text-sm text-gray-500 mb-1">Keputusan Direktur</p>
+                                <h3 class="text-3xl font-bold text-amber-600"><?php echo $kepdir; ?></h3>
                             </div>
-                            <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center text-3xl">🏅</div>
+                            <div class="w-16 h-16 bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl flex items-center justify-center text-3xl">📋</div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500 mb-1">Standar Operasional Prosedur</p>
+                                <h3 class="text-3xl font-bold text-emerald-600"><?php echo $spo; ?></h3>
+                            </div>
+                            <div class="w-16 h-16 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl flex items-center justify-center text-3xl">📝</div>
                         </div>
                     </div>
                 </div>
@@ -372,10 +370,9 @@ try {
                                             class="w-full pl-10 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:border-emerald-500 transition-all appearance-none cursor-pointer"
                                         >
                                             <option value="">-- Semua Regulasi --</option>
-                                            <option value="SPO" <?php echo $kategori_filter === 'SPO' ? 'selected' : ''; ?>>SPO</option>
                                             <option value="Peraturan Direktur" <?php echo $kategori_filter === 'Peraturan Direktur' ? 'selected' : ''; ?>>Peraturan Direktur</option>
                                             <option value="Keputusan Direktur" <?php echo $kategori_filter === 'Keputusan Direktur' ? 'selected' : ''; ?>>Keputusan Direktur</option>
-                                            <option value="Kebijakan Mutu" <?php echo $kategori_filter === 'Kebijakan Mutu' ? 'selected' : ''; ?>>Kebijakan Mutu</option>
+                                            <option value="SPO" <?php echo $kategori_filter === 'SPO' ? 'selected' : ''; ?>>Standar Operasional Prosedur</option>
                                         </select>
                                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">📁</span>
                                         <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">▼</span>
@@ -502,10 +499,9 @@ try {
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Kategori Regulasi</label>
                     <select name="kategori_regulasi" id="kategori_regulasi" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                        <option value="SPO">SPO</option>
                         <option value="Peraturan Direktur">Peraturan Direktur</option>
                         <option value="Keputusan Direktur">Keputusan Direktur</option>
-                        <option value="Kebijakan Mutu">Kebijakan Mutu</option>
+                        <option value="SPO">Standar Operasional Prosedur</option>
                     </select>
                 </div>
                 <div>
