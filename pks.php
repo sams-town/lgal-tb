@@ -23,8 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_role_status'])
     $role = $_POST['role'] ?? '';
     $status = $_POST['status'] ?? 'Pending';
     
-    if ($pksId && in_array($role, ['keuangan', 'pengadaan', 'legal']) && in_array($status, ['Pending', 'Approved', 'Declined', 'Return'])) {
-        try {
+    if ($pksId && in_array($role, ['keuangan', 'pengadaan', 'legal']) && in_array($status, ['Pending', 'Approved', 'Declined', 'Returned'])) {        try {
             $column = 'status_' . $role;
             $stmt = $pdo->prepare("UPDATE pengajuan_pks SET $column = ? WHERE id = ?");
             $stmt->execute([$status, $pksId]);
@@ -37,7 +36,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_role_status'])
     exit;
 }
 
-// Handle form submission for adding or editing PKS
+// Handle save komentar returned
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_komentar'])) {
+    $pksId = (int)$_POST['pks_id'];
+    $komentar = trim($_POST['komentar_returned'] ?? '');
+    if ($pksId) {
+        try {
+            // Auto-add kolom jika belum ada
+            try {
+                $pdo->query("SHOW COLUMNS FROM pengajuan_pks LIKE 'komentar_returned'")->rowCount() === 0
+                    && $pdo->exec("ALTER TABLE pengajuan_pks ADD COLUMN komentar_returned TEXT DEFAULT NULL");
+            } catch (Exception $ex) {}
+            $pdo->prepare("UPDATE pengajuan_pks SET komentar_returned=? WHERE id=?")->execute([$komentar, $pksId]);
+            $_SESSION['pks_success'] = "Komentar berhasil disimpan.";
+        } catch (PDOException $e) {
+            $_SESSION['pks_error'] = "Gagal menyimpan komentar: " . $e->getMessage();
+        }
+    }
+    header("Location: pks.php");
+    exit;
+}
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_pks'])) {
     $pks_id = $_POST['pks_id'] ?? '';
     $tanggal_pengajuan = $_POST['tanggal_pengajuan'] ?? null;
@@ -333,9 +351,10 @@ try {
                         <!-- Dropdown Menu for filtering -->
                         <div id="filterDropdown" class="hidden absolute left-6 top-20 bg-white border border-gray-200 rounded-xl shadow-lg z-10 w-48 py-2" onclick="event.stopPropagation()">
                             <a href="pks.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-medium">Semua Status</a>
-                            <a href="pks.php?status_filter=Dalam+Proses" class="block px-4 py-2 text-sm text-amber-700 hover:bg-amber-50">Dalam Proses</a>
-                            <a href="pks.php?status_filter=Diterima" class="block px-4 py-2 text-sm text-emerald-700 hover:bg-emerald-50">Diterima</a>
-                            <a href="pks.php?status_filter=Ditolak" class="block px-4 py-2 text-sm text-red-700 hover:bg-red-50">Ditolak</a>
+                            <a href="pks.php?status_filter=On+Process" class="block px-4 py-2 text-sm text-amber-700 hover:bg-amber-50">On Process</a>
+                            <a href="pks.php?status_filter=Accepted" class="block px-4 py-2 text-sm text-emerald-700 hover:bg-emerald-50">Accepted</a>
+                            <a href="pks.php?status_filter=Returned" class="block px-4 py-2 text-sm text-orange-700 hover:bg-orange-50">Returned</a>
+                            <a href="pks.php?status_filter=Declined" class="block px-4 py-2 text-sm text-red-700 hover:bg-red-50">Declined</a>
                         </div>
                     </div>
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -480,16 +499,16 @@ try {
                                                         class="px-2 py-1 rounded-md border text-xs font-semibold focus:outline-none cursor-pointer
                                                             <?php 
                                                             $stKeu = $doc['status_keuangan'] ?? 'Pending';
-                                                            if ($stKeu === 'Approved') echo 'bg-emerald-100 text-emerald-800 border-emerald-200';
+                                                            if ($stKeu === 'Approved' || $stKeu === 'Accepted') echo 'bg-emerald-100 text-emerald-800 border-emerald-200';
                                                             elseif ($stKeu === 'Declined') echo 'bg-red-100 text-red-800 border-red-200';
-                                                            elseif ($stKeu === 'Return') echo 'bg-amber-100 text-amber-800 border-amber-200';
+                                                            elseif ($stKeu === 'Returned') echo 'bg-orange-100 text-orange-800 border-orange-200';
                                                             else echo 'bg-gray-100 text-gray-800 border-gray-200';
                                                             ?>"
                                                     >
-                                                        <option value="Pending" <?php echo $stKeu === 'Pending' ? 'selected' : ''; ?>>Pending</option>
-                                                        <option value="Approved" <?php echo $stKeu === 'Approved' ? 'selected' : ''; ?>>Approved</option>
+                                                        <option value="Pending" <?php echo $stKeu === 'Pending' ? 'selected' : ''; ?>>On Process</option>
+                                                        <option value="Approved" <?php echo ($stKeu === 'Approved' || $stKeu === 'Accepted') ? 'selected' : ''; ?>>Accepted</option>
+                                                        <option value="Returned" <?php echo $stKeu === 'Returned' ? 'selected' : ''; ?>>Returned</option>
                                                         <option value="Declined" <?php echo $stKeu === 'Declined' ? 'selected' : ''; ?>>Declined</option>
-                                                        <option value="Return" <?php echo $stKeu === 'Return' ? 'selected' : ''; ?>>Return</option>
                                                     </select>
                                                 </div>
 
@@ -501,16 +520,16 @@ try {
                                                         class="px-2 py-1 rounded-md border text-xs font-semibold focus:outline-none cursor-pointer
                                                             <?php 
                                                             $stPeng = $doc['status_pengadaan'] ?? 'Pending';
-                                                            if ($stPeng === 'Approved') echo 'bg-emerald-100 text-emerald-800 border-emerald-200';
+                                                            if ($stPeng === 'Approved' || $stPeng === 'Accepted') echo 'bg-emerald-100 text-emerald-800 border-emerald-200';
                                                             elseif ($stPeng === 'Declined') echo 'bg-red-100 text-red-800 border-red-200';
-                                                            elseif ($stPeng === 'Return') echo 'bg-amber-100 text-amber-800 border-amber-200';
+                                                            elseif ($stPeng === 'Returned') echo 'bg-orange-100 text-orange-800 border-orange-200';
                                                             else echo 'bg-gray-100 text-gray-800 border-gray-200';
                                                             ?>"
                                                     >
-                                                        <option value="Pending" <?php echo $stPeng === 'Pending' ? 'selected' : ''; ?>>Pending</option>
-                                                        <option value="Approved" <?php echo $stPeng === 'Approved' ? 'selected' : ''; ?>>Approved</option>
+                                                        <option value="Pending" <?php echo $stPeng === 'Pending' ? 'selected' : ''; ?>>On Process</option>
+                                                        <option value="Approved" <?php echo ($stPeng === 'Approved' || $stPeng === 'Accepted') ? 'selected' : ''; ?>>Accepted</option>
+                                                        <option value="Returned" <?php echo $stPeng === 'Returned' ? 'selected' : ''; ?>>Returned</option>
                                                         <option value="Declined" <?php echo $stPeng === 'Declined' ? 'selected' : ''; ?>>Declined</option>
-                                                        <option value="Return" <?php echo $stPeng === 'Return' ? 'selected' : ''; ?>>Return</option>
                                                     </select>
                                                 </div>
 
@@ -522,18 +541,40 @@ try {
                                                         class="px-2 py-1 rounded-md border text-xs font-semibold focus:outline-none cursor-pointer
                                                             <?php 
                                                             $stLeg = $doc['status_legal'] ?? 'Pending';
-                                                            if ($stLeg === 'Approved') echo 'bg-emerald-100 text-emerald-800 border-emerald-200';
+                                                            if ($stLeg === 'Approved' || $stLeg === 'Accepted') echo 'bg-emerald-100 text-emerald-800 border-emerald-200';
                                                             elseif ($stLeg === 'Declined') echo 'bg-red-100 text-red-800 border-red-200';
-                                                            elseif ($stLeg === 'Return') echo 'bg-amber-100 text-amber-800 border-amber-200';
+                                                            elseif ($stLeg === 'Returned') echo 'bg-orange-100 text-orange-800 border-orange-200';
                                                             else echo 'bg-gray-100 text-gray-800 border-gray-200';
                                                             ?>"
                                                     >
-                                                        <option value="Pending" <?php echo $stLeg === 'Pending' ? 'selected' : ''; ?>>Pending</option>
-                                                        <option value="Approved" <?php echo $stLeg === 'Approved' ? 'selected' : ''; ?>>Approved</option>
+                                                        <option value="Pending" <?php echo $stLeg === 'Pending' ? 'selected' : ''; ?>>On Process</option>
+                                                        <option value="Approved" <?php echo ($stLeg === 'Approved' || $stLeg === 'Accepted') ? 'selected' : ''; ?>>Accepted</option>
+                                                        <option value="Returned" <?php echo $stLeg === 'Returned' ? 'selected' : ''; ?>>Returned</option>
                                                         <option value="Declined" <?php echo $stLeg === 'Declined' ? 'selected' : ''; ?>>Declined</option>
-                                                        <option value="Return" <?php echo $stLeg === 'Return' ? 'selected' : ''; ?>>Return</option>
                                                     </select>
                                                 </div>
+
+                                                <!-- Komentar jika ada Returned -->
+                                                <?php
+                                                $anyReturned = ($stKeu === 'Returned' || $stPeng === 'Returned' || $stLeg === 'Returned');
+                                                if ($anyReturned): ?>
+                                                <div class="mt-2 pt-2 border-t border-orange-100">
+                                                    <form method="POST" class="space-y-1">
+                                                        <input type="hidden" name="save_komentar" value="1">
+                                                        <input type="hidden" name="pks_id" value="<?= $doc['id'] ?>">
+                                                        <label class="block text-[10px] font-semibold text-orange-700 uppercase tracking-wide">
+                                                            💬 Komentar Returned
+                                                        </label>
+                                                        <textarea name="komentar_returned" rows="2"
+                                                            placeholder="Tulis alasan returned..."
+                                                            class="w-full text-xs px-2 py-1 border border-orange-200 rounded-lg focus:ring-1 focus:ring-orange-400 bg-orange-50 resize-none"
+                                                        ><?= htmlspecialchars($doc['komentar_returned'] ?? '') ?></textarea>
+                                                        <button type="submit" class="text-[10px] bg-orange-500 text-white px-3 py-1 rounded-md hover:bg-orange-600 font-semibold w-full">
+                                                            Simpan Komentar
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                                <?php endif; ?>
                                             </td>
                                             <td class="px-6 py-4">
                                                 <div class="flex flex-col gap-1.5">
@@ -570,9 +611,9 @@ try {
                                                     <?php if (canUserEditOrDelete('legal')): ?>
                                                         <?php 
                                                         $isReturn = (
-                                                            ($doc['status_keuangan'] ?? '') === 'Return' || 
-                                                            ($doc['status_pengadaan'] ?? '') === 'Return' || 
-                                                            ($doc['status_legal'] ?? '') === 'Return'
+                                                            ($doc['status_keuangan'] ?? '') === 'Returned' || 
+                                                            ($doc['status_pengadaan'] ?? '') === 'Returned' || 
+                                                            ($doc['status_legal'] ?? '') === 'Returned'
                                                         );
                                                         if ($isReturn): 
                                                         ?>

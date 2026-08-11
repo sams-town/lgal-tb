@@ -120,6 +120,13 @@ try {
             if ($colInfo && strpos(strtolower($colInfo['Type']), 'text') === false) {
                 $pdo->exec("ALTER TABLE pengajuan_pks MODIFY COLUMN file_path TEXT NULL");
             }
+            // Auto-add komentar_returned column
+            try {
+                $colExists = $pdo->query("SHOW COLUMNS FROM `pengajuan_pks` LIKE 'komentar_returned'")->rowCount();
+                if ($colExists == 0) {
+                    $pdo->exec("ALTER TABLE `pengajuan_pks` ADD COLUMN `komentar_returned` TEXT DEFAULT NULL");
+                }
+            } catch (Exception $ex) { /* skip */ }
             
             // Ensure penanggung_jawab column exists on dokumen_regulasi table
             $colExists = $pdo->query("SHOW COLUMNS FROM dokumen_regulasi LIKE 'penanggung_jawab'")->rowCount();
