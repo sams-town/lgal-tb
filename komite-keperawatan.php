@@ -257,16 +257,16 @@ foreach ($dataMedis as $data) {
         } catch (Exception $e) {}
     }
 }
-        }
-    }
-}
 
 if (!function_exists('formatDate')) {
     function formatDate($date) {
         if (!$date) return '-';
         $months = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-        $d = new DateTime($date);
-        return $d->format('d') . ' ' . $months[$d->format('n')] . ' ' . $d->format('Y');
+        try {
+            $d = new DateTime($date);
+            if ($d->format('Y') < 1900) return '-';
+            return $d->format('d') . ' ' . $months[$d->format('n')] . ' ' . $d->format('Y');
+        } catch (Exception $e) { return '-'; }
     }
 }
 ?>
