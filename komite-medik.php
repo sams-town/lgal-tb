@@ -242,16 +242,21 @@ $expiredCount = 0;
 
 foreach ($dataMedis as $data) {
     $checkDate = $data['masa_berlaku_sip_akhir'] ?? $data['masa_berlaku_sk_akhir'] ?? null;
-    if ($checkDate) {
-        $tanggal = new DateTime($checkDate);
-        $selisih = $today->diff($tanggal)->days;
-        
-        if ($tanggal < $today) {
-            $expiredCount++;
-        } elseif ($selisih <= 30) {
-            $h30Count++;
-        } else {
-            $aktifCount++;
+    if ($checkDate && $checkDate !== '0000-00-00') {
+        try {
+            $tanggal = new DateTime($checkDate);
+            if ($tanggal->format('Y') < 1900) continue;
+            $selisih = $today->diff($tanggal)->days;
+            
+            if ($tanggal < $today) {
+                $expiredCount++;
+            } elseif ($selisih <= 30) {
+                $h30Count++;
+            } else {
+                $aktifCount++;
+            }
+        } catch (Exception $e) {
+            // skip invalid date
         }
     }
 }
