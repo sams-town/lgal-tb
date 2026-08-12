@@ -577,8 +577,7 @@ if (!function_exists('formatDate')) {
                         </div>
                     </div>
                     <div class="space-y-2 pt-2">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Rincian Kewenangan Klinis</label>
-                        <textarea name="rincian_kewenangan_klinis" id="rincian_kewenangan_klinis" rows="4" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan rincian kewenangan klinis"></textarea>
+                        <!-- RKK dipindah ke Dokumen Legalitas -->
                     </div>
                 </div>
 
@@ -689,28 +688,32 @@ if (!function_exists('formatDate')) {
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                <!-- Kompetensi -->
-                <div class="space-y-4">
-                    <h3 class="text-lg font-semibold text-gray-800 border-b pb-2">Kompetensi</h3>
-                    <div>
-                        <div class="flex items-center justify-between mb-2">
-                            <label class="block text-sm font-medium text-gray-700">Sertifikasi Kompetensi</label>
-                            <button type="button" onclick="addSertifikasi()" class="text-emerald-600 hover:text-emerald-700 text-sm font-medium flex items-center gap-1">
-                                <span>+</span> Tambah Sertifikasi
-                            </button>
-                        </div>
-                        <div id="sertifikasi-container" class="space-y-2">
-                            <div class="flex gap-2">
-                                <input type="text" name="sertifikasi[]" class="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan sertifikasi">
+                        <!-- RKK (Rincian Kewenangan Klinis) -->
+                        <div class="border border-gray-200 rounded-xl p-4">
+                            <h4 class="font-medium text-gray-800 mb-4">RKK (Rincian Kewenangan Klinis)</h4>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">No. RKK</label>
+                                    <input type="text" name="no_rkk" id="no_rkk" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan nomor RKK">
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Masa Berlaku (Mulai)</label>
+                                        <input type="date" name="masa_berlaku_rkk_mulai" id="masa_berlaku_rkk_mulai" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Masa Berlaku (Akhir)</label>
+                                        <input type="date" name="masa_berlaku_rkk_akhir" id="masa_berlaku_rkk_akhir" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">RKK (PDF)</label>
+                                    <input type="file" name="file_rkk" id="file_rkk" accept=".pdf" class="w-full px-4 py-2 border border-gray-300 rounded-xl">
+                                    <p class="text-xs text-gray-500 mt-1">Biarkan kosong jika tidak ingin mengubah berkas</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Kompetensi Klinis</label>
-                        <textarea name="kompetensi_klinis" id="kompetensi_klinis" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Tulis daftar tindakan medis yang diizinkan"></textarea>
                     </div>
                 </div>
 
@@ -783,7 +786,6 @@ if (!function_exists('formatDate')) {
             document.getElementById('container_pkwt').classList.add('hidden');
             document.getElementById('nomor_keputusan_direktur').value = '';
             document.getElementById('nomor_pkwt').value = '';
-            document.getElementById('rincian_kewenangan_klinis').value = '';
             document.getElementById('no_str').value = '';
             document.getElementById('masa_berlaku_str_mulai').value = '';
             document.getElementById('masa_berlaku_str_akhir').value = '';
@@ -800,12 +802,11 @@ if (!function_exists('formatDate')) {
             document.getElementById('masa_berlaku_sk_mulai').value = '';
             document.getElementById('masa_berlaku_sk_akhir').value = '';
             document.getElementById('file_sk').value = '';
-            document.getElementById('kompetensi_klinis').value = '';
-            document.getElementById('sertifikasi-container').innerHTML = `
-                <div class="flex gap-2">
-                    <input type="text" name="sertifikasi[]" class="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan sertifikasi">
-                </div>
-            `;
+            // RKK
+            try { document.getElementById('no_rkk').value = ''; } catch(e){}
+            try { document.getElementById('masa_berlaku_rkk_mulai').value = ''; } catch(e){}
+            try { document.getElementById('masa_berlaku_rkk_akhir').value = ''; } catch(e){}
+            try { document.getElementById('file_rkk').value = ''; } catch(e){}
         }
 
         function openEditModal(doc) {
@@ -825,7 +826,6 @@ if (!function_exists('formatDate')) {
             }
             document.getElementById('nomor_keputusan_direktur').value = doc.nomor_keputusan_direktur || '';
             document.getElementById('nomor_pkwt').value = doc.nomor_pkwt || '';
-            document.getElementById('rincian_kewenangan_klinis').value = doc.rincian_kewenangan_klinis || '';
             document.getElementById('no_str').value = doc.no_str || '';
             document.getElementById('masa_berlaku_str_mulai').value = doc.masa_berlaku_str_mulai || '';
             document.getElementById('masa_berlaku_str_akhir').value = doc.masa_berlaku_str_akhir || '';
@@ -838,31 +838,16 @@ if (!function_exists('formatDate')) {
             document.getElementById('no_sk').value = doc.no_sk || '';
             document.getElementById('masa_berlaku_sk_mulai').value = doc.masa_berlaku_sk_mulai || '';
             document.getElementById('masa_berlaku_sk_akhir').value = doc.masa_berlaku_sk_akhir || '';
-            document.getElementById('kompetensi_klinis').value = doc.kompetensi_klinis || '';
-
-            // Handle sertifikasi
-            const sertifikasi = doc.sertifikasi_kompetensi ? JSON.parse(doc.sertifikasi_kompetensi) : [];
-            const container = document.getElementById('sertifikasi-container');
-            container.innerHTML = '';
-            sertifikasi.forEach(sert => {
-                container.insertAdjacentHTML('beforeend', `
-                    <div class="flex gap-2">
-                        <input type="text" name="sertifikasi[]" value="${sert}" class="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan sertifikasi">
-                    </div>
-                `);
-            });
-            if (sertifikasi.length === 0) {
-                container.innerHTML = `
-                    <div class="flex gap-2">
-                        <input type="text" name="sertifikasi[]" class="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan sertifikasi">
-                    </div>
-                `;
-            }
+            // RKK
+            try { document.getElementById('no_rkk').value = doc.no_rkk || ''; } catch(e){}
+            try { document.getElementById('masa_berlaku_rkk_mulai').value = doc.masa_berlaku_rkk_mulai || ''; } catch(e){}
+            try { document.getElementById('masa_berlaku_rkk_akhir').value = doc.masa_berlaku_rkk_akhir || ''; } catch(e){}
 
             document.getElementById('file_str').value = '';
             document.getElementById('file_sip').value = '';
             document.getElementById('file_pks').value = '';
             document.getElementById('file_sk').value = '';
+            try { document.getElementById('file_rkk').value = ''; } catch(e){}
 
             document.getElementById('submit-btn').name = 'edit_tenaga_medis';
             document.getElementById('submit-btn').textContent = 'Simpan Perubahan';
@@ -879,16 +864,6 @@ if (!function_exists('formatDate')) {
                 element.classList.add('hidden');
                 element.classList.remove('flex');
             }
-        }
-
-        function addSertifikasi() {
-            const container = document.getElementById('sertifikasi-container');
-            const template = `
-                <div class="flex gap-2">
-                    <input type="text" name="sertifikasi[]" class="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan sertifikasi">
-                </div>
-            `;
-            container.insertAdjacentHTML('beforeend', template);
         }
 
         document.addEventListener('DOMContentLoaded', function() {
