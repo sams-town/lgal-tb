@@ -222,27 +222,24 @@ try {
 // Calculate stats for Arsip — mengikuti filter tipe yang dipilih
 try {
     $whereClause = !empty($filter_tipe) ? "WHERE tipe_kontrak = " . $pdo->quote($filter_tipe) : "";
-    $whereAnd    = !empty($filter_tipe) ? "AND tipe_kontrak = " . $pdo->quote($filter_tipe) : "";
+    $whereAnd    = !empty($filter_tipe) ? "AND tipe_kontrak = "  . $pdo->quote($filter_tipe) : "";
 
     $totalDocs = (int)$pdo->query("SELECT COUNT(*) FROM dokumen_arsip_legal $whereClause")->fetchColumn();
 
     $today = new DateTime();
     $sixtyDaysFromNow = (clone $today)->add(new DateInterval('P60D'));
 
-    // Aktif
-    $aktif = (int)$pdo->prepare("SELECT COUNT(*) FROM dokumen_arsip_legal WHERE (tanggal_berakhir > ? OR tanggal_berakhir IS NULL) $whereAnd")
-        ->execute([$sixtyDaysFromNow->format('Y-m-d')]) ? 
-        $pdo->prepare("SELECT COUNT(*) FROM dokumen_arsip_legal WHERE (tanggal_berakhir > :d OR tanggal_berakhir IS NULL) $whereAnd")->execute([':d'=>$sixtyDaysFromNow->format('Y-m-d')]) : 0;
+    // Aktif (tanggal berakhir > 60 hari ke depan atau NULL)
     $stmtA = $pdo->prepare("SELECT COUNT(*) FROM dokumen_arsip_legal WHERE (tanggal_berakhir > ? OR tanggal_berakhir IS NULL) $whereAnd");
     $stmtA->execute([$sixtyDaysFromNow->format('Y-m-d')]);
     $aktif = (int)$stmtA->fetchColumn();
 
-    // Akan Berakhir (dulu: Mendekati Kadaluarsa)
+    // Akan Berakhir (dalam 60 hari ke depan)
     $stmtM = $pdo->prepare("SELECT COUNT(*) FROM dokumen_arsip_legal WHERE tanggal_berakhir BETWEEN ? AND ? $whereAnd");
     $stmtM->execute([$today->format('Y-m-d'), $sixtyDaysFromNow->format('Y-m-d')]);
     $mendekati = (int)$stmtM->fetchColumn();
 
-    // Berakhir (dulu: Kadaluarsa)
+    // Berakhir (sudah lewat)
     $stmtK = $pdo->prepare("SELECT COUNT(*) FROM dokumen_arsip_legal WHERE tanggal_berakhir < ? $whereAnd");
     $stmtK->execute([$today->format('Y-m-d')]);
     $kadaluarsa = (int)$stmtK->fetchColumn();
@@ -325,7 +322,9 @@ try {
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                         <div class="flex items-start justify-between">
                             <div>
-                                <p class="text-sm text-gray-500 mb-1">Total Dokumen</p>
+                                <p class="text-sm text-gray-500 mb-1">
+                                    <?php echo !empty($filter_tipe) ? 'Total '.$filter_tipe : 'Total Dokumen'; ?>
+                                </p>
                                 <h3 class="text-3xl font-bold text-gray-900"><?php echo $totalDocs; ?></h3>
                             </div>
                             <div class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center text-3xl">📄</div>

@@ -205,22 +205,31 @@ try {
     $documents = [];
 }
 
-// Calculate stats for Regulasi
+// Calculate stats for Regulasi — mengikuti filter kategori yang dipilih
 try {
-    $stmt = $pdo->query("SELECT COUNT(*) FROM dokumen_regulasi");
-    $totalDocs = $stmt->fetchColumn();
+    $whereClause = !empty($kategori_filter) ? "WHERE kategori_regulasi = " . $pdo->quote($kategori_filter) : "";
 
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM dokumen_regulasi WHERE kategori_regulasi = ?");
-    $stmt->execute(['Peraturan Direktur']);
-    $perdir = $stmt->fetchColumn();
+    $totalDocs = (int)$pdo->query("SELECT COUNT(*) FROM dokumen_regulasi $whereClause")->fetchColumn();
 
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM dokumen_regulasi WHERE kategori_regulasi = ?");
-    $stmt->execute(['Keputusan Direktur']);
-    $kepdir = $stmt->fetchColumn();
+    if (!empty($kategori_filter)) {
+        // Jika ada filter, semua stat menunjukkan jumlah kategori tersebut
+        $perdir  = ($kategori_filter === 'Peraturan Direktur') ? $totalDocs : 0;
+        $kepdir  = ($kategori_filter === 'Keputusan Direktur') ? $totalDocs : 0;
+        $spo     = ($kategori_filter === 'SPO')                ? $totalDocs : 0;
+    } else {
+        // Tanpa filter: hitung masing-masing
+        $stmtPD = $pdo->prepare("SELECT COUNT(*) FROM dokumen_regulasi WHERE kategori_regulasi = ?");
+        $stmtPD->execute(['Peraturan Direktur']);
+        $perdir = (int)$stmtPD->fetchColumn();
 
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM dokumen_regulasi WHERE kategori_regulasi = ?");
-    $stmt->execute(['SPO']);
-    $spo = $stmt->fetchColumn();
+        $stmtKD = $pdo->prepare("SELECT COUNT(*) FROM dokumen_regulasi WHERE kategori_regulasi = ?");
+        $stmtKD->execute(['Keputusan Direktur']);
+        $kepdir = (int)$stmtKD->fetchColumn();
+
+        $stmtSPO = $pdo->prepare("SELECT COUNT(*) FROM dokumen_regulasi WHERE kategori_regulasi = ?");
+        $stmtSPO->execute(['SPO']);
+        $spo = (int)$stmtSPO->fetchColumn();
+    }
 } catch (PDOException $e) {
     $totalDocs = 0;
     $perdir = 0;
@@ -301,12 +310,14 @@ try {
                     </a>
                 </div>
 
-                <!-- Stats Cards -->
+                        <!-- Stats Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                         <div class="flex items-start justify-between">
                             <div>
-                                <p class="text-sm text-gray-500 mb-1">Total Regulasi</p>
+                                <p class="text-sm text-gray-500 mb-1">
+                                    <?php echo !empty($kategori_filter) ? 'Total '.$kategori_filter : 'Total Regulasi'; ?>
+                                </p>
                                 <h3 class="text-3xl font-bold text-gray-900"><?php echo $totalDocs; ?></h3>
                             </div>
                             <div class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center text-3xl">📄</div>
