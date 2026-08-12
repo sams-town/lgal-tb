@@ -259,9 +259,27 @@ foreach ($dataMedis as $data) {
 if (!function_exists('formatDate')) {
     function formatDate($date) {
         if (!$date) return '-';
-        $months = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-        $d = new DateTime($date);
-        return $d->format('d') . ' ' . $months[$d->format('n')] . ' ' . $d->format('Y');
+        // Abaikan tanggal default/invalid: 0000-00-00, -0001-xx-xx, tahun < 1900
+        try {
+            $dt = new DateTime($date);
+            if ($dt->format('Y') < 1900) return '-';
+            $months = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+            return $dt->format('d') . ' ' . $months[$dt->format('n')] . ' ' . $dt->format('Y');
+        } catch (Exception $e) {
+            return '-';
+        }
+    }
+}
+
+if (!function_exists('isValidDate')) {
+    function isValidDate($date) {
+        if (!$date || $date === '0000-00-00') return false;
+        try {
+            $dt = new DateTime($date);
+            return $dt->format('Y') >= 1900;
+        } catch (Exception $e) {
+            return false;
+        }
     }
 }
 ?>
@@ -415,12 +433,12 @@ if (!function_exists('formatDate')) {
                                                 <?php 
                                                 $pksMulai = $data['masa_berlaku_pks_mulai'] ?? null;
                                                 $pksAkhir = $data['masa_berlaku_pks_akhir'] ?? null;
-                                                if ($pksMulai && $pksAkhir): ?>
+                                                if (isValidDate($pksMulai) && isValidDate($pksAkhir)): ?>
                                                     <div class="text-xs text-gray-500 mt-1 flex items-center gap-1">
                                                         <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                                         <?php echo formatDate($pksMulai) . ' - ' . formatDate($pksAkhir); ?>
                                                     </div>
-                                                <?php elseif ($pksAkhir): ?>
+                                                <?php elseif (isValidDate($pksAkhir)): ?>
                                                     <div class="text-xs text-gray-500 mt-1 flex items-center gap-1">
                                                         <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                                         s/d <?php echo formatDate($pksAkhir); ?>
@@ -432,12 +450,12 @@ if (!function_exists('formatDate')) {
                                                 <?php 
                                                 $sipMulai = $data['masa_berlaku_sip_mulai'] ?? null;
                                                 $sipAkhir = $data['masa_berlaku_sip_akhir'] ?? null;
-                                                if ($sipMulai && $sipAkhir): ?>
+                                                if (isValidDate($sipMulai) && isValidDate($sipAkhir)): ?>
                                                     <div class="text-xs text-gray-500 mt-1 flex items-center gap-1">
                                                         <span class="inline-block w-1.5 h-1.5 rounded-full bg-blue-500"></span>
                                                         <?php echo formatDate($sipMulai) . ' - ' . formatDate($sipAkhir); ?>
                                                     </div>
-                                                <?php elseif ($sipAkhir): ?>
+                                                <?php elseif (isValidDate($sipAkhir)): ?>
                                                     <div class="text-xs text-gray-500 mt-1 flex items-center gap-1">
                                                         <span class="inline-block w-1.5 h-1.5 rounded-full bg-blue-500"></span>
                                                         s/d <?php echo formatDate($sipAkhir); ?>
@@ -449,16 +467,18 @@ if (!function_exists('formatDate')) {
                                                 <?php 
                                                 $strMulai = $data['masa_berlaku_str_mulai'] ?? null;
                                                 $strAkhir = $data['masa_berlaku_str_akhir'] ?? null;
-                                                if ($strMulai && $strAkhir): ?>
+                                                if (isValidDate($strMulai) && isValidDate($strAkhir)): ?>
                                                     <div class="text-xs text-gray-500 mt-1 flex items-center gap-1">
                                                         <span class="inline-block w-1.5 h-1.5 rounded-full bg-purple-500"></span>
                                                         <?php echo formatDate($strMulai) . ' - ' . formatDate($strAkhir); ?>
                                                     </div>
-                                                <?php elseif ($strAkhir): ?>
+                                                <?php elseif (isValidDate($strAkhir)): ?>
                                                     <div class="text-xs text-gray-500 mt-1 flex items-center gap-1">
                                                         <span class="inline-block w-1.5 h-1.5 rounded-full bg-purple-500"></span>
                                                         s/d <?php echo formatDate($strAkhir); ?>
                                                     </div>
+                                                <?php endif; ?>
+                                            </td>
                                                 <?php endif; ?>
                                             </td>
                                             <td class="px-6 py-4">
