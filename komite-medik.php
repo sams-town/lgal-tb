@@ -484,8 +484,6 @@ if (!function_exists('isValidDate')) {
                                                     </div>
                                                 <?php endif; ?>
                                             </td>
-                                                <?php endif; ?>
-                                            </td>
                                             <td class="px-6 py-4">
                                                 <div class="flex gap-2">
                                                     <?php if ($data['file_str']): ?>
