@@ -379,7 +379,7 @@ if (!function_exists('formatDate')) {
                                 <tr>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">No</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Nama Lengkap</th>
-                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Jabatan</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Jabatan / Unit Instalasi</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Rincian Kewenangan Klinis</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Nomor Keputusan Direktur</th>
                                     <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Status Kepegawaian</th>
@@ -529,12 +529,16 @@ if (!function_exists('formatDate')) {
                             <input type="text" name="nama_lengkap" id="nama_lengkap" required class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan nama lengkap">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Jabatan</label>
-                            <select name="unit_ruangan" id="unit_ruangan" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Jabatan / Unit Instalasi</label>
+                            <input type="text" name="unit_ruangan" id="unit_ruangan"
+                                list="jabatan-options"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                placeholder="Pilih atau ketik jabatan/unit instalasi">
+                            <datalist id="jabatan-options">
                                 <?php foreach ($jabatanOptions as $option): ?>
-                                    <option value="<?php echo htmlspecialchars($option); ?>"><?php echo htmlspecialchars($option); ?></option>
+                                    <option value="<?php echo htmlspecialchars($option); ?>">
                                 <?php endforeach; ?>
-                            </select>
+                            </datalist>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Status Karyawan <span class="text-red-500">*</span></label>
