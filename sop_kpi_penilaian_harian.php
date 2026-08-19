@@ -90,13 +90,38 @@ if ($karyawan_id) {
 }
 
 // ── Rata-rata RKK bulan ini ──────────────────────────────
+// Hitung dari kpi_rkk_log: (jumlah tugas yang dilakukan / total tugas) * 5, rata-rata per hari
 $rataRKK = null;
+$rkkPerHari = []; // [hari => nilai 0-5]
 if ($karyawan_id) {
     try {
-        $stRkk = $pdo->prepare("SELECT AVG(nilai) FROM kpi_penilaian_harian ph JOIN kpi_kriteria kr ON ph.kriteria_id=kr.id WHERE ph.karyawan_id=? AND ph.bulan=? AND ph.tahun=? AND kr.nama_indikator LIKE '%RKK%'");
-        $stRkk->execute([$karyawan_id,$bulan_sel,$tahun_sel]);
-        $rataRKK = $stRkk->fetchColumn();
-    } catch (Exception $e) { $rataRKK=null; }
+        // Total tugas RKK karyawan ini
+        $stTotal = $pdo->prepare("SELECT COUNT(*) FROM kpi_rkk_karyawan WHERE karyawan_id=?");
+        $stTotal->execute([$karyawan_id]);
+        $totalTugas = (int)$stTotal->fetchColumn();
+
+        if ($totalTugas > 0) {
+            // Log per hari bulan ini
+            $stLog = $pdo->prepare("
+                SELECT hari, COUNT(DISTINCT rkk_id) as jumlah_dikerjakan
+                FROM kpi_rkk_log
+                WHERE karyawan_id=? AND bulan=? AND tahun=?
+                GROUP BY hari
+            ");
+            $stLog->execute([$karyawan_id, $bulan_sel, $tahun_sel]);
+            $logRows = $stLog->fetchAll();
+
+            foreach ($logRows as $row) {
+                // Nilai = (tugas dikerjakan / total tugas) * 5, dibulatkan 1 desimal
+                $nilaiHari = round(($row['jumlah_dikerjakan'] / $totalTugas) * 5, 1);
+                $rkkPerHari[(int)$row['hari']] = $nilaiHari;
+            }
+
+            if (!empty($rkkPerHari)) {
+                $rataRKK = round(array_sum($rkkPerHari) / count($rkkPerHari), 1);
+            }
+        }
+    } catch (Exception $e) { $rataRKK = null; $rkkPerHari = []; }
 }
 
 // ── Info karyawan terpilih ───────────────────────────────
@@ -338,14 +363,23 @@ input.nbox:focus {
             <?=htmlspecialchars($kr['nama_indikator'])?>
             <?php if($isRKK): ?>
             <br><span style="font-size:10px;color:#16a34a;font-weight:400">(otomatis dari Log RKK/Job Des)</span>
+            <?php if($rataRKK!==null): ?>
+            <br><span style="font-size:10px;color:#166534;font-weight:600">Rata-rata: <?=number_format($rataRKK,1)?></span>
+            <?php endif; ?>
             <?php endif; ?>
           </td>
           <td><?=number_format($kr['bobot'],1)?>%</td>
           <?php if($isRKK): ?>
-          <!-- RKK: tidak ada input, tampilkan rata-rata -->
-          <td colspan="<?=$jumlah_hari?>" style="text-align:left!important;padding:0 16px!important;color:#16a34a;font-size:12px!important;background:#f0fdf4!important">
-            Rata-rata bulan ini: <strong><?=($rataRKK!==null ? number_format($rataRKK,1) : '-')?></strong>
+          <!-- RKK: tidak ada input, tampilkan nilai per hari dari log -->
+          <?php for($h=1;$h<=$jumlah_hari;$h++):
+            $we=isWeekend($h,$bulan_sel,$tahun_sel);
+            $vRkk = $rkkPerHari[$h] ?? null; ?>
+          <td class="col-day <?=$we?'we-col':''?>" style="padding:3px!important;background:#f0fdf4!important">
+            <span class="nbox-ro" style="background:<?=$vRkk!==null?'#dcfce7':'#f0fdf4'?>;color:<?=$vRkk!==null?'#166534':'#86efac'?>;border-color:<?=$vRkk!==null?'#86efac':'#e2e8f0'?>">
+              <?=$vRkk!==null ? $vRkk : ''?>
+            </span>
           </td>
+          <?php endfor; ?>
           <?php else: ?>
           <?php for($h=1;$h<=$jumlah_hari;$h++):
             $we=isWeekend($h,$bulan_sel,$tahun_sel);

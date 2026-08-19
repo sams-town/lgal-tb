@@ -259,6 +259,24 @@ try {
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             ");
 
+            // kpi_rkk_log — log harian tugas RKK yang dikerjakan karyawan
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS `kpi_rkk_log` (
+                  `id` int(11) NOT NULL AUTO_INCREMENT,
+                  `karyawan_id` int(11) NOT NULL,
+                  `rkk_id` int(11) NOT NULL COMMENT 'FK ke kpi_rkk_karyawan.id',
+                  `hari` tinyint(2) NOT NULL COMMENT '1-31',
+                  `bulan` tinyint(2) NOT NULL COMMENT '1-12',
+                  `tahun` smallint(4) NOT NULL,
+                  `catatan` text DEFAULT NULL,
+                  `created_by` varchar(100) DEFAULT NULL,
+                  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                  PRIMARY KEY (`id`),
+                  UNIQUE KEY `uq_rkk_log` (`karyawan_id`,`rkk_id`,`hari`,`bulan`,`tahun`),
+                  KEY `idx_rkk_log_periode` (`karyawan_id`,`bulan`,`tahun`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            ");
+
             // kpi_penilaian_harian — grid nilai per hari per kriteria
             $pdo->exec("
                 CREATE TABLE IF NOT EXISTS `kpi_penilaian_harian` (

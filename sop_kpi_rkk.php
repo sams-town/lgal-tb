@@ -72,6 +72,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         syncRKKtoKomite($pdo, $karyawan_id);
         header("Location: sop_kpi_rkk.php?success=copy&karyawan_id=".$karyawan_id);
         exit;
+    } elseif ($action === 'save_log') {
+        // Simpan log harian RKK
+        $karyawan_id_log = (int)$_POST['karyawan_id'];
+        $hari            = (int)$_POST['hari'];
+        $bulan           = (int)$_POST['bulan'];
+        $tahun           = (int)$_POST['tahun'];
+        $rkk_ids         = $_POST['rkk_ids'] ?? []; // array id tugas yang dicentang
+
+        try {
+            $pdo->beginTransaction();
+            // Hapus log hari ini dulu
+            $pdo->prepare("DELETE FROM kpi_rkk_log WHERE karyawan_id=? AND hari=? AND bulan=? AND tahun=?")
+                ->execute([$karyawan_id_log, $hari, $bulan, $tahun]);
+            // Insert yang dicentang
+            $ins = $pdo->prepare("INSERT INTO kpi_rkk_log (karyawan_id, rkk_id, hari, bulan, tahun, created_by) VALUES (?,?,?,?,?,?)");
+            foreach ($rkk_ids as $rid) {
+                $ins->execute([$karyawan_id_log, (int)$rid, $hari, $bulan, $tahun, $_SESSION['user']['nama'] ?? 'Admin']);
+            }
+            $pdo->commit();
+        } catch (Exception $e) {
+            $pdo->rollBack();
+        }
+        header("Location: sop_kpi_rkk.php?success=log&karyawan_id={$karyawan_id_log}&tab=log&bulan={$bulan}&tahun={$tahun}");
+        exit;
     }
 }
 
@@ -98,6 +122,34 @@ if ($karyawan_id) {
 // Fetch Template untuk fitur copy
 $stmtTemp = $pdo->query("SELECT id, jabatan, unit FROM kpi_rkk_template ORDER BY jabatan ASC");
 $templateList = $stmtTemp->fetchAll();
+
+// ── Parameter log harian ──
+$tab_sel   = $_GET['tab']   ?? 'rkk';
+$bulan_log = (int)($_GET['bulan'] ?? date('m'));
+$tahun_log = (int)($_GET['tahun'] ?? date('Y'));
+$hari_log  = (int)($_GET['hari']  ?? date('d'));
+$jumlah_hari_log = (int)date('t', mktime(0,0,0,$bulan_log,1,$tahun_log));
+
+// Data log bulan ini
+$logBulanIni = [];
+if ($karyawan_id) {
+    try {
+        $stLog = $pdo->prepare("SELECT rkk_id, hari FROM kpi_rkk_log WHERE karyawan_id=? AND bulan=? AND tahun=?");
+        $stLog->execute([$karyawan_id, $bulan_log, $tahun_log]);
+        foreach ($stLog->fetchAll() as $row) {
+            $logBulanIni[$row['hari']][$row['rkk_id']] = true;
+        }
+    } catch (Exception $e) { $logBulanIni = []; }
+}
+
+$bulanList = [1=>'Jan',2=>'Feb',3=>'Mar',4=>'Apr',5=>'Mei',6=>'Jun',
+              7=>'Jul',8=>'Ags',9=>'Sep',10=>'Okt',11=>'Nov',12=>'Des'];
+$bulanFull = [1=>'Januari',2=>'Februari',3=>'Maret',4=>'April',5=>'Mei',6=>'Juni',
+              7=>'Juli',8=>'Agustus',9=>'September',10=>'Oktober',11=>'November',12=>'Desember'];
+
+function namaHariRKK(int $h, int $b, int $y): string {
+    return ['Min','Sen','Sel','Rab','Kam','Jum','Sab'][(int)date('w',mktime(0,0,0,$b,$h,$y))];
+}
 
 ?>
 <!DOCTYPE html>
@@ -127,7 +179,7 @@ $templateList = $stmtTemp->fetchAll();
                 <?php if (isset($_GET['success'])): ?>
                 <div class="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl flex items-center gap-2">
                     <i data-lucide="check-circle" class="w-5 h-5"></i>
-                    <span>Perubahan berhasil disimpan!</span>
+                    <span><?= $_GET['success']==='log' ? 'Log harian berhasil disimpan! Nilai RKK di penilaian harian otomatis terupdate.' : 'Perubahan berhasil disimpan!' ?></span>
                 </div>
                 <?php endif; ?>
 
@@ -145,6 +197,39 @@ $templateList = $stmtTemp->fetchAll();
                                 </select>
                             </form>
                         </div>
+
+                        <?php if($karyawan_id && !empty($rkkList)): ?>
+                        <!-- Ringkasan log bulan ini -->
+                        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                            <h3 class="font-bold text-gray-800 mb-3 text-sm">Ringkasan Log <?= $bulanFull[$bulan_log] ?></h3>
+                            <?php
+                            $hariAda = count($logBulanIni);
+                            $totalTugas = count($rkkList);
+                            ?>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between text-gray-600">
+                                    <span>Hari tercatat</span>
+                                    <span class="font-bold text-teal-700"><?= $hariAda ?> hari</span>
+                                </div>
+                                <div class="flex justify-between text-gray-600">
+                                    <span>Total tugas</span>
+                                    <span class="font-bold"><?= $totalTugas ?> tugas</span>
+                                </div>
+                                <?php if($hariAda > 0 && $totalTugas > 0):
+                                    $totalNilai = 0;
+                                    foreach($logBulanIni as $h => $tugas) {
+                                        $totalNilai += round((count($tugas) / $totalTugas) * 5, 1);
+                                    }
+                                    $rataLog = round($totalNilai / $hariAda, 1);
+                                ?>
+                                <div class="flex justify-between text-gray-600 border-t pt-2 mt-1">
+                                    <span>Rata-rata nilai RKK</span>
+                                    <span class="font-bold text-emerald-700"><?= $rataLog ?> / 5</span>
+                                </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        <?php endif; ?>
                     </div>
 
                     <!-- Main Content -->
@@ -152,44 +237,55 @@ $templateList = $stmtTemp->fetchAll();
                         <?php if($karyawan_id && $karyawanData): ?>
                         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                             <!-- Info Karyawan -->
-                            <div class="p-6 border-b border-gray-100 bg-gradient-to-r from-teal-500 to-emerald-600 text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                            <div class="p-5 border-b border-gray-100 bg-gradient-to-r from-teal-500 to-emerald-600 text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
                                 <div>
-                                    <h2 class="text-2xl font-bold"><?= htmlspecialchars($karyawanData['nama']) ?></h2>
-                                    <p class="text-teal-50 mt-1"><?= htmlspecialchars($karyawanData['jabatan']) ?> • <?= htmlspecialchars($karyawanData['unit']) ?></p>
+                                    <h2 class="text-xl font-bold"><?= htmlspecialchars($karyawanData['nama']) ?></h2>
+                                    <p class="text-teal-50 text-sm mt-0.5"><?= htmlspecialchars($karyawanData['jabatan']) ?> • <?= htmlspecialchars($karyawanData['unit']) ?></p>
                                 </div>
-                                <div class="flex gap-2">
-                                    <button onclick="openModal('modalCopy')" class="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center gap-2">
-                                        <i data-lucide="copy" class="w-4 h-4"></i> Salin dari Template
+                                <div class="flex gap-2 flex-wrap">
+                                    <button onclick="openModal('modalCopy')" class="bg-white/20 hover:bg-white/30 text-white px-3 py-1.5 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5">
+                                        <i data-lucide="copy" class="w-4 h-4"></i> Salin Template
                                     </button>
-                                    <button onclick="openModal('modalAdd')" class="bg-white text-teal-600 hover:bg-teal-50 px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition-colors flex items-center gap-2">
+                                    <button onclick="openModal('modalAdd')" class="bg-white text-teal-600 hover:bg-teal-50 px-3 py-1.5 rounded-xl text-sm font-bold shadow-sm transition-colors flex items-center gap-1.5">
                                         <i data-lucide="plus" class="w-4 h-4"></i> Tambah Tugas
                                     </button>
                                 </div>
                             </div>
 
-                            <!-- List Tugas -->
-                            <div class="p-6 space-y-4">
+                            <!-- Tabs -->
+                            <div class="flex border-b border-gray-200 px-4 pt-2">
+                                <a href="?karyawan_id=<?=$karyawan_id?>&tab=rkk&bulan=<?=$bulan_log?>&tahun=<?=$tahun_log?>"
+                                   class="px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors <?= $tab_sel==='rkk' ? 'text-teal-600 border-teal-600' : 'text-gray-500 border-transparent hover:text-gray-700' ?>">
+                                    <i data-lucide="list" class="w-4 h-4 inline mr-1"></i>Daftar Tugas RKK
+                                </a>
+                                <a href="?karyawan_id=<?=$karyawan_id?>&tab=log&bulan=<?=$bulan_log?>&tahun=<?=$tahun_log?>"
+                                   class="px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors <?= $tab_sel==='log' ? 'text-teal-600 border-teal-600' : 'text-gray-500 border-transparent hover:text-gray-700' ?>">
+                                    <i data-lucide="calendar-check" class="w-4 h-4 inline mr-1"></i>Log Harian
+                                    <?php if(!empty($logBulanIni)): ?>
+                                    <span class="ml-1 px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs"><?=count($logBulanIni)?></span>
+                                    <?php endif; ?>
+                                </a>
+                            </div>                            <!-- Tab Content: Daftar Tugas RKK -->
+                            <?php if($tab_sel === 'rkk'): ?>
+                            <div class="p-5 space-y-3">
                                 <?php if(empty($rkkList)): ?>
                                     <div class="text-center py-8 text-gray-500">
                                         <i data-lucide="file-x" class="w-12 h-12 mx-auto text-gray-300 mb-3"></i>
                                         <p>Belum ada rincian tugas untuk karyawan ini.</p>
                                     </div>
                                 <?php endif; ?>
-                                
                                 <?php foreach($rkkList as $r): ?>
                                 <div class="p-4 border border-gray-200 rounded-xl hover:border-teal-300 transition-colors group flex justify-between items-start">
                                     <div>
                                         <div class="flex items-center gap-2 mb-1">
                                             <h4 class="font-bold text-gray-800"><?= htmlspecialchars($r['tugas']) ?></h4>
-                                            <?php if($r['jenis'] === 'Pokok'): ?>
-                                                <span class="px-2 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-700">Pokok</span>
-                                            <?php else: ?>
-                                                <span class="px-2 py-0.5 rounded text-xs font-bold bg-gray-100 text-gray-700">Tambahan</span>
-                                            <?php endif; ?>
+                                            <span class="px-2 py-0.5 rounded text-xs font-bold <?= $r['jenis']==='Pokok' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700' ?>">
+                                                <?= $r['jenis'] ?>
+                                            </span>
                                         </div>
                                         <p class="text-sm text-gray-600"><?= nl2br(htmlspecialchars($r['deskripsi'])) ?></p>
                                     </div>
-                                    <div class="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                                    <div class="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 ml-3 flex-shrink-0">
                                         <button onclick='editData(<?= json_encode($r) ?>)' class="text-blue-500 hover:bg-blue-50 p-2 rounded-lg transition-colors"><i data-lucide="edit" class="w-4 h-4"></i></button>
                                         <form method="POST" class="inline" onsubmit="return confirm('Hapus tugas ini?');">
                                             <input type="hidden" name="action" value="delete">
@@ -201,6 +297,134 @@ $templateList = $stmtTemp->fetchAll();
                                 </div>
                                 <?php endforeach; ?>
                             </div>
+
+                            <!-- Tab Content: Log Harian -->
+                            <?php else: ?>
+                            <div class="p-5">
+                                <!-- Filter bulan/tahun + pilih hari -->
+                                <form method="GET" class="flex flex-wrap items-end gap-3 mb-5">
+                                    <input type="hidden" name="karyawan_id" value="<?=$karyawan_id?>">
+                                    <input type="hidden" name="tab" value="log">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gray-600 mb-1">Bulan</label>
+                                        <select name="bulan" class="border border-gray-200 rounded-xl py-2 px-3 text-sm bg-gray-50 outline-none focus:ring-2 focus:ring-teal-400">
+                                            <?php foreach($bulanFull as $b=>$nm): ?>
+                                            <option value="<?=$b?>" <?=$bulan_log==$b?'selected':''?>><?=$nm?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gray-600 mb-1">Tahun</label>
+                                        <select name="tahun" class="border border-gray-200 rounded-xl py-2 px-3 text-sm bg-gray-50 outline-none focus:ring-2 focus:ring-teal-400">
+                                            <?php for($y=date('Y');$y>=date('Y')-2;$y--): ?>
+                                            <option value="<?=$y?>" <?=$tahun_log==$y?'selected':''?>><?=$y?></option>
+                                            <?php endfor; ?>
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="px-4 py-2 bg-teal-600 text-white rounded-xl text-sm font-semibold hover:bg-teal-700">Tampilkan</button>
+                                </form>
+
+                                <?php if(empty($rkkList)): ?>
+                                <div class="text-center py-8 text-amber-600 bg-amber-50 rounded-xl">
+                                    <i data-lucide="alert-triangle" class="w-8 h-8 mx-auto mb-2"></i>
+                                    <p class="text-sm font-medium">Belum ada daftar tugas RKK. Tambahkan tugas di tab <strong>Daftar Tugas RKK</strong> terlebih dahulu.</p>
+                                </div>
+                                <?php else: ?>
+
+                                <!-- Grid log per hari -->
+                                <div class="overflow-x-auto rounded-xl border border-gray-200">
+                                    <table class="w-full text-sm border-collapse">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase sticky left-0 bg-gray-50 min-w-[180px]">Tugas</th>
+                                                <th class="px-2 py-3 text-center text-xs font-bold text-gray-600 uppercase min-w-[40px]">Jenis</th>
+                                                <?php for($h=1;$h<=$jumlah_hari_log;$h++):
+                                                    $dw = (int)date('w',mktime(0,0,0,$bulan_log,$h,$tahun_log));
+                                                    $isWe = $dw===0||$dw===6; ?>
+                                                <th class="py-2 text-center min-w-[34px] <?=$isWe?'bg-red-50':''?>"
+                                                    style="font-size:10px;font-weight:600;color:<?=$isWe?'#ef4444':'#64748b'?>">
+                                                    <div><?=$h?></div>
+                                                    <div style="font-weight:400;color:#94a3b8"><?=namaHariRKK($h,$bulan_log,$tahun_log)?></div>
+                                                </th>
+                                                <?php endfor; ?>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-gray-100">
+                                        <?php foreach($rkkList as $r): ?>
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-4 py-2 sticky left-0 bg-white font-medium text-gray-800 text-xs"><?= htmlspecialchars($r['tugas']) ?></td>
+                                            <td class="px-2 py-2 text-center">
+                                                <span class="px-1.5 py-0.5 rounded text-xs <?=$r['jenis']==='Pokok'?'bg-blue-100 text-blue-700':'bg-gray-100 text-gray-500'?>"><?=$r['jenis']==='Pokok'?'P':'T'?></span>
+                                            </td>
+                                            <?php for($h=1;$h<=$jumlah_hari_log;$h++):
+                                                $dw = (int)date('w',mktime(0,0,0,$bulan_log,$h,$tahun_log));
+                                                $isWe = $dw===0||$dw===6;
+                                                $done = isset($logBulanIni[$h][$r['id']]); ?>
+                                            <td class="py-1 text-center <?=$isWe?'bg-red-50':''?>" style="min-width:34px">
+                                                <span class="inline-flex items-center justify-center w-6 h-6 rounded <?=$done?'bg-emerald-100 text-emerald-700':'text-gray-200'?>">
+                                                    <?=$done?'✓':''?>
+                                                </span>
+                                            </td>
+                                            <?php endfor; ?>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Form isi log per hari -->
+                                <div class="mt-5 p-5 bg-emerald-50 border border-emerald-200 rounded-xl">
+                                    <h3 class="font-bold text-emerald-800 mb-3 flex items-center gap-2">
+                                        <i data-lucide="pencil" class="w-4 h-4"></i>
+                                        Isi Log Hari Ini / Pilih Tanggal
+                                    </h3>
+                                    <form method="POST">
+                                        <input type="hidden" name="action" value="save_log">
+                                        <input type="hidden" name="karyawan_id" value="<?=$karyawan_id?>">
+                                        <input type="hidden" name="bulan" value="<?=$bulan_log?>">
+                                        <input type="hidden" name="tahun" value="<?=$tahun_log?>">
+                                        <div class="flex flex-wrap gap-4 items-end mb-4">
+                                            <div>
+                                                <label class="block text-xs font-semibold text-emerald-700 mb-1">Tanggal</label>
+                                                <select name="hari" id="hari_pilih" class="border border-emerald-300 rounded-xl py-2 px-3 text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-400" onchange="loadLogHari(this.value)">
+                                                    <?php for($h=1;$h<=$jumlah_hari_log;$h++):
+                                                        $dw=(int)date('w',mktime(0,0,0,$bulan_log,$h,$tahun_log));
+                                                        $nm=['Min','Sen','Sel','Rab','Kam','Jum','Sab'][$dw]; ?>
+                                                    <option value="<?=$h?>" <?=$h==(int)date('d')?'selected':''?>><?=$h?> - <?=$nm?></option>
+                                                    <?php endfor; ?>
+                                                </select>
+                                            </div>
+                                            <p class="text-xs text-emerald-600">Centang tugas yang <strong>sudah dikerjakan</strong> pada tanggal tersebut.</p>
+                                        </div>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4" id="tugas-checklist">
+                                            <?php
+                                            $hariDefault = (int)date('d');
+                                            foreach($rkkList as $r):
+                                                $checked = isset($logBulanIni[$hariDefault][$r['id']]);
+                                            ?>
+                                            <label class="flex items-start gap-3 p-3 bg-white border border-emerald-200 rounded-xl cursor-pointer hover:bg-emerald-50 transition-colors tugas-item" data-hari="<?=$hariDefault?>">
+                                                <input type="checkbox" name="rkk_ids[]" value="<?=$r['id']?>"
+                                                       class="mt-0.5 w-4 h-4 text-emerald-600 rounded tugas-cb"
+                                                       data-rkk="<?=$r['id']?>"
+                                                       <?=$checked?'checked':''?>>
+                                                <div>
+                                                    <p class="text-sm font-semibold text-gray-800"><?=htmlspecialchars($r['tugas'])?></p>
+                                                    <p class="text-xs text-gray-500"><?=htmlspecialchars($r['jenis'])?></p>
+                                                </div>
+                                            </label>
+                                            <?php endforeach; ?>
+                                        </div>
+                                        <div class="flex items-center gap-3">
+                                            <button type="submit" class="px-5 py-2 bg-emerald-600 text-white rounded-xl font-semibold text-sm hover:bg-emerald-700 flex items-center gap-2">
+                                                <i data-lucide="save" class="w-4 h-4"></i> Simpan Log
+                                            </button>
+                                            <p class="text-xs text-emerald-600">Nilai RKK di penilaian harian akan otomatis dihitung.</p>
+                                        </div>
+                                    </form>
+                                </div>
+                                <?php endif; ?>
+                            </div>
+                            <?php endif; ?>
                         </div>
                         <?php else: ?>
                         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center text-gray-500">
@@ -280,14 +504,26 @@ $templateList = $stmtTemp->fetchAll();
     <script>
         lucide.createIcons();
 
+        // Data log per hari dari PHP (untuk update checklist tanpa reload)
+        const logData = <?= json_encode($logBulanIni) ?>;
+        const rkkIds  = <?= json_encode(array_column($rkkList, 'id')) ?>;
+
+        function loadLogHari(hari) {
+            const cbs = document.querySelectorAll('.tugas-cb');
+            cbs.forEach(cb => {
+                const rkkId = parseInt(cb.dataset.rkk);
+                cb.checked = !!(logData[hari] && logData[hari][rkkId]);
+            });
+        }
+
         function openModal(id) {
             if(id === 'modalAdd'){
-                $('#modalAction').val('add');
-                $('#modalTitle').text('Tambah Tugas');
-                $('#tugas_id').val('');
-                $('#tugas').val('');
-                $('#deskripsi').val('');
-                $('#jenis').val('Pokok');
+                document.getElementById('modalAction').value = 'add';
+                document.getElementById('modalTitle').textContent = 'Tambah Tugas';
+                document.getElementById('tugas_id').value = '';
+                document.getElementById('tugas').value = '';
+                document.getElementById('deskripsi').value = '';
+                document.getElementById('jenis').value = 'Pokok';
             }
             document.getElementById(id).classList.remove('hidden');
             document.getElementById(id).classList.add('flex');
@@ -297,13 +533,12 @@ $templateList = $stmtTemp->fetchAll();
             document.getElementById(id).classList.remove('flex');
         }
         function editData(data) {
-            $('#modalAction').val('edit');
-            $('#modalTitle').text('Edit Tugas');
-            $('#tugas_id').val(data.id);
-            $('#tugas').val(data.tugas);
-            $('#deskripsi').val(data.deskripsi);
-            $('#jenis').val(data.jenis);
-            
+            document.getElementById('modalAction').value = 'edit';
+            document.getElementById('modalTitle').textContent = 'Edit Tugas';
+            document.getElementById('tugas_id').value = data.id;
+            document.getElementById('tugas').value = data.tugas;
+            document.getElementById('deskripsi').value = data.deskripsi;
+            document.getElementById('jenis').value = data.jenis;
             document.getElementById('modalAdd').classList.remove('hidden');
             document.getElementById('modalAdd').classList.add('flex');
         }
