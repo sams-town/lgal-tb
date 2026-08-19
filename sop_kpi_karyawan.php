@@ -195,6 +195,20 @@ foreach ($karyawanList as $k) {
                 </div>
                 <?php endif; ?>
 
+                <?php if (isset($_SESSION['import_success'])): ?>
+                <div class="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl flex items-center gap-2">
+                    <i data-lucide="check-circle" class="w-5 h-5"></i>
+                    <span><?= htmlspecialchars($_SESSION['import_success']) ?></span>
+                </div>
+                <?php unset($_SESSION['import_success']); endif; ?>
+
+                <?php if (isset($_SESSION['import_error'])): ?>
+                <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center gap-2">
+                    <i data-lucide="alert-circle" class="w-5 h-5"></i>
+                    <span><?= htmlspecialchars($_SESSION['import_error']) ?></span>
+                </div>
+                <?php unset($_SESSION['import_error']); endif; ?>
+
                 <!-- Tabs -->
                 <div class="flex gap-4 border-b border-gray-200">
                     <button onclick="switchTab('non-komite')" id="btn-non-komite" class="px-4 py-3 font-semibold text-teal-600 border-b-2 border-teal-600 transition-all">Non-Komite (Manual)</button>

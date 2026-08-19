@@ -364,6 +364,27 @@ if ($action === 'download_template') {
                         $row[6] ?? null,                        // atasan_tidak_langsung
                         parseImportDate($row[7] ?? null),       // tanggal_bergabung
                     ];
+
+                    // Skip completely empty rows
+                    if (empty(trim($insertData[0])) && empty(trim($insertData[1]))) {
+                        continue;
+                    }
+
+                    // Use INSERT ... ON DUPLICATE KEY UPDATE to handle duplicate NIK gracefully
+                    $sql = "INSERT INTO kpi_karyawan (nama, nik, unit, kategori_bagian, jabatan, atasan_langsung, atasan_tidak_langsung, tanggal_bergabung)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                            ON DUPLICATE KEY UPDATE
+                                nama = VALUES(nama),
+                                unit = VALUES(unit),
+                                kategori_bagian = VALUES(kategori_bagian),
+                                jabatan = VALUES(jabatan),
+                                atasan_langsung = VALUES(atasan_langsung),
+                                atasan_tidak_langsung = VALUES(atasan_tidak_langsung),
+                                tanggal_bergabung = VALUES(tanggal_bergabung)";
+                    $stmt = $pdo->prepare($sql);
+                    $stmt->execute($insertData);
+                    $importedCount++;
+                    continue; // skip generic insert below
                 }
                 
                 if (!empty($insertData)) {
