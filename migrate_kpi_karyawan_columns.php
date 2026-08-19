@@ -1,11 +1,5 @@
 <?php
-session_start();
 require_once 'config/database.php';
-require_once 'includes/functions.php';
-
-if (!isset($_SESSION['user']) || !isAdmin()) {
-    die('Akses ditolak. Login sebagai admin terlebih dahulu.');
-}
 
 $results = [];
 
@@ -23,14 +17,16 @@ foreach ($cols as $col => $sql) {
         $exists = $pdo->query("SHOW COLUMNS FROM kpi_karyawan LIKE '$col'")->rowCount();
         if ($exists == 0) {
             $pdo->exec($sql);
-            $results[] = "✅ Kolom <strong>$col</strong> berhasil ditambahkan.";
+            $results[] = ['status' => 'ok', 'msg' => "Kolom <b>$col</b> berhasil ditambahkan."];
         } else {
-            $results[] = "⏭️ Kolom <strong>$col</strong> sudah ada, dilewati.";
+            $results[] = ['status' => 'skip', 'msg' => "Kolom <b>$col</b> sudah ada, dilewati."];
         }
     } catch (Exception $e) {
-        $results[] = "❌ Kolom <strong>$col</strong> gagal: " . $e->getMessage();
+        $results[] = ['status' => 'err', 'msg' => "Kolom <b>$col</b> gagal: " . $e->getMessage()];
     }
 }
+
+$allDone = !array_filter($results, fn($r) => $r['status'] === 'err');
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -42,11 +38,26 @@ foreach ($cols as $col => $sql) {
 <body class="min-h-screen bg-gray-50 flex items-center justify-center p-8">
     <div class="bg-white rounded-2xl shadow p-8 max-w-lg w-full space-y-4">
         <h1 class="text-xl font-bold text-gray-900">Migrasi Kolom kpi_karyawan</h1>
-        <div class="space-y-2">
+
+        <?php if ($allDone): ?>
+            <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-sm font-semibold">
+                ✅ Migrasi selesai! Semua kolom sudah tersedia.
+            </div>
+        <?php else: ?>
+            <div class="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm font-semibold">
+                ❌ Ada error saat migrasi. Lihat detail di bawah.
+            </div>
+        <?php endif; ?>
+
+        <ul class="space-y-2">
             <?php foreach ($results as $r): ?>
-                <p class="text-sm text-gray-700"><?= $r ?></p>
+                <li class="text-sm flex items-start gap-2 <?= $r['status'] === 'ok' ? 'text-emerald-700' : ($r['status'] === 'err' ? 'text-red-600' : 'text-gray-500') ?>">
+                    <span><?= $r['status'] === 'ok' ? '✅' : ($r['status'] === 'err' ? '❌' : '⏭️') ?></span>
+                    <span><?= $r['msg'] ?></span>
+                </li>
             <?php endforeach; ?>
-        </div>
+        </ul>
+
         <a href="sop_kpi_karyawan.php" class="inline-block mt-4 px-4 py-2 bg-teal-600 text-white rounded-xl text-sm font-medium hover:bg-teal-700">
             ← Kembali ke Data Karyawan
         </a>
