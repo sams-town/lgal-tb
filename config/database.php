@@ -164,6 +164,21 @@ try {
                 if ($colExists == 0) {
                     $pdo->exec("ALTER TABLE kpi_karyawan ADD COLUMN tenaga_medis_id INT NULL AFTER status");
                 }
+                // New columns for non-komite employee data
+                $cols = [
+                    'user_id'               => "ALTER TABLE kpi_karyawan ADD COLUMN user_id INT NULL AFTER tenaga_medis_id",
+                    'atasan_id'             => "ALTER TABLE kpi_karyawan ADD COLUMN atasan_id INT NULL AFTER user_id",
+                    'kategori_bagian'       => "ALTER TABLE kpi_karyawan ADD COLUMN kategori_bagian VARCHAR(100) NULL AFTER jabatan",
+                    'atasan_langsung'       => "ALTER TABLE kpi_karyawan ADD COLUMN atasan_langsung VARCHAR(150) NULL AFTER kategori_bagian",
+                    'atasan_tidak_langsung' => "ALTER TABLE kpi_karyawan ADD COLUMN atasan_tidak_langsung VARCHAR(150) NULL AFTER atasan_langsung",
+                    'tanggal_bergabung'     => "ALTER TABLE kpi_karyawan ADD COLUMN tanggal_bergabung DATE NULL AFTER atasan_tidak_langsung",
+                ];
+                foreach ($cols as $col => $sql) {
+                    $exists = $pdo->query("SHOW COLUMNS FROM kpi_karyawan LIKE '$col'")->rowCount();
+                    if ($exists == 0) {
+                        $pdo->exec($sql);
+                    }
+                }
             } catch (Exception $ex) {
                 // Silently continue
             }

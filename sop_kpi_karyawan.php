@@ -17,30 +17,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     
     if ($action === 'add') {
-        $nik     = $_POST['nik'];
-        $nama    = $_POST['nama'];
-        $unit    = $_POST['unit'];
-        $jabatan = $_POST['jabatan'];
-        $user_id  = !empty($_POST['user_id'])  ? (int)$_POST['user_id']  : null;
-        $atasan_id = !empty($_POST['atasan_id']) ? (int)$_POST['atasan_id'] : null;
+        $nik                   = $_POST['nik'];
+        $nama                  = $_POST['nama'];
+        $unit                  = $_POST['unit'];
+        $kategori_bagian       = $_POST['kategori_bagian'] ?? null;
+        $jabatan               = $_POST['jabatan'];
+        $atasan_langsung       = $_POST['atasan_langsung'] ?? null;
+        $atasan_tidak_langsung = $_POST['atasan_tidak_langsung'] ?? null;
+        $tanggal_bergabung     = !empty($_POST['tanggal_bergabung']) ? $_POST['tanggal_bergabung'] : null;
+        $user_id               = !empty($_POST['user_id'])   ? (int)$_POST['user_id']   : null;
+        $atasan_id             = !empty($_POST['atasan_id']) ? (int)$_POST['atasan_id'] : null;
 
-        $stmt = $pdo->prepare("INSERT INTO kpi_karyawan (nik, nama, unit, jabatan, user_id, atasan_id) VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->execute([$nik, $nama, $unit, $jabatan, $user_id, $atasan_id]);
+        $stmt = $pdo->prepare("INSERT INTO kpi_karyawan (nik, nama, unit, kategori_bagian, jabatan, atasan_langsung, atasan_tidak_langsung, tanggal_bergabung, user_id, atasan_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$nik, $nama, $unit, $kategori_bagian, $jabatan, $atasan_langsung, $atasan_tidak_langsung, $tanggal_bergabung, $user_id, $atasan_id]);
         header("Location: sop_kpi_karyawan.php?success=add");
         exit;
     }
     elseif ($action === 'edit') {
-        $id      = $_POST['id'];
-        $nik     = $_POST['nik'];
-        $nama    = $_POST['nama'];
-        $unit    = $_POST['unit'];
-        $jabatan = $_POST['jabatan'];
-        $status  = $_POST['status'];
-        $user_id  = !empty($_POST['user_id'])  ? (int)$_POST['user_id']  : null;
-        $atasan_id = !empty($_POST['atasan_id']) ? (int)$_POST['atasan_id'] : null;
+        $id                    = $_POST['id'];
+        $nik                   = $_POST['nik'];
+        $nama                  = $_POST['nama'];
+        $unit                  = $_POST['unit'];
+        $kategori_bagian       = $_POST['kategori_bagian'] ?? null;
+        $jabatan               = $_POST['jabatan'];
+        $atasan_langsung       = $_POST['atasan_langsung'] ?? null;
+        $atasan_tidak_langsung = $_POST['atasan_tidak_langsung'] ?? null;
+        $tanggal_bergabung     = !empty($_POST['tanggal_bergabung']) ? $_POST['tanggal_bergabung'] : null;
+        $status                = $_POST['status'];
+        $user_id               = !empty($_POST['user_id'])   ? (int)$_POST['user_id']   : null;
+        $atasan_id             = !empty($_POST['atasan_id']) ? (int)$_POST['atasan_id'] : null;
 
-        $stmt = $pdo->prepare("UPDATE kpi_karyawan SET nik=?, nama=?, unit=?, jabatan=?, status=?, user_id=?, atasan_id=? WHERE id=?");
-        $stmt->execute([$nik, $nama, $unit, $jabatan, $status, $user_id, $atasan_id, $id]);
+        $stmt = $pdo->prepare("UPDATE kpi_karyawan SET nik=?, nama=?, unit=?, kategori_bagian=?, jabatan=?, atasan_langsung=?, atasan_tidak_langsung=?, tanggal_bergabung=?, status=?, user_id=?, atasan_id=? WHERE id=?");
+        $stmt->execute([$nik, $nama, $unit, $kategori_bagian, $jabatan, $atasan_langsung, $atasan_tidak_langsung, $tanggal_bergabung, $status, $user_id, $atasan_id, $id]);
         header("Location: sop_kpi_karyawan.php?success=edit");
         exit;
     }
@@ -199,43 +207,38 @@ foreach ($karyawanList as $k) {
                         <table id="tableNonKomite" class="w-full text-left" style="width:100%">
                             <thead>
                                 <tr>
-                                    <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">ID / NIK</th>
-                                    <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Nama Karyawan</th>
-                                    <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Unit / Departemen</th>
+                                    <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Nama</th>
+                                    <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">NIK</th>
+                                    <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Unit</th>
+                                    <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Kategori Bagian</th>
                                     <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Jabatan</th>
+                                    <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Atasan Langsung</th>
+                                    <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Atasan Tidak Langsung</th>
+                                    <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tanggal Bergabung</th>
                                     <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Akun & Atasan</th>
                                     <th class="text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100">
                                 <?php foreach ($karyawanNonKomite as $k): ?>
                                 <tr class="hover:bg-gray-50 transition-colors">
-                                    <td class="text-sm font-medium text-gray-900 py-3"><?= htmlspecialchars($k['nik']) ?></td>
                                     <td class="py-3">
                                         <div class="text-sm font-semibold text-gray-800"><?= htmlspecialchars($k['nama']) ?></div>
                                     </td>
+                                    <td class="text-sm font-medium text-gray-900 py-3"><?= htmlspecialchars($k['nik']) ?></td>
                                     <td class="text-sm text-gray-600 py-3"><?= htmlspecialchars($k['unit']) ?></td>
+                                    <td class="text-sm text-gray-600 py-3"><?= htmlspecialchars($k['kategori_bagian'] ?? '-') ?></td>
                                     <td class="text-sm text-gray-600 py-3"><?= htmlspecialchars($k['jabatan']) ?></td>
+                                    <td class="text-sm text-gray-600 py-3"><?= htmlspecialchars($k['atasan_langsung'] ?? '-') ?></td>
+                                    <td class="text-sm text-gray-600 py-3"><?= htmlspecialchars($k['atasan_tidak_langsung'] ?? '-') ?></td>
+                                    <td class="text-sm text-gray-600 py-3">
+                                        <?= !empty($k['tanggal_bergabung']) ? date('d/m/Y', strtotime($k['tanggal_bergabung'])) : '-' ?>
+                                    </td>
                                     <td class="py-3">
                                         <?php if($k['status'] === 'Aktif'): ?>
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Aktif</span>
                                         <?php else: ?>
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Nonaktif</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="py-3">
-                                        <?php if (!empty($k['user_id'])): ?>
-                                            <span class="inline-flex items-center gap-1 text-xs text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full font-medium">
-                                                <i data-lucide="link" class="w-3 h-3"></i> Terhubung
-                                            </span>
-                                        <?php else: ?>
-                                            <span class="text-xs text-gray-400">— Belum</span>
-                                        <?php endif; ?>
-                                        <?php if (!empty($k['atasan_id'])): ?>
-                                            <div class="mt-1 text-xs text-blue-600 flex items-center gap-1">
-                                                <i data-lucide="user-check" class="w-3 h-3"></i> Ada atasan
-                                            </div>
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-right py-3">
@@ -325,26 +328,50 @@ foreach ($karyawanList as $k) {
 
     <!-- Modal Tambah -->
     <div id="modalAdd" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-2xl w-full max-w-lg p-6 m-4 relative shadow-xl">
+        <div class="bg-white rounded-2xl w-full max-w-2xl p-6 m-4 relative shadow-xl max-h-[90vh] overflow-y-auto">
             <h2 class="text-xl font-bold text-gray-900 mb-4">Tambah Karyawan</h2>
             <form method="POST">
                 <input type="hidden" name="action" value="add">
                 <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">NIK</label>
-                        <input type="text" name="nik" required class="w-full border border-gray-200 py-2 px-3 rounded-xl focus:ring-teal-500 outline-none">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Nama Lengkap <span class="text-red-500">*</span></label>
+                            <input type="text" name="nama" required class="w-full border border-gray-200 py-2 px-3 rounded-xl focus:ring-teal-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">NIK <span class="text-red-500">*</span></label>
+                            <input type="text" name="nik" required class="w-full border border-gray-200 py-2 px-3 rounded-xl focus:ring-teal-500 outline-none">
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Nama Lengkap</label>
-                        <input type="text" name="nama" required class="w-full border border-gray-200 py-2 px-3 rounded-xl focus:ring-teal-500 outline-none">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Unit <span class="text-red-500">*</span></label>
+                            <input type="text" name="unit" required class="w-full border border-gray-200 py-2 px-3 rounded-xl focus:ring-teal-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Kategori Bagian</label>
+                            <input type="text" name="kategori_bagian" class="w-full border border-gray-200 py-2 px-3 rounded-xl focus:ring-teal-500 outline-none" placeholder="Contoh: Keperawatan, Farmasi...">
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Unit</label>
-                        <input type="text" name="unit" required class="w-full border border-gray-200 py-2 px-3 rounded-xl focus:ring-teal-500 outline-none">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Jabatan <span class="text-red-500">*</span></label>
+                            <input type="text" name="jabatan" required class="w-full border border-gray-200 py-2 px-3 rounded-xl focus:ring-teal-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Tanggal Bergabung</label>
+                            <input type="date" name="tanggal_bergabung" class="w-full border border-gray-200 py-2 px-3 rounded-xl focus:ring-teal-500 outline-none">
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Jabatan</label>
-                        <input type="text" name="jabatan" required class="w-full border border-gray-200 py-2 px-3 rounded-xl focus:ring-teal-500 outline-none">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Atasan Langsung</label>
+                            <input type="text" name="atasan_langsung" class="w-full border border-gray-200 py-2 px-3 rounded-xl focus:ring-teal-500 outline-none" placeholder="Nama atasan langsung">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Atasan Tidak Langsung</label>
+                            <input type="text" name="atasan_tidak_langsung" class="w-full border border-gray-200 py-2 px-3 rounded-xl focus:ring-teal-500 outline-none" placeholder="Nama atasan tidak langsung">
+                        </div>
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Link Akun Login (User)</label>
@@ -381,27 +408,51 @@ foreach ($karyawanList as $k) {
 
     <!-- Modal Edit -->
     <div id="modalEdit" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-2xl w-full max-w-lg p-6 m-4 relative shadow-xl">
+        <div class="bg-white rounded-2xl w-full max-w-2xl p-6 m-4 relative shadow-xl max-h-[90vh] overflow-y-auto">
             <h2 class="text-xl font-bold text-gray-900 mb-4">Edit Karyawan</h2>
             <form method="POST">
                 <input type="hidden" name="action" value="edit">
                 <input type="hidden" name="id" id="edit_id">
                 <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">NIK</label>
-                        <input type="text" name="nik" id="edit_nik" required class="w-full border border-gray-200 py-2 px-3 rounded-xl focus:ring-teal-500 outline-none">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Nama Lengkap <span class="text-red-500">*</span></label>
+                            <input type="text" name="nama" id="edit_nama" required class="w-full border border-gray-200 py-2 px-3 rounded-xl focus:ring-teal-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">NIK <span class="text-red-500">*</span></label>
+                            <input type="text" name="nik" id="edit_nik" required class="w-full border border-gray-200 py-2 px-3 rounded-xl focus:ring-teal-500 outline-none">
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Nama Lengkap</label>
-                        <input type="text" name="nama" id="edit_nama" required class="w-full border border-gray-200 py-2 px-3 rounded-xl focus:ring-teal-500 outline-none">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Unit <span class="text-red-500">*</span></label>
+                            <input type="text" name="unit" id="edit_unit" required class="w-full border border-gray-200 py-2 px-3 rounded-xl focus:ring-teal-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Kategori Bagian</label>
+                            <input type="text" name="kategori_bagian" id="edit_kategori_bagian" class="w-full border border-gray-200 py-2 px-3 rounded-xl focus:ring-teal-500 outline-none" placeholder="Contoh: Keperawatan, Farmasi...">
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Unit</label>
-                        <input type="text" name="unit" id="edit_unit" required class="w-full border border-gray-200 py-2 px-3 rounded-xl focus:ring-teal-500 outline-none">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Jabatan <span class="text-red-500">*</span></label>
+                            <input type="text" name="jabatan" id="edit_jabatan" required class="w-full border border-gray-200 py-2 px-3 rounded-xl focus:ring-teal-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Tanggal Bergabung</label>
+                            <input type="date" name="tanggal_bergabung" id="edit_tanggal_bergabung" class="w-full border border-gray-200 py-2 px-3 rounded-xl focus:ring-teal-500 outline-none">
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Jabatan</label>
-                        <input type="text" name="jabatan" id="edit_jabatan" required class="w-full border border-gray-200 py-2 px-3 rounded-xl focus:ring-teal-500 outline-none">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Atasan Langsung</label>
+                            <input type="text" name="atasan_langsung" id="edit_atasan_langsung" class="w-full border border-gray-200 py-2 px-3 rounded-xl focus:ring-teal-500 outline-none" placeholder="Nama atasan langsung">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Atasan Tidak Langsung</label>
+                            <input type="text" name="atasan_tidak_langsung" id="edit_atasan_tidak_langsung" class="w-full border border-gray-200 py-2 px-3 rounded-xl focus:ring-teal-500 outline-none" placeholder="Nama atasan tidak langsung">
+                        </div>
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Status</label>
@@ -508,14 +559,18 @@ foreach ($karyawanList as $k) {
             document.getElementById(id).classList.remove('flex');
         }
         function editData(data) {
-            document.getElementById('edit_id').value      = data.id;
-            document.getElementById('edit_nik').value     = data.nik;
-            document.getElementById('edit_nama').value    = data.nama;
-            document.getElementById('edit_unit').value    = data.unit;
-            document.getElementById('edit_jabatan').value = data.jabatan;
-            document.getElementById('edit_status').value  = data.status;
-            document.getElementById('edit_user_id').value  = data.user_id  || '';
-            document.getElementById('edit_atasan_id').value = data.atasan_id || '';
+            document.getElementById('edit_id').value                    = data.id;
+            document.getElementById('edit_nama').value                  = data.nama;
+            document.getElementById('edit_nik').value                   = data.nik;
+            document.getElementById('edit_unit').value                  = data.unit;
+            document.getElementById('edit_kategori_bagian').value       = data.kategori_bagian  || '';
+            document.getElementById('edit_jabatan').value               = data.jabatan;
+            document.getElementById('edit_atasan_langsung').value       = data.atasan_langsung       || '';
+            document.getElementById('edit_atasan_tidak_langsung').value = data.atasan_tidak_langsung || '';
+            document.getElementById('edit_tanggal_bergabung').value     = data.tanggal_bergabung     || '';
+            document.getElementById('edit_status').value                = data.status;
+            document.getElementById('edit_user_id').value               = data.user_id   || '';
+            document.getElementById('edit_atasan_id').value             = data.atasan_id || '';
             openModal('modalEdit');
         }
     </script>

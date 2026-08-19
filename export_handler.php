@@ -163,13 +163,16 @@ $moduleConfigs = [
         'table' => 'kpi_karyawan',
         'filename' => 'karyawan_kpi_data',
         'columns' => [
-            'NIK' => 'nik',
-            'Nama Karyawan' => 'nama',
-            'Unit / Departemen' => 'unit',
-            'Jabatan' => 'jabatan',
-            'Status' => 'status'
+            'Nama'                      => 'nama',
+            'NIK'                       => 'nik',
+            'Unit'                      => 'unit',
+            'Kategori Bagian'           => 'kategori_bagian',
+            'Jabatan'                   => 'jabatan',
+            'Atasan Langsung'           => 'atasan_langsung',
+            'Atasan Tidak Langsung'     => 'atasan_tidak_langsung',
+            'Tanggal Bergabung (YYYY-MM-DD)' => 'tanggal_bergabung',
         ],
-        'insertColumns' => ['nik', 'nama', 'unit', 'jabatan', 'status'],
+        'insertColumns' => ['nama', 'nik', 'unit', 'kategori_bagian', 'jabatan', 'atasan_langsung', 'atasan_tidak_langsung', 'tanggal_bergabung'],
         'displayName' => 'Data Karyawan KPI'
     ]
 ];
@@ -352,11 +355,14 @@ if ($action === 'download_template') {
                     ];
                 } elseif ($module === 'kpi_karyawan') {
                     $insertData = [
-                        $row[0] ?? '', // nik
-                        $row[1] ?? '', // nama
-                        $row[2] ?? '', // unit
-                        $row[3] ?? '', // jabatan
-                        $row[4] ?? 'Aktif' // status
+                        $row[0] ?? '',                          // nama
+                        $row[1] ?? '',                          // nik
+                        $row[2] ?? '',                          // unit
+                        $row[3] ?? null,                        // kategori_bagian
+                        $row[4] ?? '',                          // jabatan
+                        $row[5] ?? null,                        // atasan_langsung
+                        $row[6] ?? null,                        // atasan_tidak_langsung
+                        parseImportDate($row[7] ?? null),       // tanggal_bergabung
                     ];
                 }
                 
