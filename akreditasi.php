@@ -362,6 +362,7 @@ try {
                                 <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Tanggal Review</th>
                                 <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Target Capaian</th>
                                 <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Status Pemenuhan</th>
+                                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Skor (%)</th>
                                 <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Berkas</th>
                                 <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b">Aksi</th>
                             </tr>
@@ -403,6 +404,23 @@ try {
                                             ?>
                                             <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold <?php echo $statusClass; ?>">
                                                 <?php echo htmlspecialchars($doc['status_pemenuhan']); ?>
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <?php
+                                                if ($doc['status_pemenuhan'] === 'Sudah Terpenuhi') {
+                                                    $skor = 100;
+                                                    $skorClass = 'bg-emerald-100 text-emerald-800';
+                                                } elseif ($doc['status_pemenuhan'] === 'Dalam Review') {
+                                                    $skor = 80;
+                                                    $skorClass = 'bg-blue-100 text-blue-800';
+                                                } else {
+                                                    $skor = 0;
+                                                    $skorClass = 'bg-red-100 text-red-800';
+                                                }
+                                            ?>
+                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold <?php echo $skorClass; ?>">
+                                                <?php echo $skor; ?>%
                                             </span>
                                         </td>
                                         <td class="px-6 py-4">
@@ -455,43 +473,62 @@ try {
 
     <!-- Add/Edit Document Modal -->
     <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl mx-4">
-            <div class="p-8 border-b border-gray-100 flex justify-between items-center">
-                <h2 id="modal-title" class="text-2xl font-bold text-gray-900">Tambah Dokumen / Bukti EP</h2>
-                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-2xl">×</button>
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4">
+            <!-- Modal Header -->
+            <div class="px-7 py-5 border-b border-gray-100 flex justify-between items-center">
+                <h2 id="modal-title" class="text-xl font-bold text-gray-900">Tambah Dokumen / Bukti EP</h2>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
             </div>
-            <form method="POST" enctype="multipart/form-data" class="p-8 space-y-6">
+            <!-- Modal Body -->
+            <form method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="edit_id" id="edit_id" value="">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-3">Pilih Akreditasi</label>
-                    <select name="bab" id="bab" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
-                        <?php foreach ($STARKES_BAB as $key => $value): ?>
-                            <option value="<?php echo $key; ?>"><?php echo htmlspecialchars($value); ?></option>
-                        <?php endforeach; ?>
-                    </select>
+                <div class="px-7 py-6 space-y-5">
+                    <!-- Pilih Akreditasi -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-800 mb-2">Pilih Akreditasi</label>
+                        <select name="bab" id="bab" required
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-gray-700 text-sm">
+                            <?php foreach ($STARKES_BAB as $key => $value): ?>
+                                <option value="<?php echo $key; ?>"><?php echo htmlspecialchars($value); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <!-- Nama Dokumen -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-800 mb-2">Nama Dokumen</label>
+                        <input type="text" name="nama_dokumen" id="nama_dokumen" required
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm text-gray-700">
+                    </div>
+                    <!-- Nomor Elemen Penilaian -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-800 mb-2">Nomor Elemen Penilaian</label>
+                        <input type="text" name="kode_ep" id="kode_ep" required placeholder="Contoh: EP-101"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm text-gray-700 placeholder-gray-400">
+                    </div>
+                    <!-- Target Capaian -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-800 mb-2">Target Capaian (%)</label>
+                        <input type="number" name="target_capaian" id="target_capaian" min="0" max="100" required value="100"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm text-gray-700">
+                    </div>
+                    <!-- Upload Berkas -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-800 mb-2">Upload Berkas (PDF/DOC/Image)</label>
+                        <div class="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white flex items-center">
+                            <input type="file" name="berkas" id="berkas" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                                class="text-sm text-gray-700 file:mr-3 file:py-1 file:px-3 file:rounded file:border file:border-gray-300 file:bg-white file:text-sm file:text-gray-700 file:cursor-pointer hover:file:bg-gray-50 w-full">
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1">Biarkan kosong jika tidak ingin mengubah berkas</p>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-3">Nama Dokumen</label>
-                    <input type="text" name="nama_dokumen" id="nama_dokumen" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-3">Nomor Elemen Penilaian</label>
-                    <input type="text" name="kode_ep" id="kode_ep" required placeholder="Contoh: EP-101" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-3">Target Capaian (%)</label>
-                    <input type="number" name="target_capaian" id="target_capaian" min="0" max="100" required value="100" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-3">Upload Berkas (PDF/DOC/Image)</label>
-                    <input type="file" name="berkas" id="berkas" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
-                    <p class="text-xs text-gray-500 mt-1">Biarkan kosong jika tidak ingin mengubah berkas</p>
-                </div>
-                <div class="flex justify-end gap-4 pt-4 border-t border-gray-100">
-                    <button type="button" onclick="closeModal()" class="px-6 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl font-medium transition-colors">
+                <!-- Modal Footer -->
+                <div class="px-7 py-4 border-t border-gray-100 flex justify-end gap-3">
+                    <button type="button" onclick="closeModal()"
+                        class="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-sm transition-colors">
                         Batal
                     </button>
-                    <button type="submit" name="add_document" id="submitBtn" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium transition-colors">
+                    <button type="submit" name="add_document" id="submitBtn"
+                        class="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium text-sm transition-colors">
                         Simpan
                     </button>
                 </div>
