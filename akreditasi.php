@@ -270,14 +270,87 @@ try {
     foreach ($documents as $doc) {
         $stats['total']++;
         $g = $doc['grading_kelengkapan'] ?? '';
-        if ($g === 'Selesai')          $stats['selesai']++;
-        elseif ($g === 'Selesai Sebagian') $stats['sebagian']++;
-        else                               $stats['belum']++;
+        if ($g === 'Selesai')                $stats['selesai']++;
+        elseif ($g === 'Selesai Sebagian')   $stats['sebagian']++;
+        else                                 $stats['belum']++;
     }
 } catch (PDOException $e) {
     $documents = [];
     $stats = ['total'=>0,'selesai'=>0,'sebagian'=>0,'belum'=>0];
 }
+
+// ── REKAP PER BAB ─────────────────────────────────────────────────────────────
+// Nama bab sesuai gambar (kode singkat → nama panjang)
+$BAB_NAMA = [
+    '1'  => ['kode'=>'TKRS',   'nama'=>'Tata Kelola Rumah Sakit'],
+    '2'  => ['kode'=>'KPS',    'nama'=>'Kualifikasi dan Pendidikan Staf'],
+    '3'  => ['kode'=>'MFK',    'nama'=>'Manajemen Fasilitas dan Keselamatan'],
+    '4'  => ['kode'=>'PMKP',   'nama'=>'Peningkatan Mutu dan Keselamatan Pasien'],
+    '5'  => ['kode'=>'MRMIK',  'nama'=>'Manajemen Rekam Medis dan Informasi Kesehatan'],
+    '6'  => ['kode'=>'PPI',    'nama'=>'Pencegahan dan Pengendalian Infeksi'],
+    '7'  => ['kode'=>'PPK',    'nama'=>'Pendidikan Dalam Pelayanan Kesehatan'],
+    '8'  => ['kode'=>'PROGNAS','nama'=>'Program Nasional'],
+    '9'  => ['kode'=>'AKP',    'nama'=>'Akses dan Kesinambungan Pasien'],
+    '10' => ['kode'=>'PKPO',   'nama'=>'Pelayanan Kefarmasian dan Pelayanan Obat'],
+    '11' => ['kode'=>'PAB',    'nama'=>'Pelayanan Anestesi dan Bedah'],
+    '12' => ['kode'=>'SKP',    'nama'=>'Sasaran Keselamatan Pasien'],
+    '13' => ['kode'=>'PP',     'nama'=>'Pengkajian Pasien'],
+    '14' => ['kode'=>'PAP',    'nama'=>'Pelayanan dan Asuhan Pasien'],
+    '15' => ['kode'=>'HPK',    'nama'=>'Hak Pasien dan Keluarga'],
+];
+
+// Hitung rekap per bab dari semua dokumen (tanpa filter bab)
+try {
+    $allDocs = $pdo->query("SELECT bab, grading_kelengkapan, skor FROM dokumen_akreditasi")->fetchAll();
+} catch (PDOException $e) {
+    $allDocs = [];
+}
+
+$rekap = [];
+foreach ($BAB_NAMA as $key => $info) {
+    $rekap[$key] = [
+        'kode'     => $info['kode'],
+        'nama'     => $info['nama'],
+        'total'    => 0,
+        'selesai'  => 0,
+        'sebagian' => 0,
+        'belum'    => 0,
+        'na'       => 0,
+        'sum_skor' => 0,
+    ];
+}
+
+foreach ($allDocs as $d) {
+    $b = $d['bab'];
+    if (!isset($rekap[$b])) continue;
+    $rekap[$b]['total']++;
+    $g = $d['grading_kelengkapan'] ?? '';
+    if ($g === 'Selesai') {
+        $rekap[$b]['selesai']++;
+        $rekap[$b]['sum_skor'] += 100;
+    } elseif ($g === 'Selesai Sebagian') {
+        $rekap[$b]['sebagian']++;
+        $rekap[$b]['sum_skor'] += 80;
+    } elseif ($g === 'Belum Selesai') {
+        $rekap[$b]['belum']++;
+        $rekap[$b]['sum_skor'] += 0;
+    } else {
+        $rekap[$b]['na']++;
+        // N/A dikecualikan dari rata-rata
+    }
+}
+
+// Total keseluruhan
+$rekapTotal = ['total'=>0,'selesai'=>0,'sebagian'=>0,'belum'=>0,'na'=>0,'sum_skor'=>0,'dinilai'=>0];
+foreach ($rekap as $r) {
+    $rekapTotal['total']    += $r['total'];
+    $rekapTotal['selesai']  += $r['selesai'];
+    $rekapTotal['sebagian'] += $r['sebagian'];
+    $rekapTotal['belum']    += $r['belum'];
+    $rekapTotal['na']       += $r['na'];
+    $rekapTotal['sum_skor'] += $r['sum_skor'];
+}
+$rekapTotal['dinilai'] = $rekapTotal['total'] - $rekapTotal['na'];
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -370,6 +443,104 @@ try {
                             <a href="akreditasi.php" class="text-sm text-emerald-700 hover:underline">Reset</a>
                         <?php endif; ?>
                     </form>
+                </div>
+
+                <!-- ══ REKAP KELENGKAPAN BUKTI PER BAB ══════════════════════════════ -->
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div class="px-6 py-4 bg-blue-900">
+                        <h2 class="text-base font-bold text-white tracking-wide">REKAP KELENGKAPAN BUKTI PER BAB / ELEMEN AKREDITASI</h2>
+                        <p class="text-xs text-blue-200 mt-0.5">
+                            Grading: Selesai = 100% &nbsp;|&nbsp; Selesai Sebagian = 80% &nbsp;|&nbsp; Belum Selesai = 0% &nbsp;(N/A dan Belum Dinilai dikecualikan dari rata-rata)
+                        </p>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full border-collapse text-sm" style="min-width:820px">
+                            <thead>
+                                <tr class="bg-blue-800 text-white">
+                                    <th class="px-4 py-3 text-center font-semibold border border-blue-700 w-20">Bab</th>
+                                    <th class="px-4 py-3 text-left   font-semibold border border-blue-700">Nama Bab</th>
+                                    <th class="px-4 py-3 text-center font-semibold border border-blue-700 w-24">Jumlah EP</th>
+                                    <th class="px-4 py-3 text-center font-semibold border border-blue-700 w-28">Selesai<br><span class="font-normal text-xs">(100%)</span></th>
+                                    <th class="px-4 py-3 text-center font-semibold border border-blue-700 w-32">Selesai Sebagian<br><span class="font-normal text-xs">(80%)</span></th>
+                                    <th class="px-4 py-3 text-center font-semibold border border-blue-700 w-28">Belum Selesai<br><span class="font-normal text-xs">(0%)</span></th>
+                                    <th class="px-4 py-3 text-center font-semibold border border-blue-700 w-28">Belum Dinilai /<br>N/A</th>
+                                    <th class="px-4 py-3 text-center font-semibold border border-blue-700 w-32">Rata-rata Capaian<br><span class="font-normal text-xs">(%)</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($rekap as $key => $r):
+                                    $dinilai  = $r['total'] - $r['na'];
+                                    $rataRata = $dinilai > 0 ? round($r['sum_skor'] / $dinilai, 1) : 0;
+                                    // warna rata-rata
+                                    if ($rataRata >= 80)      $avgClass = 'text-emerald-700 font-bold';
+                                    elseif ($rataRata >= 40)  $avgClass = 'text-yellow-700 font-bold';
+                                    else                      $avgClass = 'text-red-600 font-bold';
+                                    // baris zebra
+                                    $rowBg = ($key % 2 === 0) ? 'bg-white' : 'bg-gray-50';
+                                ?>
+                                <tr class="<?php echo $rowBg; ?> hover:bg-blue-50 transition-colors">
+                                    <td class="px-4 py-2.5 text-center font-semibold border border-gray-200 text-blue-900"><?php echo htmlspecialchars($r['kode']); ?></td>
+                                    <td class="px-4 py-2.5 border border-gray-200 text-gray-800"><?php echo htmlspecialchars($r['nama']); ?></td>
+                                    <td class="px-4 py-2.5 text-center border border-gray-200">
+                                        <?php if ($r['total'] > 0): ?>
+                                            <span class="font-semibold text-gray-800"><?php echo $r['total']; ?></span>
+                                        <?php else: ?>
+                                            <span class="text-gray-300">—</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="px-4 py-2.5 text-center border border-gray-200">
+                                        <?php if ($r['total'] > 0): ?>
+                                            <span class="inline-flex items-center justify-center w-8 h-8 rounded-full <?php echo $r['selesai'] > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-400'; ?> text-xs font-bold"><?php echo $r['selesai']; ?></span>
+                                        <?php else: ?><span class="text-gray-300">—</span><?php endif; ?>
+                                    </td>
+                                    <td class="px-4 py-2.5 text-center border border-gray-200">
+                                        <?php if ($r['total'] > 0): ?>
+                                            <span class="inline-flex items-center justify-center w-8 h-8 rounded-full <?php echo $r['sebagian'] > 0 ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-400'; ?> text-xs font-bold"><?php echo $r['sebagian']; ?></span>
+                                        <?php else: ?><span class="text-gray-300">—</span><?php endif; ?>
+                                    </td>
+                                    <td class="px-4 py-2.5 text-center border border-gray-200">
+                                        <?php if ($r['total'] > 0): ?>
+                                            <span class="inline-flex items-center justify-center w-8 h-8 rounded-full <?php echo $r['belum'] > 0 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-400'; ?> text-xs font-bold"><?php echo $r['belum']; ?></span>
+                                        <?php else: ?><span class="text-gray-300">—</span><?php endif; ?>
+                                    </td>
+                                    <td class="px-4 py-2.5 text-center border border-gray-200">
+                                        <?php if ($r['total'] > 0): ?>
+                                            <span class="inline-flex items-center justify-center w-8 h-8 rounded-full <?php echo $r['na'] > 0 ? 'bg-gray-200 text-gray-600' : 'bg-gray-100 text-gray-400'; ?> text-xs font-bold"><?php echo $r['na']; ?></span>
+                                        <?php else: ?><span class="text-gray-300">—</span><?php endif; ?>
+                                    </td>
+                                    <td class="px-4 py-2.5 text-center border border-gray-200">
+                                        <span class="<?php echo $r['total'] > 0 ? $avgClass : 'text-gray-300'; ?>">
+                                            <?php echo $r['total'] > 0 ? number_format($rataRata, 1) . '%' : '—'; ?>
+                                        </span>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                            <!-- Baris TOTAL -->
+                            <tfoot>
+                                <?php
+                                    $totalDinilai = $rekapTotal['dinilai'];
+                                    $totalAvg     = $totalDinilai > 0 ? round($rekapTotal['sum_skor'] / $totalDinilai, 1) : 0;
+                                    if ($totalAvg >= 80)     $tAvgClass = 'text-emerald-700';
+                                    elseif ($totalAvg >= 40) $tAvgClass = 'text-yellow-700';
+                                    else                     $tAvgClass = 'text-red-600';
+                                ?>
+                                <tr class="bg-blue-900 text-white">
+                                    <td class="px-4 py-3 text-center font-bold border border-blue-700" colspan="2">TOTAL</td>
+                                    <td class="px-4 py-3 text-center font-bold border border-blue-700"><?php echo $rekapTotal['total']; ?></td>
+                                    <td class="px-4 py-3 text-center font-bold border border-blue-700"><?php echo $rekapTotal['selesai']; ?></td>
+                                    <td class="px-4 py-3 text-center font-bold border border-blue-700"><?php echo $rekapTotal['sebagian']; ?></td>
+                                    <td class="px-4 py-3 text-center font-bold border border-blue-700"><?php echo $rekapTotal['belum']; ?></td>
+                                    <td class="px-4 py-3 text-center font-bold border border-blue-700"><?php echo $rekapTotal['na']; ?></td>
+                                    <td class="px-4 py-3 text-center font-bold border border-blue-700">
+                                        <span class="<?php echo $tAvgClass; ?>">
+                                            <?php echo number_format($totalAvg, 1); ?>%
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
                 </div>
 
                 <!-- Tabel -->
