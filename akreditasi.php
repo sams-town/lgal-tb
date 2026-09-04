@@ -753,6 +753,7 @@ $rekapTotal['dinilai'] = $rekapTotal['total'] - $rekapTotal['na'];
                     </div>
 
                 </div>
+                </div>
                 <!-- Footer -->
                 <div class="px-7 py-4 border-t border-gray-100 flex justify-end gap-3 flex-shrink-0">
                     <button type="button" onclick="closeModal()"
@@ -768,61 +769,63 @@ $rekapTotal['dinilai'] = $rekapTotal['total'] - $rekapTotal['na'];
         // ── Hitung skor otomatis ──────────────────────────────────────────────
         function updateSkor(grading) {
             const el = document.getElementById('skor_display');
-            if (grading === 'Selesai')          el.value = '100%';
+            if (!el) return;
+            if (grading === 'Selesai')               el.value = '100%';
             else if (grading === 'Selesai Sebagian') el.value = '80%';
-            else                                 el.value = '0%';
+            else                                     el.value = '0%';
         }
 
         // Inisialisasi skor saat halaman load
         updateSkor(document.getElementById('grading_kelengkapan').value);
 
         // ── Buka modal Tambah ─────────────────────────────────────────────────
-        const _origOpen = window.openModal;
-        window.openModal = function(id) {
-            if (!id || id === 'modal') {
-                resetForm();
-                document.getElementById('submitBtn').name = 'add_document';
-                document.getElementById('submitBtn').textContent = 'Simpan';
-                document.getElementById('modal-title').textContent = 'Tambah Dokumen / Bukti EP';
-            }
-            if (_origOpen) { _origOpen(id); }
-            else {
-                const el = document.getElementById(id || 'modal');
-                if (el) { el.classList.remove('hidden'); el.classList.add('flex'); }
-            }
-        };
+        function openModal(id) {
+            resetForm();
+            document.getElementById('submitBtn').name        = 'add_document';
+            document.getElementById('submitBtn').textContent = 'Simpan';
+            document.getElementById('modal-title').textContent = 'Tambah Dokumen / Bukti EP';
+            const modal = document.getElementById('modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
 
         function resetForm() {
-            const ids = ['edit_id','nama_dokumen','kode_standar','uraian_standar',
-                         'no_ep','kode_ep','elemen_penilaian','kelengkapan_bukti',
+            const ids = ['edit_id','kode_standar','uraian_standar',
+                         'no_ep','elemen_penilaian','kelengkapan_bukti',
                          'fakta_analisis','rekomendasi','catatan'];
-            ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-            document.getElementById('bab').value = '1';
-            document.getElementById('target_capaian').value = '100';
-            document.getElementById('grading_kelengkapan').value = 'Belum Selesai';
-            document.getElementById('berkas').value = '';
+            ids.forEach(function(id) {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            const bab = document.getElementById('bab');
+            if (bab) bab.value = '1';
+            const grading = document.getElementById('grading_kelengkapan');
+            if (grading) grading.value = 'Belum Selesai';
+            const berkas = document.getElementById('berkas');
+            if (berkas) berkas.value = '';
             updateSkor('Belum Selesai');
         }
 
         // ── Buka modal Edit ───────────────────────────────────────────────────
         function openEditModal(doc) {
-            document.getElementById('edit_id').value              = doc.id        || '';
-            document.getElementById('bab').value                  = doc.bab       || '1';
-            document.getElementById('kode_standar').value         = doc.kode_standar      || '';
-            document.getElementById('nama_dokumen').value         = doc.nama_dokumen      || '';
-            document.getElementById('uraian_standar').value       = doc.uraian_standar    || '';
-            document.getElementById('no_ep').value                = doc.no_ep             || '';
-            document.getElementById('kode_ep').value              = doc.kode_ep           || '';
-            document.getElementById('elemen_penilaian').value     = doc.elemen_penilaian  || '';
-            document.getElementById('kelengkapan_bukti').value    = doc.kelengkapan_bukti || '';
-            document.getElementById('fakta_analisis').value       = doc.fakta_analisis    || '';
-            document.getElementById('rekomendasi').value          = doc.rekomendasi       || '';
-            document.getElementById('catatan').value              = doc.catatan           || '';
-            document.getElementById('target_capaian').value       = doc.target_capaian    || '100';
-            document.getElementById('berkas').value               = '';
+            const setVal = function(id, val) {
+                const el = document.getElementById(id);
+                if (el) el.value = val || '';
+            };
+            setVal('edit_id',            doc.id);
+            setVal('bab',                doc.bab || '1');
+            setVal('kode_standar',       doc.kode_standar);
+            setVal('uraian_standar',     doc.uraian_standar);
+            setVal('no_ep',              doc.no_ep);
+            setVal('elemen_penilaian',   doc.elemen_penilaian);
+            setVal('kelengkapan_bukti',  doc.kelengkapan_bukti);
+            setVal('fakta_analisis',     doc.fakta_analisis);
+            setVal('rekomendasi',        doc.rekomendasi);
+            setVal('catatan',            doc.catatan);
+            setVal('berkas',             '');
 
             const grading = doc.grading_kelengkapan || 'Belum Selesai';
-            document.getElementById('grading_kelengkapan').value  = grading;
+            setVal('grading_kelengkapan', grading);
             updateSkor(grading);
 
             document.getElementById('submitBtn').name        = 'edit_document';
@@ -835,8 +838,9 @@ $rekapTotal['dinilai'] = $rekapTotal['total'] - $rekapTotal['na'];
         }
 
         // ── Tutup modal ───────────────────────────────────────────────────────
-        function closeModal(id = 'modal') {
-            const el = document.getElementById(id);
+        function closeModal(id) {
+            const modalId = id || 'modal';
+            const el = document.getElementById(modalId);
             if (el) { el.classList.add('hidden'); el.classList.remove('flex'); }
         }
     </script>
