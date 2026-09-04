@@ -15,23 +15,23 @@ if (!hasPermission('akreditasi_view')) {
 
 $user = $_SESSION['user'];
 
-// Define STARKES Bab array (tidak diubah)
+// Define STARKES Bab array
 $STARKES_BAB = [
     '1'  => '1. TKRS (Tata Kelola Rumah Sakit)',
-    '2'  => '2. PKPO (Pelayanan Kesehatan Pemberdayaan Orang)',
-    '3'  => '3. KKS (Ketersediaan Kesehatan Sarana)',
-    '4'  => '4. PPM (Pelayanan Profesional Medis)',
-    '5'  => '5. KPP (Kualitas Pelayanan Kesehatan)',
-    '6'  => '6. APK (Akses Pelayanan Kesehatan)',
-    '7'  => '7. HAM (Hak Azasi Manusia)',
-    '8'  => '8. KES (Keselamatan Pasien & Karyawan)',
-    '9'  => '9. MUT (Manajemen Mutu)',
-    '10' => '10. INF (Infection Control & Pencegahan Penyakit)',
-    '11' => '11. MDP (Manajemen Dokumen & Peraturan)',
-    '12' => '12. PKM (Pengelolaan Keuangan dan Manajemen)',
-    '13' => '13. SDI (Sumber Daya Manusia)',
-    '14' => '14. KEL (Kesejahteraan Lingkungan)',
-    '15' => '15. Prognas (Program Nasional)'
+    '2'  => '2. PKPO (Pelayanan Kefarmasian dan Penggunaan Obat)',
+    '3'  => '3. KPS (Kualifikasi Pendidikan dan Staf)',
+    '4'  => '4. MFK (Manajemen Fasilitas dan Keselamatan)',
+    '5'  => '5. PMKP (Peningkatan Mutu dan Keselamatan Pasien)',
+    '6'  => '6. PPI (Pencegahan dan Pengendalian Infeksi)',
+    '7'  => '7. HPK (Hak Pasien dan Keluarga)',
+    '8'  => '8. MRMIK (Manajemen Rekam Medik dan Informasi Kesehatan)',
+    '9'  => '9. SKP (Sasaran Keselamatan Pasien)',
+    '10' => '10. KE (Komunikasi dan Edukasi)',
+    '11' => '11. AKP (Akses dan Kontinuitas Pelayanan)',
+    '12' => '12. PP (Pengkajian Pasien)',
+    '13' => '13. PAP (Pelayanan dan Asuhan Pasien)',
+    '14' => '14. PAB (Pelayanan Anastesi Bedah)',
+    '15' => '15. PROGNAS (Program Nasional)',
 ];
 
 // Helper: hitung skor dari grading
@@ -283,20 +283,20 @@ try {
 // Nama bab sesuai gambar (kode singkat → nama panjang)
 $BAB_NAMA = [
     '1'  => ['kode'=>'TKRS',   'nama'=>'Tata Kelola Rumah Sakit'],
-    '2'  => ['kode'=>'KPS',    'nama'=>'Kualifikasi dan Pendidikan Staf'],
-    '3'  => ['kode'=>'MFK',    'nama'=>'Manajemen Fasilitas dan Keselamatan'],
-    '4'  => ['kode'=>'PMKP',   'nama'=>'Peningkatan Mutu dan Keselamatan Pasien'],
-    '5'  => ['kode'=>'MRMIK',  'nama'=>'Manajemen Rekam Medis dan Informasi Kesehatan'],
+    '2'  => ['kode'=>'PKPO',   'nama'=>'Pelayanan Kefarmasian dan Penggunaan Obat'],
+    '3'  => ['kode'=>'KPS',    'nama'=>'Kualifikasi Pendidikan dan Staf'],
+    '4'  => ['kode'=>'MFK',    'nama'=>'Manajemen Fasilitas dan Keselamatan'],
+    '5'  => ['kode'=>'PMKP',   'nama'=>'Peningkatan Mutu dan Keselamatan Pasien'],
     '6'  => ['kode'=>'PPI',    'nama'=>'Pencegahan dan Pengendalian Infeksi'],
-    '7'  => ['kode'=>'PPK',    'nama'=>'Pendidikan Dalam Pelayanan Kesehatan'],
-    '8'  => ['kode'=>'PROGNAS','nama'=>'Program Nasional'],
-    '9'  => ['kode'=>'AKP',    'nama'=>'Akses dan Kesinambungan Pasien'],
-    '10' => ['kode'=>'PKPO',   'nama'=>'Pelayanan Kefarmasian dan Pelayanan Obat'],
-    '11' => ['kode'=>'PAB',    'nama'=>'Pelayanan Anestesi dan Bedah'],
-    '12' => ['kode'=>'SKP',    'nama'=>'Sasaran Keselamatan Pasien'],
-    '13' => ['kode'=>'PP',     'nama'=>'Pengkajian Pasien'],
-    '14' => ['kode'=>'PAP',    'nama'=>'Pelayanan dan Asuhan Pasien'],
-    '15' => ['kode'=>'HPK',    'nama'=>'Hak Pasien dan Keluarga'],
+    '7'  => ['kode'=>'HPK',    'nama'=>'Hak Pasien dan Keluarga'],
+    '8'  => ['kode'=>'MRMIK',  'nama'=>'Manajemen Rekam Medik dan Informasi Kesehatan'],
+    '9'  => ['kode'=>'SKP',    'nama'=>'Sasaran Keselamatan Pasien'],
+    '10' => ['kode'=>'KE',     'nama'=>'Komunikasi dan Edukasi'],
+    '11' => ['kode'=>'AKP',    'nama'=>'Akses dan Kontinuitas Pelayanan'],
+    '12' => ['kode'=>'PP',     'nama'=>'Pengkajian Pasien'],
+    '13' => ['kode'=>'PAP',    'nama'=>'Pelayanan dan Asuhan Pasien'],
+    '14' => ['kode'=>'PAB',    'nama'=>'Pelayanan Anastesi Bedah'],
+    '15' => ['kode'=>'PROGNAS','nama'=>'Program Nasional'],
 ];
 
 // Hitung rekap per bab dari semua dokumen (tanpa filter bab)
