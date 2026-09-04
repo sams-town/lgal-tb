@@ -668,19 +668,12 @@ $rekapTotal['dinilai'] = $rekapTotal['total'] - $rekapTotal['na'];
                         </select>
                     </div>
 
-                    <!-- Kode Standar + Nama Dokumen -->
-                    <div class="grid grid-cols-2 gap-4">
+                    <!-- Kode Standar -->
                         <div>
                             <label class="block text-sm font-semibold text-gray-800 mb-1">Kode Standar</label>
                             <input type="text" name="kode_standar" id="kode_standar" placeholder="Contoh: TKRS 1"
                                 class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm text-gray-700 placeholder-gray-400">
                         </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-800 mb-1">Nama Dokumen</label>
-                            <input type="text" name="nama_dokumen" id="nama_dokumen"
-                                class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm text-gray-700">
-                        </div>
-                    </div>
 
                     <!-- Uraian Standar -->
                     <div>
@@ -689,18 +682,11 @@ $rekapTotal['dinilai'] = $rekapTotal['total'] - $rekapTotal['na'];
                             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm text-gray-700 resize-none"></textarea>
                     </div>
 
-                    <!-- No EP + Nomor Elemen Penilaian (kode_ep) -->
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-800 mb-1">No EP</label>
-                            <input type="text" name="no_ep" id="no_ep" placeholder="Contoh: EP-101"
-                                class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm text-gray-700 placeholder-gray-400">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-800 mb-1">Nomor Elemen Penilaian</label>
-                            <input type="text" name="kode_ep" id="kode_ep" placeholder="Contoh: EP-101"
-                                class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm text-gray-700 placeholder-gray-400">
-                        </div>
+                    <!-- No EP -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-800 mb-1">No EP</label>
+                        <input type="text" name="no_ep" id="no_ep" placeholder="Contoh: EP-101"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm text-gray-700 placeholder-gray-400">
                     </div>
 
                     <!-- Elemen Penilaian -->
@@ -756,21 +742,14 @@ $rekapTotal['dinilai'] = $rekapTotal['total'] - $rekapTotal['na'];
                             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm text-gray-700 resize-none"></textarea>
                     </div>
 
-                    <!-- Target Capaian + Upload Berkas -->
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-800 mb-1">Target Capaian (%)</label>
-                            <input type="number" name="target_capaian" id="target_capaian" min="0" max="100" value="100"
-                                class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm text-gray-700">
+                    <!-- Upload Berkas -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-800 mb-1">Upload Berkas (PDF/DOC/Image)</label>
+                        <div class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white">
+                            <input type="file" name="berkas" id="berkas" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                                class="text-sm text-gray-700 file:mr-2 file:py-1 file:px-2 file:rounded file:border file:border-gray-300 file:bg-white file:text-xs file:cursor-pointer w-full">
                         </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-800 mb-1">Upload Berkas (PDF/DOC/Image)</label>
-                            <div class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white">
-                                <input type="file" name="berkas" id="berkas" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                                    class="text-sm text-gray-700 file:mr-2 file:py-1 file:px-2 file:rounded file:border file:border-gray-300 file:bg-white file:text-xs file:cursor-pointer w-full">
-                            </div>
-                            <p class="text-xs text-gray-400 mt-1">Biarkan kosong jika tidak ingin mengubah berkas</p>
-                        </div>
+                        <p class="text-xs text-gray-400 mt-1">Biarkan kosong jika tidak ingin mengubah berkas</p>
                     </div>
 
                 </div>
