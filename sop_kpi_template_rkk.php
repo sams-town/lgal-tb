@@ -8,7 +8,7 @@ if (!hasPermission('sop_view')) { header("Location: dashboard.php"); exit; }
 
 // ── Auto-migrate: pastikan tabel & kolom ada ─────────────────────────────────
 try {
-    // Buat tabel jika belum ada (dengan kolom tugas)
+    // Buat tabel tanpa foreign key constraint (lebih kompatibel shared hosting)
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS `kpi_rkk_tugas` (
             `id`          int(11)      NOT NULL AUTO_INCREMENT,
@@ -17,18 +17,24 @@ try {
             `tipe_tugas`  varchar(50)  DEFAULT 'Pokok',
             `deskripsi`   text,
             PRIMARY KEY (`id`),
-            KEY `template_id` (`template_id`),
-            CONSTRAINT `kpi_rkk_tugas_ibfk_1` FOREIGN KEY (`template_id`)
-                REFERENCES `kpi_rkk_template` (`id`) ON DELETE CASCADE
+            KEY `template_id` (`template_id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     ");
 } catch (PDOException $e) { /* abaikan */ }
 
 try {
-    // Tambah kolom tugas jika belum ada (untuk tabel yang sudah lama)
+    // Tambah kolom tugas jika belum ada
     $chk = $pdo->query("SHOW COLUMNS FROM `kpi_rkk_tugas` LIKE 'tugas'")->rowCount();
     if ($chk == 0) {
         $pdo->exec("ALTER TABLE `kpi_rkk_tugas` ADD COLUMN `tugas` varchar(255) NOT NULL DEFAULT '' AFTER `template_id`");
+    }
+} catch (PDOException $e) { /* abaikan */ }
+
+try {
+    // Tambah kolom tipe_tugas jika belum ada
+    $chk2 = $pdo->query("SHOW COLUMNS FROM `kpi_rkk_tugas` LIKE 'tipe_tugas'")->rowCount();
+    if ($chk2 == 0) {
+        $pdo->exec("ALTER TABLE `kpi_rkk_tugas` ADD COLUMN `tipe_tugas` varchar(50) DEFAULT 'Pokok' AFTER `tugas`");
     }
 } catch (PDOException $e) { /* abaikan */ }
 
@@ -83,25 +89,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // ── Ambil Template + jumlah tugas ────────────────────────────────────────────
-$templateList = $pdo->query("
-    SELECT t.*, COUNT(r.id) as jumlah_tugas
-    FROM kpi_rkk_template t
-    LEFT JOIN kpi_rkk_tugas r ON t.id = r.template_id
-    GROUP BY t.id
-    ORDER BY t.jabatan ASC
-")->fetchAll();
+try {
+    $templateList = $pdo->query("
+        SELECT t.*, COUNT(r.id) as jumlah_tugas
+        FROM kpi_rkk_template t
+        LEFT JOIN kpi_rkk_tugas r ON t.id = r.template_id
+        GROUP BY t.id
+        ORDER BY t.jabatan ASC
+    ")->fetchAll();
+} catch (PDOException $e) {
+    $templateList = [];
+}
 
 // Jika ada ?open=ID → ambil tugas untuk template itu
 $openId    = (int)($_GET['open'] ?? 0);
 $tugasList = [];
 $openData  = null;
 if ($openId) {
-    $s = $pdo->prepare("SELECT * FROM kpi_rkk_template WHERE id=?");
-    $s->execute([$openId]);
-    $openData = $s->fetch();
-    $s2 = $pdo->prepare("SELECT * FROM kpi_rkk_tugas WHERE template_id=? ORDER BY tipe_tugas DESC, id ASC");
-    $s2->execute([$openId]);
-    $tugasList = $s2->fetchAll();
+    try {
+        $s = $pdo->prepare("SELECT * FROM kpi_rkk_template WHERE id=?");
+        $s->execute([$openId]);
+        $openData = $s->fetch();
+        $s2 = $pdo->prepare("SELECT * FROM kpi_rkk_tugas WHERE template_id=? ORDER BY tipe_tugas DESC, id ASC");
+        $s2->execute([$openId]);
+        $tugasList = $s2->fetchAll();
+    } catch (PDOException $e) {
+        $openData  = null;
+        $tugasList = [];
+    }
 }
 ?>
 <!DOCTYPE html>
