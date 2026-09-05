@@ -198,6 +198,25 @@ input.nbox:focus {
     box-shadow:0 0 0 2px rgba(13,148,136,.18)!important;
     outline:none!important;
 }
+select.nbox {
+    width:36px!important; height:30px!important;
+    text-align:center!important;
+    border:1px solid #cbd5e1!important;
+    border-radius:6px!important;
+    padding:0 2px!important;
+    font-size:12px!important;
+    background:#fff!important;
+    display:block; margin:3px auto;
+    cursor:pointer;
+    appearance:none; -webkit-appearance:none;
+    transition:border-color .15s,box-shadow .15s;
+}
+select.nbox:focus {
+    border-color:#0d9488!important;
+    box-shadow:0 0 0 2px rgba(13,148,136,.18)!important;
+    outline:none!important;
+}
+select.nbox option { text-align:center; }
 .nbox-ro {
     display:block; margin:3px auto;
     width:32px; height:30px; line-height:30px;
@@ -386,9 +405,13 @@ input.nbox:focus {
             $val=$nilaiDB[$kr['id']][$h]??''; ?>
           <td class="col-day <?=$we?'we-col':''?>" style="padding:3px!important">
             <?php if($canEdit): ?>
-            <input type="text" class="nbox" name="nilai[<?=$kr['id']?>][<?=$h?>]"
-                   value="<?=htmlspecialchars($val)?>" maxlength="2" inputmode="numeric"
-                   title="<?=htmlspecialchars($kr['nama_indikator'])?> - Hari <?=$h?>">
+            <select class="nbox" name="nilai[<?=$kr['id']?>][<?=$h?>]"
+                    title="<?=htmlspecialchars($kr['nama_indikator'])?> - Hari <?=$h?>">
+              <option value=""></option>
+              <?php for($v=1;$v<=5;$v++): ?>
+              <option value="<?=$v?>" <?=$val==(string)$v?'selected':''?>><?=$v?></option>
+              <?php endfor; ?>
+            </select>
             <?php else: ?>
             <span class="nbox-ro"><?=htmlspecialchars($val)?></span>
             <?php endif; ?>
