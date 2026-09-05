@@ -45,6 +45,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         syncRKKtoKomite($pdo, $_POST['karyawan_id']);
         header("Location: sop_kpi_rkk.php?success=add&karyawan_id=".$_POST['karyawan_id']);
         exit;
+    } elseif ($action === 'upload_csv') {
+        // ── Upload CSV/Excel ───────────────────────────────────────────────
+        $kid = (int)$_POST['karyawan_id'];
+        $imported = 0;
+        $errors   = [];
+        if (isset($_FILES['csv_file']) && $_FILES['csv_file']['error'] === UPLOAD_ERR_OK) {
+            $ext = strtolower(pathinfo($_FILES['csv_file']['name'], PATHINFO_EXTENSION));
+            if (!in_array($ext, ['csv','txt'])) {
+                $uploadError = 'Format file harus CSV (.csv)';
+            } else {
+                $handle = fopen($_FILES['csv_file']['tmp_name'], 'r');
+                // Deteksi BOM UTF-8
+                $bom = fread($handle, 3);
+                if ($bom !== "\xEF\xBB\xBF") rewind($handle);
+                $header = fgetcsv($handle, 0, ';') ?: fgetcsv($handle, 0, ',');
+                // cari delimiter yang benar
+                rewind($handle);
+                $bom2 = fread($handle, 3);
+                if ($bom2 !== "\xEF\xBB\xBF") rewind($handle);
+                $firstLine = fgets($handle);
+                rewind($handle);
+                $bom3 = fread($handle, 3);
+                if ($bom3 !== "\xEF\xBB\xBF") rewind($handle);
+                $delim = (substr_count($firstLine, ';') >= substr_count($firstLine, ',')) ? ';' : ',';
+                fgetcsv($handle, 0, $delim); // skip header
+                $ins = $pdo->prepare("INSERT INTO kpi_rkk_karyawan (karyawan_id, tugas, deskripsi, jenis) VALUES (?,?,?,?)");
+                $row = 1;
+                while (($data = fgetcsv($handle, 0, $delim)) !== false) {
+                    $row++;
+                    if (count($data) < 1 || trim($data[0]) === '') continue;
+                    $tugas     = trim($data[0] ?? '');
+                    $deskripsi = trim($data[1] ?? '');
+                    $jenis     = trim($data[2] ?? 'Pokok');
+                    if (!in_array($jenis, ['Pokok','Tambahan'])) $jenis = 'Pokok';
+                    if ($tugas === '') { $errors[] = "Baris $row: Nama Tugas kosong, dilewati."; continue; }
+                    $ins->execute([$kid, $tugas, $deskripsi, $jenis]);
+                    $imported++;
+                }
+                fclose($handle);
+                syncRKKtoKomite($pdo, $kid);
+            }
+        } else {
+            $uploadError = 'Tidak ada file yang dipilih atau terjadi kesalahan upload.';
+        }
+        if (isset($uploadError)) {
+            header("Location: sop_kpi_rkk.php?upload_error=".urlencode($uploadError)."&karyawan_id=$kid");
+        } else {
+            header("Location: sop_kpi_rkk.php?success=upload&imported=$imported&karyawan_id=$kid");
+        }
+        exit;
+    } elseif ($action === 'download_template_csv') {
+        // ── Download template CSV ──────────────────────────────────────────
+        header('Content-Type: text/csv; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="template_tugas_rkk.csv"');
+        echo "\xEF\xBB\xBF"; // BOM agar Excel baca UTF-8 dengan benar
+        echo "Nama Tugas / Kewenangan;Deskripsi Detail;Jenis Tugas (Pokok/Tambahan)\n";
+        echo "Melakukan pemeriksaan fisik pasien;Pemeriksaan dilakukan setiap hari sesuai SOP;Pokok\n";
+        echo "Menulis laporan harian;Laporan ditulis sebelum jam 14.00;Pokok\n";
+        echo "Mengikuti rapat koordinasi;Rapat bulanan komite medis;Tambahan\n";
+        exit;
     } elseif ($action === 'edit') {
         $stmt = $pdo->prepare("UPDATE kpi_rkk_karyawan SET tugas=?, deskripsi=?, jenis=? WHERE id=?");
         $stmt->execute([$_POST['tugas'], $_POST['deskripsi'], $_POST['jenis'], $_POST['id']]);
@@ -179,7 +239,19 @@ function namaHariRKK(int $h, int $b, int $y): string {
                 <?php if (isset($_GET['success'])): ?>
                 <div class="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl flex items-center gap-2">
                     <i data-lucide="check-circle" class="w-5 h-5"></i>
-                    <span><?= $_GET['success']==='log' ? 'Log harian berhasil disimpan! Nilai RKK di penilaian harian otomatis terupdate.' : 'Perubahan berhasil disimpan!' ?></span>
+                    <?php if ($_GET['success']==='upload'): ?>
+                        <span><?= (int)($_GET['imported']??0) ?> tugas berhasil diimport dari file CSV.</span>
+                    <?php elseif ($_GET['success']==='log'): ?>
+                        <span>Log harian berhasil disimpan! Nilai RKK di penilaian harian otomatis terupdate.</span>
+                    <?php else: ?>
+                        <span>Perubahan berhasil disimpan!</span>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+                <?php if (isset($_GET['upload_error'])): ?>
+                <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center gap-2">
+                    <i data-lucide="alert-circle" class="w-5 h-5"></i>
+                    <span><?= htmlspecialchars($_GET['upload_error']) ?></span>
                 </div>
                 <?php endif; ?>
 
@@ -248,6 +320,9 @@ function namaHariRKK(int $h, int $b, int $y): string {
                                     </button>
                                     <button onclick="openModal('modalAdd')" class="bg-white text-teal-600 hover:bg-teal-50 px-3 py-1.5 rounded-xl text-sm font-bold shadow-sm transition-colors flex items-center gap-1.5">
                                         <i data-lucide="plus" class="w-4 h-4"></i> Tambah Tugas
+                                    </button>
+                                    <button onclick="openModal('modalUpload')" class="bg-white text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-xl text-sm font-bold shadow-sm transition-colors flex items-center gap-1.5">
+                                        <i data-lucide="upload" class="w-4 h-4"></i> Upload CSV
                                     </button>
                                 </div>
                             </div>
@@ -469,6 +544,52 @@ function namaHariRKK(int $h, int $b, int $y): string {
                 <div class="flex justify-end gap-3 mt-6">
                     <button type="button" onclick="closeModal('modalAdd')" class="px-4 py-2 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50">Batal</button>
                     <button type="submit" class="px-4 py-2 bg-teal-600 text-white rounded-xl hover:bg-teal-700 font-medium">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Upload CSV -->
+    <div id="modalUpload" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-2xl w-full max-w-lg p-6 m-4 relative shadow-xl">
+            <h2 class="text-xl font-bold text-gray-900 mb-1">Upload Tugas dari CSV</h2>
+            <p class="text-xs text-gray-400 mb-4">Upload file CSV berisi daftar tugas/kewenangan sekaligus.</p>
+
+            <!-- Panduan format -->
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-4 text-xs text-blue-700 space-y-1">
+                <p class="font-semibold">Format CSV (pisahkan dengan titik koma <code>;</code>):</p>
+                <p><code>Nama Tugas / Kewenangan ; Deskripsi Detail ; Jenis Tugas</code></p>
+                <p class="text-blue-500">Jenis Tugas diisi: <strong>Pokok</strong> atau <strong>Tambahan</strong></p>
+                <p class="text-blue-500">Baris pertama (header) akan dilewati otomatis.</p>
+            </div>
+
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="upload_csv">
+                <input type="hidden" name="karyawan_id" value="<?= $karyawan_id ?>">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Pilih File CSV</label>
+                        <div class="w-full border border-gray-200 rounded-xl px-3 py-2 bg-gray-50">
+                            <input type="file" name="csv_file" accept=".csv,.txt" required
+                                class="text-sm text-gray-700 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border file:border-gray-300 file:bg-white file:text-sm file:cursor-pointer w-full">
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-between items-center mt-6">
+                    <!-- Download template -->
+                    <form method="POST" class="inline">
+                        <input type="hidden" name="action" value="download_template_csv">
+                        <input type="hidden" name="karyawan_id" value="<?= $karyawan_id ?>">
+                        <button type="submit" class="text-xs text-teal-600 hover:underline flex items-center gap-1">
+                            <i data-lucide="download" class="w-3.5 h-3.5"></i> Download Template CSV
+                        </button>
+                    </form>
+                    <div class="flex gap-3">
+                        <button type="button" onclick="closeModal('modalUpload')" class="px-4 py-2 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 text-sm">Batal</button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-medium text-sm flex items-center gap-1.5">
+                            <i data-lucide="upload" class="w-4 h-4"></i> Upload & Import
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
