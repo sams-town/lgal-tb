@@ -6,13 +6,31 @@ require_once 'includes/functions.php';
 if (!isset($_SESSION['user'])) { header('Location: index.php'); exit; }
 if (!hasPermission('sop_view')) { header("Location: dashboard.php"); exit; }
 
-// ── Auto-migrate: tambah kolom tugas ke kpi_rkk_tugas jika belum ada ─────────
+// ── Auto-migrate: pastikan tabel & kolom ada ─────────────────────────────────
 try {
-    $cols = $pdo->query("SHOW COLUMNS FROM kpi_rkk_tugas")->fetchAll(PDO::FETCH_COLUMN);
-    if (!in_array('tugas', $cols)) {
-        $pdo->exec("ALTER TABLE kpi_rkk_tugas ADD COLUMN `tugas` varchar(255) NOT NULL DEFAULT '' AFTER `template_id`");
+    // Buat tabel jika belum ada (dengan kolom tugas)
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `kpi_rkk_tugas` (
+            `id`          int(11)      NOT NULL AUTO_INCREMENT,
+            `template_id` int(11)      DEFAULT NULL,
+            `tugas`       varchar(255) NOT NULL DEFAULT '',
+            `tipe_tugas`  varchar(50)  DEFAULT 'Pokok',
+            `deskripsi`   text,
+            PRIMARY KEY (`id`),
+            KEY `template_id` (`template_id`),
+            CONSTRAINT `kpi_rkk_tugas_ibfk_1` FOREIGN KEY (`template_id`)
+                REFERENCES `kpi_rkk_template` (`id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+} catch (PDOException $e) { /* abaikan */ }
+
+try {
+    // Tambah kolom tugas jika belum ada (untuk tabel yang sudah lama)
+    $chk = $pdo->query("SHOW COLUMNS FROM `kpi_rkk_tugas` LIKE 'tugas'")->rowCount();
+    if ($chk == 0) {
+        $pdo->exec("ALTER TABLE `kpi_rkk_tugas` ADD COLUMN `tugas` varchar(255) NOT NULL DEFAULT '' AFTER `template_id`");
     }
-} catch (PDOException $e) { /* abaikan jika tabel belum ada */ }
+} catch (PDOException $e) { /* abaikan */ }
 
 // ── POST Handlers ─────────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
