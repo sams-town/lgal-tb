@@ -118,19 +118,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header("Location: sop_kpi_rkk.php?success=delete&karyawan_id=".$_POST['karyawan_id']);
         exit;
     } elseif ($action === 'copy_template') {
-        $karyawan_id = $_POST['karyawan_id'];
-        $template_id = $_POST['template_id'];
-        
+        $karyawan_id = (int)$_POST['karyawan_id'];
+        $template_id = (int)$_POST['template_id'];
+
         $stmtTugas = $pdo->prepare("SELECT * FROM kpi_rkk_tugas WHERE template_id = ?");
         $stmtTugas->execute([$template_id]);
         $tugasList = $stmtTugas->fetchAll();
-        
+
         $stmtInsert = $pdo->prepare("INSERT INTO kpi_rkk_karyawan (karyawan_id, tugas, deskripsi, jenis) VALUES (?, ?, ?, ?)");
-        foreach($tugasList as $t) {
-            $stmtInsert->execute([$karyawan_id, $t['tugas'], $t['deskripsi'], 'Pokok']);
+        $imported = 0;
+        foreach ($tugasList as $t) {
+            $namaT = $t['tugas']     ?? $t['deskripsi'] ?? ''; // fallback ke deskripsi untuk data lama
+            $desk  = $t['deskripsi'] ?? '';
+            $jenis = $t['tipe_tugas'] ?? 'Pokok';
+            if (!in_array($jenis, ['Pokok','Tambahan'])) $jenis = 'Pokok';
+            if (trim($namaT) === '') continue;
+            $stmtInsert->execute([$karyawan_id, $namaT, $desk, $jenis]);
+            $imported++;
         }
         syncRKKtoKomite($pdo, $karyawan_id);
-        header("Location: sop_kpi_rkk.php?success=copy&karyawan_id=".$karyawan_id);
+        header("Location: sop_kpi_rkk.php?success=copy&imported=$imported&karyawan_id=".$karyawan_id);
         exit;
     } elseif ($action === 'save_log') {
         // Simpan log harian RKK
@@ -241,6 +248,8 @@ function namaHariRKK(int $h, int $b, int $y): string {
                     <i data-lucide="check-circle" class="w-5 h-5"></i>
                     <?php if ($_GET['success']==='upload'): ?>
                         <span><?= (int)($_GET['imported']??0) ?> tugas berhasil diimport dari file CSV.</span>
+                    <?php elseif ($_GET['success']==='copy'): ?>
+                        <span><?= (int)($_GET['imported']??0) ?> tugas berhasil disalin dari template.</span>
                     <?php elseif ($_GET['success']==='log'): ?>
                         <span>Log harian berhasil disimpan! Nilai RKK di penilaian harian otomatis terupdate.</span>
                     <?php else: ?>
@@ -576,14 +585,10 @@ function namaHariRKK(int $h, int $b, int $y): string {
                     </div>
                 </div>
                 <div class="flex justify-between items-center mt-6">
-                    <!-- Download template -->
-                    <form method="POST" class="inline">
-                        <input type="hidden" name="action" value="download_template_csv">
-                        <input type="hidden" name="karyawan_id" value="<?= $karyawan_id ?>">
-                        <button type="submit" class="text-xs text-teal-600 hover:underline flex items-center gap-1">
-                            <i data-lucide="download" class="w-3.5 h-3.5"></i> Download Template CSV
-                        </button>
-                    </form>
+                    <!-- Download template — pakai JS agar tidak nested form -->
+                    <button type="button" onclick="downloadTemplateCSV()" class="text-xs text-teal-600 hover:underline flex items-center gap-1">
+                        <i data-lucide="download" class="w-3.5 h-3.5"></i> Download Template CSV
+                    </button>
                     <div class="flex gap-3">
                         <button type="button" onclick="closeModal('modalUpload')" class="px-4 py-2 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 text-sm">Batal</button>
                         <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-medium text-sm flex items-center gap-1.5">
@@ -624,6 +629,18 @@ function namaHariRKK(int $h, int $b, int $y): string {
 
     <script>
         lucide.createIcons();
+
+        // Download template CSV via JS (hindari nested form)
+        function downloadTemplateCSV() {
+            var f = document.createElement('form');
+            f.method = 'POST';
+            f.style.display = 'none';
+            f.innerHTML = '<input type="hidden" name="action" value="download_template_csv">'
+                        + '<input type="hidden" name="karyawan_id" value="<?= $karyawan_id ?>">';
+            document.body.appendChild(f);
+            f.submit();
+            document.body.removeChild(f);
+        }
 
         // Data log per hari dari PHP (untuk update checklist tanpa reload)
         const logData = <?= json_encode($logBulanIni) ?>;
