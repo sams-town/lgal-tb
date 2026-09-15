@@ -19,71 +19,180 @@ $user = $_SESSION['user'];
 $bulan = isset($_GET['bulan']) ? $_GET['bulan'] : date('m');
 $tahun = isset($_GET['tahun']) ? $_GET['tahun'] : date('Y');
 
-// Total Karyawan Dinilai (Bulan & Tahun terkait)
-$stmt = $pdo->prepare("SELECT COUNT(DISTINCT karyawan_id) as total FROM kpi_penilaian WHERE bulan = ? AND tahun = ?");
-$stmt->execute([$bulan, $tahun]);
-$karyawanDinilai = $stmt->fetchColumn() ?: 0;
+// ── Helper: hitung skor dari kpi_penilaian_harian per karyawan ───────────────
+// Rata-rata nilai harian (1-5) per kriteria × 20 = skala 100, lalu × bobot/100
+function hitungSkorHarian(PDO $pdo, int $kid, int $bln, int $thn): float {
+    try {
+        $st = $pdo->prepare("
+            SELECT SUM(sub.nilai_akhir) as total
+            FROM (
+                SELECT AVG(ph.nilai)*20*(kr.bobot/100) AS nilai_akhir
+                FROM kpi_penilaian_harian ph
+                JOIN kpi_kriteria kr ON kr.id = ph.kriteria_id
+                WHERE ph.karyawan_id=? AND ph.bulan=? AND ph.tahun=?
+                GROUP BY ph.kriteria_id, kr.bobot
+            ) sub
+        ");
+        $st->execute([$kid, $bln, $thn]);
+        return round((float)($st->fetchColumn() ?? 0), 2);
+    } catch (Exception $e) { return 0; }
+}
 
 // Total Karyawan (Semua)
-$stmt = $pdo->query("SELECT COUNT(*) FROM kpi_karyawan WHERE status = 'Aktif'");
-$totalKaryawan = $stmt->fetchColumn() ?: 0;
-
-// Rata-rata Skor RS (Bulan & Tahun)
-$stmt = $pdo->prepare("SELECT AVG(total_skor) as rata_rata FROM kpi_penilaian WHERE bulan = ? AND tahun = ?");
-$stmt->execute([$bulan, $tahun]);
-$rataRataSkor = number_format((float)$stmt->fetchColumn(), 1);
-
-$predikatSkor = "Kurang";
-if ($rataRataSkor >= 85) $predikatSkor = "Sangat Baik";
-elseif ($rataRataSkor >= 70) $predikatSkor = "Baik";
-elseif ($rataRataSkor >= 60) $predikatSkor = "Cukup";
-
-// Unit Terbaik (Berdasarkan rata-rata nilai karyawan di unit tersebut)
-$stmt = $pdo->prepare("
-    SELECT k.unit, AVG(p.total_skor) as avg_skor 
-    FROM kpi_penilaian p
-    JOIN kpi_karyawan k ON p.karyawan_id = k.id
-    WHERE p.bulan = ? AND p.tahun = ?
-    GROUP BY k.unit
-    ORDER BY avg_skor DESC LIMIT 1
-");
-$stmt->execute([$bulan, $tahun]);
-$unitTerbaikData = $stmt->fetch();
-$unitTerbaik = $unitTerbaikData ? $unitTerbaikData['unit'] : "-";
+try {
+    $totalKaryawan = (int)$pdo->query("SELECT COUNT(*) FROM kpi_karyawan WHERE status = 'Aktif'")->fetchColumn();
+} catch (PDOException $e) { $totalKaryawan = 0; }
 
 // Jumlah Unit
-$stmt = $pdo->query("SELECT COUNT(DISTINCT unit) FROM kpi_karyawan WHERE status = 'Aktif'");
-$jumlahUnit = $stmt->fetchColumn() ?: 0;
+try {
+    $jumlahUnit = (int)$pdo->query("SELECT COUNT(DISTINCT unit) FROM kpi_karyawan WHERE status='Aktif'")->fetchColumn();
+} catch (PDOException $e) { $jumlahUnit = 0; }
 
-// Data untuk Chart 1: Rata-rata per Unit
-$stmt = $pdo->prepare("
-    SELECT k.unit, AVG(p.total_skor) as avg_skor 
-    FROM kpi_penilaian p
-    JOIN kpi_karyawan k ON p.karyawan_id = k.id
-    WHERE p.bulan = ? AND p.tahun = ?
-    GROUP BY k.unit
-");
-$stmt->execute([$bulan, $tahun]);
+// ── Cek apakah ada data harian bulan ini ─────────────────────────────────────
+try {
+    $cekHarian = (int)$pdo->prepare("
+        SELECT COUNT(DISTINCT karyawan_id) FROM kpi_penilaian_harian WHERE bulan=? AND tahun=?
+    ")->execute([(int)$bulan, (int)$tahun]) ? $pdo->query("
+        SELECT COUNT(DISTINCT karyawan_id) FROM kpi_penilaian_harian WHERE bulan=".((int)$bulan)." AND tahun=".((int)$tahun)
+    )->fetchColumn() : 0;
+} catch (PDOException $e) { $cekHarian = 0; }
+
+// Query yang lebih bersih untuk cek harian
+try {
+    $stCH = $pdo->prepare("SELECT COUNT(DISTINCT karyawan_id) FROM kpi_penilaian_harian WHERE bulan=? AND tahun=?");
+    $stCH->execute([(int)$bulan,(int)$tahun]);
+    $cekHarian = (int)$stCH->fetchColumn();
+} catch (PDOException $e) { $cekHarian = 0; }
+
+// ── Hitung statistik dari sumber terbaik ────────────────────────────────────
+$skorPerKaryawan = []; // [karyawan_id => ['nama','unit','jabatan','skor']]
+
+if ($cekHarian > 0) {
+    // Sumber: kpi_penilaian_harian
+    try {
+        $stK = $pdo->query("SELECT id,nama,unit,jabatan FROM kpi_karyawan WHERE status='Aktif'");
+        foreach ($stK->fetchAll() as $k) {
+            // Cek apakah karyawan ini punya data harian bulan ini
+            $stCK = $pdo->prepare("SELECT COUNT(*) FROM kpi_penilaian_harian WHERE karyawan_id=? AND bulan=? AND tahun=?");
+            $stCK->execute([$k['id'],(int)$bulan,(int)$tahun]);
+            if ((int)$stCK->fetchColumn() > 0) {
+                $skor = hitungSkorHarian($pdo, (int)$k['id'], (int)$bulan, (int)$tahun);
+                $skorPerKaryawan[$k['id']] = ['nama'=>$k['nama'],'unit'=>$k['unit'],'jabatan'=>$k['jabatan'],'skor'=>$skor];
+            }
+        }
+    } catch (PDOException $e) {}
+} else {
+    // Fallback: kpi_penilaian
+    try {
+        $stP = $pdo->prepare("
+            SELECT p.karyawan_id,k.nama,k.unit,k.jabatan,p.total_skor as skor
+            FROM kpi_penilaian p JOIN kpi_karyawan k ON k.id=p.karyawan_id
+            WHERE p.bulan=? AND p.tahun=?
+        ");
+        $stP->execute([$bulan,$tahun]);
+        foreach ($stP->fetchAll() as $r) {
+            $skorPerKaryawan[$r['karyawan_id']] = ['nama'=>$r['nama'],'unit'=>$r['unit'],'jabatan'=>$r['jabatan'],'skor'=>(float)$r['skor']];
+        }
+    } catch (PDOException $e) {}
+}
+
+$karyawanDinilai = count($skorPerKaryawan);
+$rataRataSkor    = $karyawanDinilai > 0 ? round(array_sum(array_column($skorPerKaryawan,'skor')) / $karyawanDinilai, 1) : 0;
+
+$predikatSkor = "Kurang";
+if ($rataRataSkor >= 90)     $predikatSkor = "Sangat Baik";
+elseif ($rataRataSkor >= 75) $predikatSkor = "Baik";
+elseif ($rataRataSkor >= 60) $predikatSkor = "Cukup";
+
+// Unit Terbaik
+$unitSkor = [];
+foreach ($skorPerKaryawan as $r) {
+    $unitSkor[$r['unit']][] = $r['skor'];
+}
+$unitTerbaik = '-';
+$bestAvg = 0;
+foreach ($unitSkor as $u => $skors) {
+    $avg = array_sum($skors) / count($skors);
+    if ($avg > $bestAvg) { $bestAvg = $avg; $unitTerbaik = $u; }
+}
+
+// Chart 1: Rata-rata per Unit
 $chartUnitLabels = [];
-$chartUnitData = [];
-while ($row = $stmt->fetch()) {
-    $chartUnitLabels[] = $row['unit'];
-    $chartUnitData[] = round($row['avg_skor'], 1);
+$chartUnitData   = [];
+foreach ($unitSkor as $u => $skors) {
+    $chartUnitLabels[] = $u;
+    $chartUnitData[]   = round(array_sum($skors)/count($skors), 1);
 }
 
-// Data untuk Chart 2: Tren 12 Bulan (Tahun yang dipilih)
-$stmt = $pdo->prepare("
-    SELECT bulan, AVG(total_skor) as avg_skor 
-    FROM kpi_penilaian 
-    WHERE tahun = ?
-    GROUP BY bulan
-    ORDER BY bulan ASC
-");
-$stmt->execute([$tahun]);
-$trenBulanan = array_fill(1, 12, 0); // Inisialisasi 12 bulan = 0
-while ($row = $stmt->fetch()) {
-    $trenBulanan[(int)$row['bulan']] = round($row['avg_skor'], 1);
+// Chart 2: Tren 12 bulan (dari harian jika ada, else kpi_penilaian)
+$trenBulanan = array_fill(1, 12, 0);
+try {
+    // Cek apakah ada data harian tahun ini
+    $stTH = $pdo->prepare("SELECT COUNT(*) FROM kpi_penilaian_harian WHERE tahun=?");
+    $stTH->execute([(int)$tahun]);
+    $adaHarianTahun = (int)$stTH->fetchColumn();
+
+    if ($adaHarianTahun > 0) {
+        // Hitung rata-rata skor per bulan dari harian
+        $stTren = $pdo->prepare("
+            SELECT ph.bulan,
+                   AVG(sub.nilai_akhir) as avg_skor
+            FROM (
+                SELECT ph2.karyawan_id, ph2.bulan,
+                       SUM(AVG(ph2.nilai)*20*(kr.bobot/100)) OVER (PARTITION BY ph2.karyawan_id,ph2.bulan) as nilai_akhir
+                FROM kpi_penilaian_harian ph2
+                JOIN kpi_kriteria kr ON kr.id=ph2.kriteria_id
+                WHERE ph2.tahun=?
+                GROUP BY ph2.karyawan_id, ph2.bulan, ph2.kriteria_id, kr.bobot
+            ) sub
+            JOIN kpi_penilaian_harian ph ON ph.karyawan_id=sub.karyawan_id AND ph.bulan=sub.bulan
+            WHERE ph.tahun=?
+            GROUP BY ph.bulan
+        ");
+        $stTren->execute([(int)$tahun,(int)$tahun]);
+        // Fallback jika query kompleks gagal
+    } else {
+        throw new Exception('no harian');
+    }
+} catch (Exception $e) {
+    // Fallback sederhana: kpi_penilaian
+    try {
+        $stTren = $pdo->prepare("SELECT bulan, AVG(total_skor) as avg_skor FROM kpi_penilaian WHERE tahun=? GROUP BY bulan ORDER BY bulan ASC");
+        $stTren->execute([$tahun]);
+        while ($row = $stTren->fetch()) {
+            $trenBulanan[(int)$row['bulan']] = round($row['avg_skor'], 1);
+        }
+    } catch (Exception $ex) {}
+    $stTren = null;
 }
+
+// Hitung tren bulanan dari data harian secara per-bulan (lebih reliable)
+if ($adaHarianTahun > 0) {
+    for ($b = 1; $b <= 12; $b++) {
+        try {
+            $stB = $pdo->prepare("SELECT COUNT(DISTINCT karyawan_id) FROM kpi_penilaian_harian WHERE bulan=? AND tahun=?");
+            $stB->execute([$b,(int)$tahun]);
+            if ((int)$stB->fetchColumn() === 0) continue;
+
+            $stBS = $pdo->prepare("
+                SELECT SUM(sub.na) / COUNT(DISTINCT sub.kid) as avg
+                FROM (
+                    SELECT ph.karyawan_id as kid, SUM(AVG(ph.nilai)*20*(kr.bobot/100)) as na
+                    FROM kpi_penilaian_harian ph
+                    JOIN kpi_kriteria kr ON kr.id=ph.kriteria_id
+                    WHERE ph.bulan=? AND ph.tahun=?
+                    GROUP BY ph.karyawan_id, ph.kriteria_id, kr.bobot
+                ) sub
+            ");
+            $stBS->execute([$b,(int)$tahun]);
+            $avg = (float)($stBS->fetchColumn() ?? 0);
+            if ($avg > 0) $trenBulanan[$b] = round($avg, 1);
+        } catch (Exception $e) {}
+    }
+}
+
+$chartTrenLabels = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
+$chartTrenData   = array_values($trenBulanan);
 $chartTrenLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
 $chartTrenData = array_values($trenBulanan);
 
@@ -112,7 +221,13 @@ $chartTrenData = array_values($trenBulanan);
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                     <div>
                         <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Dashboard KPI</h1>
-                        <p class="text-gray-500 mt-1">Ringkasan Performa Karyawan Rumah Sakit</p>
+                        <p class="text-gray-500 mt-1">Ringkasan Performa Karyawan Rumah Sakit
+                            <?php if ($cekHarian > 0): ?>
+                            <span class="ml-2 inline-block px-2 py-0.5 bg-teal-100 text-teal-700 rounded-full text-xs font-semibold">Data Harian</span>
+                            <?php else: ?>
+                            <span class="ml-2 inline-block px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full text-xs font-semibold">Data Bulanan</span>
+                            <?php endif; ?>
+                        </p>
                     </div>
                     <form class="flex flex-wrap items-end gap-3" method="GET">
                         <div>

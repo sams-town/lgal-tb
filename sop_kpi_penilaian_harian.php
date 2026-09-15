@@ -45,6 +45,73 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['action']??'')==='save' && $c
         $error = "Kesalahan: ".$e->getMessage();
     }
 }
+
+// ── Finalisasi: agregasi nilai harian → kpi_penilaian + kpi_penilaian_detail ─
+if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['action']??'')==='finalisasi' && $canEdit) {
+    $kid = (int)$_POST['karyawan_id'];
+    $bln = (int)$_POST['bulan'];
+    $thn = (int)$_POST['tahun'];
+    $ctn = trim($_POST['catatan'] ?? '');
+
+    try {
+        // Hitung rata-rata per kriteria dari nilai harian (skala 1-5), konversi ke 0-100
+        $stAvg = $pdo->prepare("
+            SELECT ph.kriteria_id, AVG(ph.nilai) AS rata, kr.bobot
+            FROM kpi_penilaian_harian ph
+            JOIN kpi_kriteria kr ON kr.id = ph.kriteria_id
+            WHERE ph.karyawan_id=? AND ph.bulan=? AND ph.tahun=?
+            GROUP BY ph.kriteria_id, kr.bobot
+        ");
+        $stAvg->execute([$kid, $bln, $thn]);
+        $avgRows = $stAvg->fetchAll();
+
+        if (empty($avgRows)) {
+            $error = "Tidak ada data penilaian harian untuk difinalisasi.";
+            goto render;
+        }
+
+        // Hitung total skor
+        $totalSkor = 0;
+        foreach ($avgRows as $r) {
+            $nilai100   = round((float)$r['rata'] * 20, 2); // 1-5 → 0-100
+            $totalSkor += $nilai100 * ($r['bobot'] / 100);
+        }
+        $totalSkor = round($totalSkor, 2);
+
+        $pdo->beginTransaction();
+
+        // Upsert kpi_penilaian
+        $stCek = $pdo->prepare("SELECT id FROM kpi_penilaian WHERE karyawan_id=? AND bulan=? AND tahun=?");
+        $stCek->execute([$kid, $bln, $thn]);
+        $existing = $stCek->fetch();
+
+        if ($existing) {
+            $penilaian_id = $existing['id'];
+            $pdo->prepare("UPDATE kpi_penilaian SET total_skor=?, catatan=? WHERE id=?")
+                ->execute([$totalSkor, $ctn, $penilaian_id]);
+            $pdo->prepare("DELETE FROM kpi_penilaian_detail WHERE penilaian_id=?")->execute([$penilaian_id]);
+        } else {
+            $stIns = $pdo->prepare("INSERT INTO kpi_penilaian (karyawan_id,bulan,tahun,total_skor,catatan,created_by) VALUES(?,?,?,?,?,?)");
+            $stIns->execute([$kid, $bln, $thn, $totalSkor, $ctn, $user['nama'] ?? 'Admin']);
+            $penilaian_id = $pdo->lastInsertId();
+        }
+
+        // Insert detail per kriteria
+        $stDet = $pdo->prepare("INSERT INTO kpi_penilaian_detail (penilaian_id,kriteria_id,nilai) VALUES(?,?,?)");
+        foreach ($avgRows as $r) {
+            $nilai100 = round((float)$r['rata'] * 20, 2);
+            $stDet->execute([$penilaian_id, $r['kriteria_id'], $nilai100]);
+        }
+
+        $pdo->commit();
+        header("Location: sop_kpi_penilaian_harian.php?karyawan_id={$kid}&bulan={$bln}&tahun={$thn}&finalisasi=1");
+        exit;
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        $error = "Gagal finalisasi: " . $e->getMessage();
+    }
+}
+
 render:
 
 // ── Parameter ───────────────────────────────────────────
@@ -265,6 +332,12 @@ select.nbox option { text-align:center; }
   <i data-lucide="check-circle" class="w-4 h-4"></i> Penilaian harian berhasil disimpan!
 </div>
 <?php endif; ?>
+<?php if(isset($_GET['finalisasi'])): ?>
+<div class="mb-3 bg-blue-50 border border-blue-200 text-blue-700 px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm">
+  <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+  Nilai berhasil difinalisasi ke laporan KPI! <a href="sop_kpi_laporan.php?karyawan_id=<?=$karyawan_id?>&bulan=<?=$bulan_sel?>&tahun=<?=$tahun_sel?>" class="ml-2 font-bold underline hover:text-blue-900">Lihat Laporan →</a>
+</div>
+<?php endif; ?>
 <?php if(!empty($error)): ?>
 <div class="mb-3 bg-red-50 border border-red-200 text-red-700 px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm">
   <i data-lucide="alert-circle" class="w-4 h-4"></i> <?= htmlspecialchars($error) ?>
@@ -443,6 +516,44 @@ select.nbox option { text-align:center; }
 </div>
 
 <?php if($canEdit): ?></form><?php endif; ?>
+
+<?php if($canEdit && $karyawan_id && !empty($kriteriaRaw)): ?>
+<!-- ── Tombol Finalisasi ── -->
+<div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+  <div>
+    <p class="text-sm font-bold text-blue-800 flex items-center gap-2">
+      <i data-lucide="send" class="w-4 h-4"></i> Finalisasi Penilaian Bulan Ini
+    </p>
+    <p class="text-xs text-blue-600 mt-0.5">Rata-rata nilai harian akan dihitung dan disimpan ke laporan KPI resmi. Dapat diulang kapan saja.</p>
+  </div>
+  <button onclick="document.getElementById('formFinalisasi').classList.toggle('hidden')"
+    class="flex-shrink-0 px-5 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-semibold text-sm flex items-center gap-1.5 shadow">
+    <i data-lucide="check-circle-2" class="w-4 h-4"></i> Finalisasi ke Laporan
+  </button>
+</div>
+<div id="formFinalisasi" class="hidden mt-2 p-4 bg-white border border-blue-200 rounded-xl">
+  <form method="POST">
+    <input type="hidden" name="action"       value="finalisasi">
+    <input type="hidden" name="karyawan_id"  value="<?=$karyawan_id?>">
+    <input type="hidden" name="bulan"        value="<?=$bulan_sel?>">
+    <input type="hidden" name="tahun"        value="<?=$tahun_sel?>">
+    <div class="mb-3">
+      <label class="block text-sm font-semibold text-gray-700 mb-1">Catatan Evaluator (opsional)</label>
+      <textarea name="catatan" rows="2" placeholder="Catatan untuk karyawan..."
+        class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 outline-none resize-none"></textarea>
+    </div>
+    <div class="flex justify-end gap-2">
+      <button type="button" onclick="document.getElementById('formFinalisasi').classList.add('hidden')"
+        class="px-4 py-2 border border-gray-300 text-gray-600 rounded-xl text-sm hover:bg-gray-50">Batal</button>
+      <button type="submit"
+        onclick="return confirm('Finalisasi nilai harian <?=$bulanList[$bulan_sel]?> <?=$tahun_sel?> untuk karyawan ini ke laporan KPI?')"
+        class="px-5 py-2 bg-blue-600 text-white rounded-xl font-semibold text-sm hover:bg-blue-700 flex items-center gap-1.5">
+        <i data-lucide="check" class="w-4 h-4"></i> Ya, Finalisasi
+      </button>
+    </div>
+  </form>
+</div>
+<?php endif; ?>
 
 <?php elseif($karyawan_id && empty($kriteriaRaw)): ?>
 <div class="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-4 rounded-xl text-sm flex items-start gap-2">

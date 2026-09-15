@@ -203,6 +203,7 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
                 'sop_kpi_template_rkk.php', 
                 'sop_kpi_laporan.php', 
                 'sop_kpi_kriteria.php',
+                'sop_kpi_user.php',
                 'sop.php'
             ];
             $is_sop_active = in_array($current_page, $sop_kpi_pages); 
@@ -240,6 +241,9 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
                     </a>
                     <a href="sop_kpi_kriteria.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'sop_kpi_kriteria.php') ? 'bg-teal-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white'; ?>">
                         › Kriteria Penilaian
+                    </a>
+                    <a href="sop_kpi_user.php" class="block px-4 py-2 rounded-lg text-sm transition-all <?php echo ($current_page === 'sop_kpi_user.php') ? 'bg-teal-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white'; ?>">
+                        › User & Supervisor
                     </a>
                 </div>
             </div>
