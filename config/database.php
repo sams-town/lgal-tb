@@ -42,14 +42,25 @@ try {
         }
     }
 
-    if ($shouldCheck) {
+    if ($shouldCheck || true) { // Forced check to ensure all columns exist
         // Auto-ensure required columns on tenaga_medis table exist
         try {
             $checkCols = [
                 'masa_berlaku_str_mulai' => "DATE NULL AFTER no_str",
                 'masa_berlaku_str_akhir' => "DATE NULL AFTER masa_berlaku_str_mulai",
                 'masa_berlaku_pks_akhir' => "DATE NULL AFTER masa_berlaku_pks_mulai",
-                'masa_berlaku_sk_akhir' => "DATE NULL AFTER masa_berlaku_sk_mulai"
+                'masa_berlaku_sk_akhir' => "DATE NULL AFTER masa_berlaku_sk_mulai",
+                'jenjang_keperawatan' => "VARCHAR(255) NULL AFTER lantai",
+                'nomor_keputusan_direktur' => "VARCHAR(255) NULL AFTER jenjang_keperawatan",
+                'no_rkk' => "VARCHAR(100) NULL AFTER nomor_keputusan_direktur",
+                'masa_berlaku_rkk_mulai' => "DATE NULL AFTER no_rkk",
+                'masa_berlaku_rkk_akhir' => "DATE NULL AFTER masa_berlaku_rkk_mulai",
+                'file_rkk' => "VARCHAR(500) NULL AFTER masa_berlaku_rkk_akhir",
+                'spesialis' => "VARCHAR(255) NULL AFTER jabatan_keperawatan",
+                'nomor_pkwt' => "VARCHAR(255) NULL AFTER spesialis",
+                'rincian_kewenangan_klinis' => "VARCHAR(255) NULL AFTER nomor_pkwt",
+                'kompetensi_klinis' => "VARCHAR(255) NULL AFTER file_sk",
+                'sertifikasi_kompetensi' => "TEXT NULL AFTER kompetensi_klinis"
             ];
             foreach ($checkCols as $cName => $cDef) {
                 $colExists = $pdo->query("SHOW COLUMNS FROM tenaga_medis LIKE '$cName'")->rowCount();
