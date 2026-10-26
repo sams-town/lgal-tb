@@ -256,7 +256,7 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Arsip Dokumen - RS Taman Harapan Baru</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=<?php echo @filemtime('assets/css/tailwind.css') ?: '1'; ?>">
 </head>
 <body class="min-h-screen bg-gray-50 flex">
     <?php include 'includes/sidebar.php'; ?>

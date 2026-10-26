@@ -4,7 +4,11 @@
   "description": "Sistem Manajemen Internal RS Taman Harapan Baru - Modul Legal & Sekretariat",
   "private": true,
   "scripts": {
+    "build:css": "tailwindcss -c tailwind.config.js -i assets/css/input.css -o assets/css/tailwind.css --minify",
     "build": "cd frontend && npm run build && node ../scripts/deploy.js",
     "deploy": "cd frontend && npm run deploy"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
   }
 }

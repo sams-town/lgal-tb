@@ -129,8 +129,8 @@ $supervisorList = array_filter($users, fn($u) => in_array($u['nama_role'], $ROLE
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manajemen User KPI - RS Taman Harapan Baru</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=<?php echo @filemtime('assets/css/tailwind.css') ?: '1'; ?>">
+    <script src="assets/js/lucide.min.js?v=<?php echo @filemtime('assets/js/lucide.min.js') ?: '1'; ?>"></script>
 </head>
 <body class="min-h-screen bg-gray-50 flex">
     <?php include 'includes/sidebar.php'; ?>

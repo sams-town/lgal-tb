@@ -11,7 +11,7 @@ $type_param = isset($_GET['type']) ? $_GET['type'] : '';
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://unpkg.com/lucide@latest"></script>
+<script src="assets/js/lucide.min.js?v=<?php echo @filemtime('assets/js/lucide.min.js') ?: '1'; ?>"></script>
 <style>
     /* Theme global overrides */
     body {

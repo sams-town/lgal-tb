@@ -33,7 +33,7 @@ $allDone = !array_filter($results, fn($r) => $r['status'] === 'err');
 <head>
     <meta charset="UTF-8">
     <title>Migrate kpi_karyawan</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=<?php echo @filemtime('assets/css/tailwind.css') ?: '1'; ?>">
 </head>
 <body class="min-h-screen bg-gray-50 flex items-center justify-center p-8">
     <div class="bg-white rounded-2xl shadow p-8 max-w-lg w-full space-y-4">

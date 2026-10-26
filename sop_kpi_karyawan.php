@@ -138,7 +138,7 @@ foreach ($karyawanList as $k) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Data Karyawan KPI - RS Taman Harapan Baru</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=<?php echo @filemtime('assets/css/tailwind.css') ?: '1'; ?>">
     <!-- DataTables & jQuery -->
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">

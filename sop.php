@@ -22,7 +22,7 @@ $user = $_SESSION['user'];
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SOP & SDM - RS Taman Harapan Baru</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=<?php echo @filemtime('assets/css/tailwind.css') ?: '1'; ?>">
 </head>
 <body class="min-h-screen bg-gray-50 flex">
     <!-- Sidebar -->
@@ -117,7 +117,7 @@ $user = $_SESSION['user'];
             </div>
         </div>
     </main>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="assets/js/lucide.min.js?v=<?php echo @filemtime('assets/js/lucide.min.js') ?: '1'; ?>"></script>
     <script>lucide.createIcons();</script>
     <main class="flex-1 flex flex-col">
         <?php include 'includes/header.php'; ?>

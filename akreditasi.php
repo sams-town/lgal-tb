@@ -470,7 +470,7 @@ $rekapTotal['dinilai'] = $rekapTotal['total'] - $rekapTotal['na'];
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Akreditasi & Mutu - RS Taman Harapan Baru</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=<?php echo @filemtime('assets/css/tailwind.css') ?: '1'; ?>">
     <style>
         .table-wrap { overflow-x: auto; }
         .th { padding: 10px 14px; text-align:left; font-size:12px; font-weight:600; color:#374151; border-bottom:1px solid #e5e7eb; white-space:nowrap; background:#f9fafb; }

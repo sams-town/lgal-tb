@@ -225,7 +225,7 @@ function namaHariRKK(int $h, int $b, int $y): string {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Log RKK / Job Des - RS Taman Harapan Baru</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=<?php echo @filemtime('assets/css/tailwind.css') ?: '1'; ?>">
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 </head>
 <body class="min-h-screen bg-gray-50 flex">
