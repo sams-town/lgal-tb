@@ -106,7 +106,6 @@ $moduleConfigs = [
             'Jabatan Keperawatan' => 'jabatan_keperawatan',
             'Spesialis' => 'spesialis',
             'Lantai' => 'lantai',
-            'Jenjang Keperawatan' => 'jenjang_keperawatan',
             'Nomor SK Direktur' => 'nomor_keputusan_direktur',
             'Nomor PKWT' => 'nomor_pkwt',
             'Rincian Kewenangan Klinis' => 'rincian_kewenangan_klinis',
@@ -115,7 +114,7 @@ $moduleConfigs = [
             'Masa Berlaku SIP Mulai' => 'masa_berlaku_sip_mulai',
             'Masa Berlaku SIP Akhir' => 'masa_berlaku_sip_akhir'
         ],
-        'insertColumns' => ['nama_lengkap', 'unit_ruangan', 'status_kepegawaian', 'tipe_form', 'jabatan_keperawatan', 'spesialis', 'lantai', 'jenjang_keperawatan', 'nomor_keputusan_direktur', 'nomor_pkwt', 'rincian_kewenangan_klinis', 'no_str', 'file_str', 'no_sip', 'masa_berlaku_sip_mulai', 'masa_berlaku_sip_akhir', 'file_sip', 'no_pks', 'masa_berlaku_pks_mulai', 'masa_berlaku_pks_akhir', 'file_pks', 'no_sk', 'masa_berlaku_sk_mulai', 'masa_berlaku_sk_akhir', 'file_sk', 'kompetensi_klinis', 'sertifikasi_kompetensi'],
+        'insertColumns' => ['nama_lengkap', 'unit_ruangan', 'status_kepegawaian', 'tipe_form', 'jabatan_keperawatan', 'spesialis', 'lantai', 'nomor_keputusan_direktur', 'nomor_pkwt', 'rincian_kewenangan_klinis', 'no_str', 'file_str', 'no_sip', 'masa_berlaku_sip_mulai', 'masa_berlaku_sip_akhir', 'file_sip', 'no_pks', 'masa_berlaku_pks_mulai', 'masa_berlaku_pks_akhir', 'file_pks', 'no_sk', 'masa_berlaku_sk_mulai', 'masa_berlaku_sk_akhir', 'file_sk', 'kompetensi_klinis', 'sertifikasi_kompetensi'],
         'displayName' => 'Tenaga Medis'
     ],
     'sop' => [
@@ -302,15 +301,14 @@ if ($action === 'download_template') {
                         $row[3] ?? null, // jabatan_keperawatan
                         $row[4] ?? null, // spesialis
                         $row[5] ?? null, // lantai
-                        $row[6] ?? null, // jenjang_keperawatan
-                        $row[7] ?? null, // nomor_keputusan_direktur
-                        $row[8] ?? null, // nomor_pkwt
-                        $row[9] ?? null, // rincian_kewenangan_klinis
-                        $row[10] ?? null, // no_str
+                        $row[6] ?? null, // nomor_keputusan_direktur
+                        $row[7] ?? null, // nomor_pkwt
+                        $row[8] ?? null, // rincian_kewenangan_klinis
+                        $row[9] ?? null, // no_str
                         null, // file_str
-                        $row[11] ?? null, // no_sip
-                        parseImportDate($row[12] ?? null), // masa_berlaku_sip_mulai
-                        parseImportDate($row[13] ?? null), // masa_berlaku_sip_akhir
+                        $row[10] ?? null, // no_sip
+                        parseImportDate($row[11] ?? null), // masa_berlaku_sip_mulai
+                        parseImportDate($row[12] ?? null), // masa_berlaku_sip_akhir
                         null, // file_sip
                         null, // no_pks
                         null, // masa_berlaku_pks_mulai

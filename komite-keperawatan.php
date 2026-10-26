@@ -59,38 +59,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_tenaga_medis']
                 lantai, jenjang_keperawatan, nomor_keputusan_direktur
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
-        $strAkhir = isset($_POST['str_seumur_hidup']) ? '9999-12-31' : ($_POST['masa_berlaku_str_akhir'] ?? null);
-
         $stmt->execute([
             $_POST['nama_lengkap'],
-            $_POST['unit_ruangan'] ?? '',
+            $_POST['unit_ruangan'] ?? null,
             $_POST['status_kepegawaian'],
             $page,
-            $_POST['no_str'] ?? '',
+            $_POST['no_str'] ?? null,
             $_POST['masa_berlaku_str_mulai'] ?? null,
-            $strAkhir,
+            $_POST['masa_berlaku_str_akhir'] ?? null,
             $fileStr,
-            $_POST['no_sip'] ?? '',
+            $_POST['no_sip'] ?? null,
             $_POST['masa_berlaku_sip_mulai'] ?? null,
             $_POST['masa_berlaku_sip_akhir'] ?? null,
             $fileSip,
-            $_POST['no_pks'] ?? '',
+            $_POST['no_pks'] ?? null,
             $_POST['masa_berlaku_pks_mulai'] ?? null,
             $_POST['masa_berlaku_pks_akhir'] ?? null,
             $filePks,
-            $_POST['no_sk'] ?? '',
+            $_POST['no_sk'] ?? null,
             $_POST['masa_berlaku_sk_mulai'] ?? null,
             $_POST['masa_berlaku_sk_akhir'] ?? null,
             $fileSk,
-            $_POST['kompetensi_klinis'] ?? '',
+            $_POST['kompetensi_klinis'] ?? null,
             $sertifikasi,
-            $_POST['jabatan_keperawatan'] ?? '',
-            $_POST['spesialis'] ?? '',
-            $_POST['nomor_pkwt'] ?? '',
-            $_POST['rincian_kewenangan_klinis'] ?? '',
-            $_POST['lantai'] ?? '1',
-            $_POST['jenjang_keperawatan'] ?? '',
-            $_POST['nomor_keputusan_direktur'] ?? ''
+            $_POST['jabatan_keperawatan'] ?? null,
+            $_POST['spesialis'] ?? null,
+            $_POST['nomor_pkwt'] ?? null,
+            $_POST['rincian_kewenangan_klinis'] ?? null,
+            $_POST['lantai'] ?? null,
+            $_POST['jenjang_keperawatan'] ?? null,
+            $_POST['nomor_keputusan_direktur'] ?? null
         ]);
         $_SESSION['success_msg'] = "Data Komite Keperawatan berhasil ditambahkan";
     } catch (PDOException $e) {
@@ -140,7 +138,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_tenaga_medis']))
         }
 
         $sertifikasi = isset($_POST['sertifikasi']) ? json_encode($_POST['sertifikasi']) : null;
-        $strAkhir = isset($_POST['str_seumur_hidup']) ? '9999-12-31' : ($_POST['masa_berlaku_str_akhir'] ?? null);
 
         try {
             $stmt = $pdo->prepare("
@@ -161,7 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_tenaga_medis']))
                 $_POST['status_kepegawaian'],
                 $_POST['no_str'] ?? null,
                 $_POST['masa_berlaku_str_mulai'] ?? null,
-                $strAkhir,
+                $_POST['masa_berlaku_str_akhir'] ?? null,
                 $fileStr,
                 $_POST['no_sip'] ?? null,
                 $_POST['masa_berlaku_sip_mulai'] ?? null,
@@ -317,20 +314,6 @@ if (!function_exists('formatDate')) {
                     <?php unset($_SESSION['error_msg']); ?>
                 <?php endif; ?>
 
-                <?php if (isset($_SESSION['import_error'])): ?>
-                    <div class="p-4 bg-red-100 text-red-800 rounded-xl font-medium shadow-sm transition-all">
-                        <?php echo htmlspecialchars($_SESSION['import_error']); ?>
-                    </div>
-                    <?php unset($_SESSION['import_error']); ?>
-                <?php endif; ?>
-
-                <?php if (isset($_SESSION['import_success'])): ?>
-                    <div class="p-4 bg-emerald-100 text-emerald-800 rounded-xl font-medium shadow-sm transition-all">
-                        <?php echo htmlspecialchars($_SESSION['import_success']); ?>
-                    </div>
-                    <?php unset($_SESSION['import_success']); ?>
-                <?php endif; ?>
-
                 <!-- Stats Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -483,12 +466,7 @@ if (!function_exists('formatDate')) {
                                                 <?php 
                                                 $strMulai = $data['masa_berlaku_str_mulai'] ?? null;
                                                 $strAkhir = $data['masa_berlaku_str_akhir'] ?? null;
-                                                if ($strAkhir === '9999-12-31'): ?>
-                                                    <div class="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                                                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-purple-500"></span>
-                                                        Seumur Hidup
-                                                    </div>
-                                                <?php elseif ($strMulai && $strAkhir): ?>
+                                                if ($strMulai && $strAkhir): ?>
                                                     <div class="text-xs text-gray-500 mt-1 flex items-center gap-1">
                                                         <span class="inline-block w-1.5 h-1.5 rounded-full bg-purple-500"></span>
                                                         <?php echo formatDate($strMulai) . ' - ' . formatDate($strAkhir); ?>
@@ -627,13 +605,7 @@ if (!function_exists('formatDate')) {
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">Masa Berlaku (Akhir)</label>
-                                        <div class="flex items-center gap-2">
-                                            <input type="date" name="masa_berlaku_str_akhir" id="masa_berlaku_str_akhir" class="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                                            <label class="flex items-center gap-1 cursor-pointer">
-                                                <input type="checkbox" name="str_seumur_hidup" id="str_seumur_hidup" class="w-4 h-4 text-emerald-600 rounded">
-                                                <span class="text-xs text-gray-600 whitespace-nowrap">Seumur Hidup</span>
-                                            </label>
-                                        </div>
+                                        <input type="date" name="masa_berlaku_str_akhir" id="masa_berlaku_str_akhir" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                                     </div>
                                 </div>
                                 <div>
@@ -807,16 +779,6 @@ if (!function_exists('formatDate')) {
             }
         };
 
-        document.getElementById('str_seumur_hidup').addEventListener('change', function() {
-            const dateInput = document.getElementById('masa_berlaku_str_akhir');
-            if (this.checked) {
-                dateInput.disabled = true;
-                dateInput.value = '';
-            } else {
-                dateInput.disabled = false;
-            }
-        });
-
         function resetForm() {
             document.getElementById('edit_id').value = '';
             document.getElementById('nama_lengkap').value = '';
@@ -832,8 +794,6 @@ if (!function_exists('formatDate')) {
             document.getElementById('no_str').value = '';
             document.getElementById('masa_berlaku_str_mulai').value = '';
             document.getElementById('masa_berlaku_str_akhir').value = '';
-            document.getElementById('str_seumur_hidup').checked = false;
-            document.getElementById('masa_berlaku_str_akhir').disabled = false;
             document.getElementById('file_str').value = '';
             document.getElementById('no_sip').value = '';
             document.getElementById('masa_berlaku_sip_mulai').value = '';
@@ -873,12 +833,7 @@ if (!function_exists('formatDate')) {
             document.getElementById('nomor_pkwt').value = doc.nomor_pkwt || '';
             document.getElementById('no_str').value = doc.no_str || '';
             document.getElementById('masa_berlaku_str_mulai').value = doc.masa_berlaku_str_mulai || '';
-            
-            const isSeumurHidupStr = doc.masa_berlaku_str_akhir === '9999-12-31';
-            document.getElementById('str_seumur_hidup').checked = isSeumurHidupStr;
-            document.getElementById('masa_berlaku_str_akhir').disabled = isSeumurHidupStr;
-            document.getElementById('masa_berlaku_str_akhir').value = isSeumurHidupStr ? '' : (doc.masa_berlaku_str_akhir || '');
-
+            document.getElementById('masa_berlaku_str_akhir').value = doc.masa_berlaku_str_akhir || '';
             document.getElementById('no_sip').value = doc.no_sip || '';
             document.getElementById('masa_berlaku_sip_mulai').value = doc.masa_berlaku_sip_mulai || '';
             document.getElementById('masa_berlaku_sip_akhir').value = doc.masa_berlaku_sip_akhir || '';

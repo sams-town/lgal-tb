@@ -94,6 +94,20 @@ try {
             PRIMARY KEY (`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     ");
+
+    // Tabel untuk multiple files
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `dokumen_akreditasi_files` (
+            `id`           int(11)      NOT NULL AUTO_INCREMENT,
+            `dokumen_id`   int(11)      NOT NULL,
+            `file_path`    varchar(255) NOT NULL,
+            `file_name`    varchar(255) NOT NULL,
+            `created_at`   timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            KEY `dokumen_id` (`dokumen_id`),
+            CONSTRAINT `dokumen_akreditasi_files_ibfk_1` FOREIGN KEY (`dokumen_id`) REFERENCES `dokumen_akreditasi` (`id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    ");
 } catch (PDOException $e) {
     // sudah ada, abaikan
 }
@@ -122,21 +136,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_document'])) {
         $target_capaian      = (int)($_POST['target_capaian']     ?? 100);
 
         // Upload berkas
-        $file_path = null;
-        if (isset($_FILES['berkas']) && $_FILES['berkas']['error'] === UPLOAD_ERR_OK) {
+        $uploaded_files = [];
+        if (isset($_FILES['berkas']) && !empty($_FILES['berkas']['name'][0])) {
             $upload_dir = 'uploads/akreditasi/';
             if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
-            $ext = strtolower(pathinfo($_FILES['berkas']['name'], PATHINFO_EXTENSION));
-            if (in_array($ext, ['pdf','doc','docx','jpg','jpeg','png'])) {
-                $unique_name = uniqid('akreditasi_', true) . '.' . $ext;
-                if (move_uploaded_file($_FILES['berkas']['tmp_name'], $upload_dir . $unique_name)) {
-                    $file_path = $unique_name;
+
+            foreach ($_FILES['berkas']['name'] as $key => $name) {
+                if ($_FILES['berkas']['error'][$key] === UPLOAD_ERR_OK) {
+                    $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+                    if (in_array($ext, ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'])) {
+                        $unique_name = uniqid('akreditasi_', true) . '.' . $ext;
+                        if (move_uploaded_file($_FILES['berkas']['tmp_name'][$key], $upload_dir . $unique_name)) {
+                            $uploaded_files[] = [
+                                'path' => $unique_name,
+                                'name' => $name
+                            ];
+                        }
+                    }
                 }
             }
         }
 
         try {
-            $file_status = $file_path ? 'Ada' : 'Tidak Ada';
+            $file_path = !empty($uploaded_files) ? $uploaded_files[0]['path'] : null;
+            $file_status = !empty($uploaded_files) ? 'Ada' : 'Tidak Ada';
             $stmt = $pdo->prepare("
                 INSERT INTO dokumen_akreditasi
                 (bab, kode_standar, uraian_standar, no_ep, elemen_penilaian,
@@ -153,6 +176,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_document'])) {
                 $nama_dokumen, $kode_ep, $tanggal_review, $target_capaian,
                 $file_path, $file_status
             ]);
+            
+            $dokumen_id = $pdo->lastInsertId();
+            
+            // Simpan multiple files ke tabel baru
+            if (!empty($uploaded_files)) {
+                $stmtFile = $pdo->prepare("INSERT INTO dokumen_akreditasi_files (dokumen_id, file_path, file_name) VALUES (?, ?, ?)");
+                foreach ($uploaded_files as $f) {
+                    $stmtFile->execute([$dokumen_id, $f['path'], $f['name']]);
+                }
+            }
+
             $message = 'Dokumen berhasil ditambahkan!';
         } catch (PDOException $e) {
             $message = 'Gagal menambah dokumen: ' . $e->getMessage();
@@ -188,23 +222,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_document'])) {
         $current_doc = $stmt->fetch();
         $file_path = $current_doc['file_path'] ?? null;
 
-        if (isset($_FILES['berkas']) && $_FILES['berkas']['error'] === UPLOAD_ERR_OK) {
+        // Upload berkas baru (multiple)
+        if (isset($_FILES['berkas']) && !empty($_FILES['berkas']['name'][0])) {
             $upload_dir = 'uploads/akreditasi/';
             if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
-            $ext = strtolower(pathinfo($_FILES['berkas']['name'], PATHINFO_EXTENSION));
-            if (in_array($ext, ['pdf','doc','docx','jpg','jpeg','png'])) {
-                if ($file_path && file_exists($upload_dir . $file_path)) {
-                    unlink($upload_dir . $file_path);
-                }
-                $unique_name = uniqid('akreditasi_', true) . '.' . $ext;
-                if (move_uploaded_file($_FILES['berkas']['tmp_name'], $upload_dir . $unique_name)) {
-                    $file_path = $unique_name;
+
+            foreach ($_FILES['berkas']['name'] as $key => $name) {
+                if ($_FILES['berkas']['error'][$key] === UPLOAD_ERR_OK) {
+                    $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+                    if (in_array($ext, ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'])) {
+                        $unique_name = uniqid('akreditasi_', true) . '.' . $ext;
+                        if (move_uploaded_file($_FILES['berkas']['tmp_name'][$key], $upload_dir . $unique_name)) {
+                            // Simpan ke tabel multiple files
+                            $stmtFile = $pdo->prepare("INSERT INTO dokumen_akreditasi_files (dokumen_id, file_path, file_name) VALUES (?, ?, ?)");
+                            $stmtFile->execute([$edit_id, $unique_name, $name]);
+                            
+                            // Jika belum ada file_path utama, gunakan ini
+                            if (!$file_path) {
+                                $file_path = $unique_name;
+                            }
+                        }
+                    }
                 }
             }
         }
 
+        // Cek status file terbaru
+        $stmtCheck = $pdo->prepare("SELECT COUNT(*) FROM dokumen_akreditasi_files WHERE dokumen_id = ?");
+        $stmtCheck->execute([$edit_id]);
+        $hasFiles = $stmtCheck->fetchColumn() > 0;
+        $file_status = $hasFiles ? 'Ada' : 'Tidak Ada';
+
+        // Update file_path utama jika masih kosong tapi ada file di tabel files
+        if (!$file_path && $hasFiles) {
+            $stmtFirst = $pdo->prepare("SELECT file_path FROM dokumen_akreditasi_files WHERE dokumen_id = ? LIMIT 1");
+            $stmtFirst->execute([$edit_id]);
+            $file_path = $stmtFirst->fetchColumn();
+        }
+
         try {
-            $file_status = $file_path ? 'Ada' : 'Tidak Ada';
             $stmt = $pdo->prepare("
                 UPDATE dokumen_akreditasi SET
                     bab=?, kode_standar=?, uraian_standar=?, no_ep=?, elemen_penilaian=?,
@@ -236,18 +292,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
     } else {
         $delete_id = (int)$_POST['delete_id'];
         try {
-            $stmt = $pdo->prepare("SELECT file_path FROM dokumen_akreditasi WHERE id = ?");
+            // Ambil semua file terkait untuk dihapus dari disk
+            $stmt = $pdo->prepare("SELECT file_path FROM dokumen_akreditasi_files WHERE dokumen_id = ?");
             $stmt->execute([$delete_id]);
-            $doc = $stmt->fetch();
-            if ($doc && $doc['file_path']) {
-                $fp = 'uploads/akreditasi/' . $doc['file_path'];
+            $files = $stmt->fetchAll();
+            foreach ($files as $f) {
+                $fp = 'uploads/akreditasi/' . $f['file_path'];
                 if (file_exists($fp)) unlink($fp);
             }
+            
+            // Hapus record utama (tabel files akan terhapus otomatis via CASCADE)
             $stmt = $pdo->prepare("DELETE FROM dokumen_akreditasi WHERE id = ?");
             $stmt->execute([$delete_id]);
             $message = 'Dokumen berhasil dihapus!';
         } catch (PDOException $e) {
             $message = 'Gagal menghapus dokumen: ' . $e->getMessage();
+        }
+    }
+}
+
+// ── HAPUS FILE SATUAN ─────────────────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_file_id'])) {
+    if (!canUserEditOrDelete('akreditasi')) {
+        $message = 'Anda tidak memiliki akses untuk menghapus file!';
+    } else {
+        $file_id = (int)$_POST['delete_file_id'];
+        try {
+            $stmt = $pdo->prepare("SELECT file_path, dokumen_id FROM dokumen_akreditasi_files WHERE id = ?");
+            $stmt->execute([$file_id]);
+            $file = $stmt->fetch();
+            if ($file) {
+                $fp = 'uploads/akreditasi/' . $file['file_path'];
+                if (file_exists($fp)) unlink($fp);
+                
+                $dok_id = $file['dokumen_id'];
+                $pdo->prepare("DELETE FROM dokumen_akreditasi_files WHERE id = ?")->execute([$file_id]);
+                
+                // Update status di tabel utama
+                $stmtCheck = $pdo->prepare("SELECT COUNT(*) FROM dokumen_akreditasi_files WHERE dokumen_id = ?");
+                $stmtCheck->execute([$dok_id]);
+                $hasFiles = $stmtCheck->fetchColumn() > 0;
+                
+                $file_status = $hasFiles ? 'Ada' : 'Tidak Ada';
+                $new_file_path = null;
+                if ($hasFiles) {
+                    $stmtFirst = $pdo->prepare("SELECT file_path FROM dokumen_akreditasi_files WHERE dokumen_id = ? LIMIT 1");
+                    $stmtFirst->execute([$dok_id]);
+                    $new_file_path = $stmtFirst->fetchColumn();
+                }
+                
+                $pdo->prepare("UPDATE dokumen_akreditasi SET file_path = ?, file_status = ? WHERE id = ?")
+                    ->execute([$new_file_path, $file_status, $dok_id]);
+            }
+            $message = 'File berhasil dihapus!';
+        } catch (PDOException $e) {
+            $message = 'Gagal menghapus file: ' . $e->getMessage();
         }
     }
 }
@@ -265,6 +364,19 @@ try {
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
     $documents = $stmt->fetchAll();
+
+    // Ambil data file untuk setiap dokumen
+    $docIds = array_column($documents, 'id');
+    $allFiles = [];
+    if (!empty($docIds)) {
+        $placeholders = implode(',', array_fill(0, count($docIds), '?'));
+        $stmtFiles = $pdo->prepare("SELECT * FROM dokumen_akreditasi_files WHERE dokumen_id IN ($placeholders)");
+        $stmtFiles->execute($docIds);
+        $filesData = $stmtFiles->fetchAll();
+        foreach ($filesData as $f) {
+            $allFiles[$f['dokumen_id']][] = $f;
+        }
+    }
 
     $stats = ['total'=>0,'selesai'=>0,'sebagian'=>0,'belum'=>0];
     foreach ($documents as $doc) {
@@ -514,11 +626,18 @@ $rekapTotal['dinilai'] = $rekapTotal['total'] - $rekapTotal['na'];
                                     </td>
                                     <td class="td td-wrap"><?php echo nl2br(htmlspecialchars($doc['catatan'] ?? '-')); ?></td>
                                     <td class="td">
-                                        <?php if ($doc['file_path']): ?>
-                                            <a href="uploads/akreditasi/<?php echo $doc['file_path']; ?>" target="_blank"
-                                               class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 hover:bg-green-200">
-                                                Ada
-                                            </a>
+                                        <?php 
+                                        $files = $allFiles[$doc['id']] ?? [];
+                                        if (!empty($files)): ?>
+                                            <div class="flex flex-col gap-1">
+                                                <?php foreach ($files as $idx => $file): ?>
+                                                    <a href="uploads/akreditasi/<?php echo $file['file_path']; ?>" target="_blank"
+                                                       class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-800 hover:bg-green-200 truncate max-w-[100px]"
+                                                       title="<?php echo htmlspecialchars($file['file_name']); ?>">
+                                                        📄 File <?php echo $idx + 1; ?>
+                                                    </a>
+                                                <?php endforeach; ?>
+                                            </div>
                                         <?php else: ?>
                                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">Tidak Ada</span>
                                         <?php endif; ?>
@@ -526,7 +645,11 @@ $rekapTotal['dinilai'] = $rekapTotal['total'] - $rekapTotal['na'];
                                     <td class="td">
                                         <div class="flex items-center gap-1">
                                             <?php if (canUserEditOrDelete('akreditasi')): ?>
-                                                <button onclick='openEditModal(<?php echo htmlspecialchars(json_encode($doc), ENT_QUOTES); ?>)'
+                                                <button onclick='openEditModal(<?php 
+                                                    $docWithFiles = $doc;
+                                                    $docWithFiles['files'] = $files;
+                                                    echo htmlspecialchars(json_encode($docWithFiles), ENT_QUOTES); 
+                                                ?>)'
                                                     class="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200">Edit</button>
                                                 <form method="POST" onsubmit="return confirm('Yakin hapus dokumen ini?')" class="inline">
                                                     <input type="hidden" name="delete_id" value="<?php echo $doc['id']; ?>">
@@ -648,10 +771,11 @@ $rekapTotal['dinilai'] = $rekapTotal['total'] - $rekapTotal['na'];
                     <div>
                         <label class="block text-sm font-semibold text-gray-800 mb-1">Upload Berkas (PDF/DOC/Image)</label>
                         <div class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white">
-                            <input type="file" name="berkas" id="berkas" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                            <input type="file" name="berkas[]" id="berkas" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" multiple
                                 class="text-sm text-gray-700 file:mr-2 file:py-1 file:px-2 file:rounded file:border file:border-gray-300 file:bg-white file:text-xs file:cursor-pointer w-full">
                         </div>
-                        <p class="text-xs text-gray-400 mt-1">Biarkan kosong jika tidak ingin mengubah berkas</p>
+                        <p class="text-xs text-gray-400 mt-1">Anda dapat memilih lebih dari satu file. Biarkan kosong jika tidak ingin menambah/mengubah berkas.</p>
+                        <div id="existing-files" class="mt-2 space-y-1"></div>
                     </div>
 
                 </div>
@@ -705,6 +829,10 @@ $rekapTotal['dinilai'] = $rekapTotal['total'] - $rekapTotal['na'];
             if (grading) grading.value = 'Belum Selesai';
             const berkas = document.getElementById('berkas');
             if (berkas) berkas.value = '';
+            
+            const existingFiles = document.getElementById('existing-files');
+            if (existingFiles) existingFiles.innerHTML = '';
+            
             updateSkor('Belum Selesai');
         }
 
@@ -729,6 +857,31 @@ $rekapTotal['dinilai'] = $rekapTotal['total'] - $rekapTotal['na'];
             const grading = doc.grading_kelengkapan || 'Belum Selesai';
             setVal('grading_kelengkapan', grading);
             updateSkor(grading);
+
+            // Tampilkan file yang sudah ada
+            const existingFiles = document.getElementById('existing-files');
+            existingFiles.innerHTML = '';
+            if (doc.files && doc.files.length > 0) {
+                const label = document.createElement('p');
+                label.className = 'text-xs font-semibold text-gray-700 mt-2 mb-1';
+                label.textContent = 'File Tersimpan:';
+                existingFiles.appendChild(label);
+
+                doc.files.forEach(file => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center justify-between bg-gray-50 p-2 rounded-lg border border-gray-100';
+                    div.innerHTML = `
+                        <a href="uploads/akreditasi/${file.file_path}" target="_blank" class="text-xs text-emerald-700 hover:underline truncate mr-2">
+                            📄 ${file.file_name}
+                        </a>
+                        <form method="POST" onsubmit="return confirm('Hapus file ini?')" class="flex-shrink-0">
+                            <input type="hidden" name="delete_file_id" value="${file.id}">
+                            <button type="submit" class="text-[10px] bg-red-50 text-red-600 px-2 py-1 rounded hover:bg-red-100">Hapus</button>
+                        </form>
+                    `;
+                    existingFiles.appendChild(div);
+                });
+            }
 
             document.getElementById('submitBtn').name        = 'edit_document';
             document.getElementById('submitBtn').textContent = 'Simpan Perubahan';
